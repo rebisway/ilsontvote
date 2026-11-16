@@ -15,7 +15,13 @@ public sealed class ParlementEuropeenSource : IDisposable
     private const string Base = "https://howtheyvote.eu/api";
     /// <summary>Législature du PE (10e, depuis juillet 2024) : sert de « législature » dans le schéma.</summary>
     public const int Legislature = 10;
-    public const string NoteSource = "Source tierce : HowTheyVote.eu, à partir des votes nominatifs du Parlement européen. Titres en anglais.";
+    public const string NoteSource = "Source tierce : HowTheyVote.eu, à partir des votes nominatifs du Parlement européen.";
+    /// <summary>Note d'un scrutin dont le titre vient de l'Observatoire législatif (officiel, en français).</summary>
+    public const string NoteTitreFr = NoteSource + " Titre : Observatoire législatif du Parlement européen.";
+    /// <summary>Note d'un scrutin dont le titre n'a pas de version française : on garde celui de HowTheyVote (anglais).</summary>
+    public const string NoteTitreEn = NoteSource + " Titre en anglais (pas de version française disponible).";
+
+    private readonly Dictionary<string, string?> _titresFr = new();
 
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromMinutes(2) };
 
@@ -74,12 +80,15 @@ public sealed class ParlementEuropeenSource : IDisposable
         var procedure = r.TryGetProperty("procedure", out var p) && p.ValueKind == JsonValueKind.Object ? Texte(p, "reference") : null;
         var majorite = r.TryGetProperty("majority_type", out var mt) && mt.ValueKind == JsonValueKind.String ? mt.GetString() : null;
 
+        // Vote principal d'une procédure : titre français officiel (les amendements gardent le titre HowTheyVote, en anglais).
+        var estPrincipal = r.TryGetProperty("is_main", out var im0) && im0.ValueKind == JsonValueKind.True;
+        string? titreFr = estPrincipal && !string.IsNullOrEmpty(procedure) ? await TitreFrancaisAsync(procedure) : null;
         var scrutin = new ScrutinRow(
-            scrutinId, Chambres.UE, Legislature, int.Parse(id), date, titre,
+            scrutinId, Chambres.UE, Legislature, int.Parse(id), date, titreFr ?? titre,
             null, sort, string.IsNullOrEmpty(procedure) ? null : procedure,
             r.TryGetProperty("is_main", out var im) && im.ValueKind == JsonValueKind.True,
             pour + contre + abst, pour, contre, abst, 0, "howtheyvote",
-            0, NoteSource,
+            0, titreFr is not null ? NoteTitreFr : NoteTitreEn,
             TypeVoteLibelle: "scrutin public (appel nominal)", TypeMajorite: majorite,
             SuffragesExprimes: pour + contre);
         return (new ScrutinAvecVotes(scrutin, votes), membres);
@@ -91,6 +100,35 @@ public sealed class ParlementEuropeenSource : IDisposable
     /// GET + JSON avec reprise. L'API est bénévole et limite le débit (429 « Too Many Requests » observé après ~100 appels rapprochés) :
     /// on respecte <c>Retry-After</c> quand il est fourni, sinon on attend de plus en plus longtemps.
     /// </summary>
+    /// <summary>
+    /// Titre français d'une procédure (« 2025/0264(CNS) ») d'après l'API officielle du Parlement (data.europarl.europa.eu,
+    /// champ <c>process_title.fr</c>). Null si introuvable : l'appelant garde alors le titre anglais. Mémorisé (une procédure
+    /// regroupe de nombreux votes).
+    /// </summary>
+    public async Task<string?> TitreFrancaisAsync(string reference)
+    {
+        if (_titresFr.TryGetValue(reference, out var connu)) return connu;
+        string? titre = null;
+        try
+        {
+            // « 2025/0264(CNS) » -> identifiant d'API « 2025-0264 »
+            var cle = reference.Split('(')[0].Replace('/', '-');
+            using var rep = await _http.GetAsync($"https://data.europarl.europa.eu/api/v2/procedures/{cle}?format=application%2Fld%2Bjson");
+            if (rep.IsSuccessStatusCode)
+            {
+                using var doc = await JsonDocument.ParseAsync(await rep.Content.ReadAsStreamAsync());
+                if (doc.RootElement.TryGetProperty("data", out var data) && data.GetArrayLength() > 0
+                    && data[0].TryGetProperty("process_title", out var pt) && pt.ValueKind == JsonValueKind.Object
+                    && pt.TryGetProperty("fr", out var fr) && fr.ValueKind == JsonValueKind.String)
+                    titre = fr.GetString()!.Trim();
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException) { /* titre anglais conservé */ }
+        _titresFr[reference] = titre;
+        await Task.Delay(200);
+        return titre;
+    }
+
     private async Task<JsonDocument> GetAsync(string url)
     {
         for (var essai = 1; ; essai++)

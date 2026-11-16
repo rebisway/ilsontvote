@@ -16,7 +16,7 @@ public interface IScrutinRepository
 
     /// <summary>Liste paginée de scrutins. <paramref name="chambre"/> null = Assemblée nationale et Sénat (pas le Parlement européen).</summary>
     Task<Resultats<Scrutin>> ListerAsync(string? chambre, string? recherche, bool surEnsembleSeulement, int page, int parPage,
-        string tri = "date", bool decroissant = true);
+        string tri = "date", bool decroissant = true, DateTime? du = null, DateTime? au = null);
 }
 
 public sealed class ScrutinRepository(DapperContext db) : IScrutinRepository
@@ -108,7 +108,7 @@ public sealed class ScrutinRepository(DapperContext db) : IScrutinRepository
     public static IEnumerable<string> ClesTri => Tris.Keys;
 
     public async Task<Resultats<Scrutin>> ListerAsync(string? chambre, string? recherche, bool surEnsembleSeulement, int page, int parPage,
-        string tri = "date", bool decroissant = true)
+        string tri = "date", bool decroissant = true, DateTime? du = null, DateTime? au = null)
     {
         using var conn = db.CreateConnection();
         page = Math.Max(1, page);
@@ -123,8 +123,11 @@ public sealed class ScrutinRepository(DapperContext db) : IScrutinRepository
               AND (NOT @ensemble OR sur_ensemble)
               AND NOT (nominatif_incomplet AND @ensemble)
               AND titre ILIKE ALL (@mots)
+              -- Période : bornes incluses ; `date_scrutin` est une date (sans heure).
+              AND (@du::date IS NULL OR date_scrutin >= @du::date)
+              AND (@au::date IS NULL OR date_scrutin <= @au::date)
             """;
-        var p = new { chambre, ensemble = surEnsembleSeulement, mots, limit = parPage, offset = (page - 1) * parPage };
+        var p = new { chambre, ensemble = surEnsembleSeulement, mots, du, au, limit = parPage, offset = (page - 1) * parPage };
 
         var total = await conn.ExecuteScalarAsync<int>($"SELECT count(*) FROM scrutins {where}", p);
         var colonne = Tris.GetValueOrDefault(tri, "date_scrutin");

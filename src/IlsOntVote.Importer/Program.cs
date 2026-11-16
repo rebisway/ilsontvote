@@ -122,6 +122,24 @@ async Task<int> ImporterUeAsync()
     try
     {
         using var source = new ParlementEuropeenSource();
+
+        // Rattrapage : titres français (Observatoire législatif) des votes principaux déjà importés en anglais.
+        if (argv.Contains("--titres"))
+        {
+            var refs = await repo.LireReferencesUeAsync();
+            int traduits = 0, lignes = 0;
+            foreach (var reference in refs)
+            {
+                var fr = await source.TitreFrancaisAsync(reference);
+                if (fr is null) continue;
+                lignes += await repo.MettreTitreUeAsync(reference, fr, ParlementEuropeenSource.NoteTitreFr);
+                traduits++;
+            }
+            Console.WriteLine($"  {traduits}/{refs.Count} procédures traduites, {lignes} scrutins mis à jour.");
+            await repo.TerminerAsync(runId, true, lignes, 0, $"titres français : {traduits}/{refs.Count} procédures");
+            return 0;
+        }
+
         var limite = int.TryParse(Option("--limit"), out var l) ? l : int.MaxValue;
         var (deja, _) = await repo.LireScrutinsUeAsync();
         var liste = await source.ListerVotesAsync();

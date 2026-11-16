@@ -20,6 +20,10 @@ public class ParlementaireModel(IParlementaireRepository parlementaires) : PageM
     public BilanParlementaire Bilan { get; private set; } = new();
     public Resultats<LigneVote> Votes { get; private set; } = new([], 0, 1, ParPage);
 
+    /// <summary>Période (yyyy-MM-dd) appliquée à l'historique de vote.</summary>
+    [BindProperty(SupportsGet = true)] public string? Du { get; set; }
+    [BindProperty(SupportsGet = true)] public string? Au { get; set; }
+
     public bool ToutAfficher => Portee == "tout";
 
     public async Task<IActionResult> OnGetAsync(string slug)
@@ -32,7 +36,8 @@ public class ParlementaireModel(IParlementaireRepository parlementaires) : PageM
 
         Elu = elu;
         Bilan = await parlementaires.GetBilanAsync(elu.Id, chambre);
-        Votes = await parlementaires.GetVotesAsync(elu.Id, chambre, !ToutAfficher, NumeroPage, ParPage);
+        Votes = await parlementaires.GetVotesAsync(elu.Id, chambre, !ToutAfficher, NumeroPage, ParPage,
+            Periode.Lire(Du, Au).Du, Periode.Lire(Du, Au).Au);
         return Page();
     }
 
@@ -40,6 +45,8 @@ public class ParlementaireModel(IParlementaireRepository parlementaires) : PageM
     {
         var q = new List<string>();
         if (ToutAfficher) q.Add("portee=tout");
+        if (!string.IsNullOrEmpty(Du)) q.Add("du=" + Uri.EscapeDataString(Du));
+        if (!string.IsNullOrEmpty(Au)) q.Add("au=" + Uri.EscapeDataString(Au));
         if (n > 1) q.Add("page=" + n);
         return Elu.Lien + (q.Count > 0 ? "?" + string.Join("&", q) : "");
     }

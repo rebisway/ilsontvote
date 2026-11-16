@@ -15,7 +15,8 @@ public interface IParlementaireRepository
     Task<BilanParlementaire> GetBilanAsync(string parlementaireId, string chambre);
 
     /// <summary>Historique de vote sur les scrutins où le parlementaire siégeait (absences incluses).</summary>
-    Task<Resultats<LigneVote>> GetVotesAsync(string parlementaireId, string chambre, bool surEnsembleSeulement, int page, int parPage);
+    Task<Resultats<LigneVote>> GetVotesAsync(string parlementaireId, string chambre, bool surEnsembleSeulement, int page, int parPage,
+        DateTime? du = null, DateTime? au = null);
 }
 
 public sealed class ParlementaireRepository(DapperContext db) : IParlementaireRepository
@@ -104,7 +105,8 @@ public sealed class ParlementaireRepository(DapperContext db) : IParlementaireRe
     }
 
     public async Task<Resultats<LigneVote>> GetVotesAsync(
-        string parlementaireId, string chambre, bool surEnsembleSeulement, int page, int parPage)
+        string parlementaireId, string chambre, bool surEnsembleSeulement, int page, int parPage,
+        DateTime? du = null, DateTime? au = null)
     {
         using var conn = db.CreateConnection();
         page = Math.Max(1, page);
@@ -115,13 +117,15 @@ public sealed class ParlementaireRepository(DapperContext db) : IParlementaireRe
               LEFT JOIN votes v ON v.scrutin_id = s.id AND v.parlementaire_id = @parlementaireId
              WHERE s.chambre = @chambre AND NOT s.nominatif_incomplet
                AND (NOT @ensemble OR s.sur_ensemble)
+               AND (@du::date IS NULL OR s.date_scrutin >= @du::date)
+               AND (@au::date IS NULL OR s.date_scrutin <= @au::date)
                AND EXISTS (SELECT 1 FROM mandats m
                             WHERE m.parlementaire_id = @parlementaireId
                               AND (m.legislature IS NULL OR m.legislature = s.legislature)
                               AND m.date_debut <= s.date_scrutin
                               AND (m.date_fin IS NULL OR m.date_fin >= s.date_scrutin))
             """;
-        var p = new { parlementaireId, chambre, ensemble = surEnsembleSeulement, limit = parPage, offset = (page - 1) * parPage };
+        var p = new { parlementaireId, chambre, ensemble = surEnsembleSeulement, du, au, limit = parPage, offset = (page - 1) * parPage };
 
         var total = await conn.ExecuteScalarAsync<int>($"SELECT count(*) {from}", p);
         var lignes = (await conn.QueryAsync<LigneVote>(

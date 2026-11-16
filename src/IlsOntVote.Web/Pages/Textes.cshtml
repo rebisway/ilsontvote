@@ -19,6 +19,8 @@
         <option value="senat" selected="@(Model.Chambre == "senat")">Sénat</option>
         <option value="ue" selected="@(Model.Chambre == "ue")">Parlement européen</option>
     </select>
+    <label class="champ-date">Du <input type="date" name="du" value="@Model.Du" aria-label="Du (date de début)" /></label>
+    <label class="champ-date">au <input type="date" name="au" value="@Model.Au" aria-label="Au (date de fin)" /></label>
     <label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" /> amendements et articles</label>
     @* Tri : en-têtes de colonne (écran large) ou ces listes (téléphone). *@
     <select name="tri" class="tri-mobile" aria-label="Trier par">

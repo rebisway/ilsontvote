@@ -204,6 +204,23 @@ public sealed class ImportRepository(string connectionString)
         return (rows.Select(r => r.Id).ToHashSet(), rows.Count == 0 ? null : DateOnly.FromDateTime(rows.Max(r => r.Date)));
     }
 
+    /// <summary>Références de procédure (ex. « 2025/0264(CNS) ») des votes principaux UE, pour le rattrapage des titres français.</summary>
+    public async Task<IReadOnlyList<string>> LireReferencesUeAsync()
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        return (await conn.QueryAsync<string>(
+            "SELECT DISTINCT dossier_ref FROM scrutins WHERE chambre = 'UE' AND sur_ensemble AND dossier_ref IS NOT NULL")).ToList();
+    }
+
+    /// <summary>Remplace le titre (et la note de source) de tous les votes principaux d'une procédure UE.</summary>
+    public async Task<int> MettreTitreUeAsync(string reference, string titre, string note)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        return await conn.ExecuteAsync(
+            "UPDATE scrutins SET titre = @titre, note = @note WHERE chambre = 'UE' AND sur_ensemble AND dossier_ref = @reference",
+            new { reference, titre, note });
+    }
+
     /// <summary>Ajoute ou met à jour groupes et eurodéputés (upsert, jamais de suppression : l'import UE est incrémental).</summary>
     public async Task EcrireMembresUeAsync(IEnumerable<GroupeRow> groupes, IEnumerable<ParlementaireRow> parlementaires)
     {
