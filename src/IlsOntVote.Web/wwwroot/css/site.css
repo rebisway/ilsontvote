@@ -450,3 +450,8 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
 
 /* Nom complet du groupe filtré (page des élus) */
 .nom-groupe { margin: 0 0 12px; font-weight: 650; color: var(--ink); }
+
+/* Boutons de don (page « Soutenir ») */
+.dons { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.bouton-don { display: inline-block; padding: 10px 18px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-weight: 650; text-decoration: none; }
+.bouton-don:hover { border-color: var(--ink-soft); }

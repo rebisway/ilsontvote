@@ -123,14 +123,13 @@ async Task<int> ImporterUeAsync()
     {
         using var source = new ParlementEuropeenSource();
         var limite = int.TryParse(Option("--limit"), out var l) ? l : int.MaxValue;
-        var (deja, ancienPlusRecent) = await repo.LireScrutinsUeAsync();
+        var (deja, _) = await repo.LireScrutinsUeAsync();
         var liste = await source.ListerVotesAsync();
         var aLire = liste.Where(v => !deja.Contains($"EP-{v.Id}")).Take(limite).ToList();
         Console.WriteLine($"  {liste.Count} votes au total, {deja.Count} déjà en base, {aLire.Count} à lire.");
 
         var existants = await repo.LireSlugsAsync();
         var slugs = existants.Values.ToHashSet();
-        var vus = new Dictionary<string, (DateOnly Premier, DateOnly Dernier, string GroupeId)>();
         var groupes = new Dictionary<string, GroupeRow>();
         var parlementaires = new Dictionary<string, ParlementaireRow>();
         int nbScrutins = 0; long nbVotes = 0;
@@ -138,6 +137,9 @@ async Task<int> ImporterUeAsync()
         foreach (var lot in aLire.Chunk(25))
         {
             var scrutins = new List<ScrutinAvecVotes>();
+            // Vus dans CE lot seulement : les mandats sont écrits après chaque lot (et fusionnés avec l'existant), de sorte
+            // qu'un import interrompu laisse toujours un état cohérent (sinon la liste des eurodéputés restait vide).
+            var vus = new Dictionary<string, (DateOnly Premier, DateOnly Dernier, string GroupeId)>();
             foreach (var (id, _) in lot)
             {
                 var (sc, membres) = await source.LireVoteAsync(id);
@@ -162,12 +164,13 @@ async Task<int> ImporterUeAsync()
             }
             await repo.EcrireMembresUeAsync(groupes.Values, parlementaires.Values);
             var annuaire = new Annuaire(groupes.Values.ToList(), parlementaires.Values.ToList(), [], []);
+            var (_, ancienPlusRecent) = await repo.LireScrutinsUeAsync(); // plus récent vote connu AVANT ce lot
             var (n, v2, _) = await repo.EcrireScrutinsAsync(scrutins, annuaire);
+            await repo.EcrireMandatsUeAsync(vus, ancienPlusRecent);
             nbScrutins += n; nbVotes += v2;
             Console.WriteLine($"  {nbScrutins}/{aLire.Count} votes lus…");
         }
 
-        if (aLire.Count > 0) await repo.EcrireMandatsUeAsync(vus, ancienPlusRecent);
         Console.WriteLine($"  {nbScrutins} scrutins, {nbVotes} votes, {parlementaires.Count} eurodéputés.");
         await repo.TerminerAsync(runId, true, nbScrutins, nbVotes, null);
         return 0;

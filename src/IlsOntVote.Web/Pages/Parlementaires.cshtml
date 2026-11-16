@@ -23,7 +23,7 @@
 <p class="nom-groupe" id="nom-groupe" aria-live="polite" hidden></p>
 
 <div class="filtres">
-    <input id="filtre" class="filtre" type="search" placeholder="Chercher un nom, un département…" aria-label="Chercher un @Chambres.Membre(Model.Chambre)" autocomplete="off" />
+    <input id="filtre" class="filtre" type="search" placeholder="@(Model.Chambre == Chambres.UE ? "Chercher un nom, un pays…" : "Chercher un nom, un département…")" aria-label="Chercher un @Chambres.Membre(Model.Chambre)" autocomplete="off" />
     <partial name="_OrdreNom" />
 </div>
 

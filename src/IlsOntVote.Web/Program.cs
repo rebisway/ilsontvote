@@ -181,7 +181,7 @@ app.MapGet("/robots.txt", () => Results.Text(
 app.MapGet("/sitemap.xml", async (DapperContext db) =>
 {
     using var cx = db.CreateConnection();
-    var urls = new List<string> { "/", "/lois", "/textes", "/deputes", "/senateurs", "/methodologie", "/mentions-legales" };
+    var urls = new List<string> { "/", "/lois", "/textes", "/deputes", "/senateurs", "/methodologie", "/mentions-legales", "/soutenir" };
     urls.AddRange(await cx.QueryAsync<string>("SELECT '/scrutin/' || id FROM scrutins"));
     urls.AddRange(await cx.QueryAsync<string>("SELECT '/texte/' || id FROM textes"));
     urls.AddRange(await cx.QueryAsync<string>(
