@@ -478,3 +478,15 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
 .filtres-liste button[type="submit"] { font-weight: 650; }
 /* /lois : la recherche partage la première ligne avec le statut ; chambre, période et « Filtrer » tiennent sur la seconde. */
 @media (min-width: 721px) { .filtres-liste.filtres-lois .filtre { flex: 1 1 320px; } }
+
+/* Bas de la page d'accueil : séparation + encart de don */
+.separateur { margin: 44px 0 28px; border: 0; border-top: 1px solid var(--line); }
+.encart-don { display: flex; flex-wrap: wrap; gap: 18px 32px; align-items: center; justify-content: space-between; margin-bottom: 28px; padding: 20px 24px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.encart-don > div:first-child { flex: 1 1 340px; }
+.encart-don h2 { margin: 0 0 6px; font-size: 1.15rem; }
+.encart-don p { margin: 0; color: var(--ink-soft); }
+.encart-don .dons { margin: 0; align-items: center; }
+.bouton-don-principal { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.bouton-don-principal:hover { opacity: 0.88; border-color: var(--ink); }
+.lien-don { color: var(--ink-soft); font-size: 0.92rem; text-decoration: underline; }
+@media (max-width: 720px) { .encart-don .bouton-don { flex: 1 1 140px; text-align: center; } }

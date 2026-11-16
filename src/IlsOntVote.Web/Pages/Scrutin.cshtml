@@ -4,6 +4,9 @@
 @model ScrutinModel
 @{
     var s = Model.Scrutin;
+    ViewData["OgImage"] = "/apercu/scrutin/" + s.Id + ".png";
+    ViewData["Description"] = $"{(s.Adopte ? "Adopté" : "Rejeté")} : {s.NbPour} pour, {s.NbContre} contre, {s.NbAbstentions} abstentions"
+        + $" ({s.DateScrutin:d MMMM yyyy}, {Chambres.Nom(s.Chambre)}). Voyez qui a voté quoi, groupe par groupe.";
     ViewData["Title"] = s.TitreAffiche.Length > 60 ? s.TitreAffiche[..60] + "…" : s.TitreAffiche;
     var fr = new System.Globalization.CultureInfo("fr-FR");
     string Libelle(string p) => p switch

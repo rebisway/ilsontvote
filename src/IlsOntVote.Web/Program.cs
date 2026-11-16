@@ -68,6 +68,7 @@ builder.Services.AddScoped<IPageViewRepository, PageViewRepository>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddSingleton<IIpHasher, IpHasher>();
 builder.Services.AddSingleton<PaysResolver>();
+builder.Services.AddSingleton<ApercuImage>();
 
 // nginx en reverse proxy devant l'appli : sans ça, l'IP vue serait toujours celle de nginx.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -190,6 +191,17 @@ app.MapGet("/sitemap.xml", async (DapperContext db) =>
     foreach (var u in urls) sb.Append("<url><loc>").Append(System.Security.SecurityElement.Escape(SiteUrl + u)).Append("</loc></url>");
     return Results.Text(sb.Append("</urlset>").ToString(), "application/xml");
 }).CacheOutput(p => p.Expire(TimeSpan.FromHours(6)));
+
+// Images d'aperçu de partage (og:image). Mises en cache : un scrutin ne change pas, et chaque image coûte une requête + un dessin.
+app.MapGet("/apercu/scrutin/{id}.png", async (string id, IScrutinRepository scrutins, ApercuImage image) =>
+{
+    var s = await scrutins.GetAsync(id);
+    if (s is null) return Results.NotFound();
+    var vue = HemicycleLayout.Construire(await scrutins.GetSiegesAsync(id));
+    return Results.File(image.Scrutin(s, vue), "image/png");
+}).CacheOutput(p => p.Expire(TimeSpan.FromHours(12)).SetVaryByRouteValue("id"));
+app.MapGet("/apercu/defaut.png", (ApercuImage image) => Results.File(image.Defaut(), "image/png"))
+    .CacheOutput(p => p.Expire(TimeSpan.FromHours(12)));
 
 app.MapRazorPages();
 
