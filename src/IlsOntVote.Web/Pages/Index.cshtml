@@ -37,7 +37,7 @@
                         <time datetime="@c.Scrutin.DateScrutin.ToString("yyyy-MM-dd")">@c.Scrutin.DateScrutin.ToString("d MMMM yyyy", fr)</time>
                         <span class="sort @(c.Scrutin.Adopte ? "adopte" : "rejete")">@(c.Scrutin.Adopte ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span>
                     </header>
-                    <h3><a href="@L.Lien("/scrutin/" + c.Scrutin.Id)">@c.Scrutin.TitreAffiche</a></h3>
+                    <h3><a href="@L.Lien("/scrutin/" + c.Scrutin.Id)" title="@c.Scrutin.InfobulleTitre(L.Anglais)">@c.Scrutin.TitreLangue(L.Anglais)</a></h3>
 
                     <a class="carte-hemicycle" href="@L.Lien("/scrutin/" + c.Scrutin.Id)" tabindex="-1" aria-hidden="true">
                         <partial name="_Hemicycle" model="(c.Vue, false)" />

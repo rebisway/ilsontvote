@@ -209,6 +209,63 @@ public sealed class ImportRepository(string connectionString)
         }
     }
 
+    // ------------------------------------------------------------------ Titres en anglais
+
+    /// <summary>
+    /// Titres français à traduire : ceux des textes affichés sur le site (au moins un scrutin ou une étape) et des votes sur l'ensemble
+    /// français, sans titre anglais et pas déjà dans la table des traductions. Distincts : un titre partagé n'est traduit qu'une fois.
+    /// </summary>
+    public async Task<IReadOnlyList<string>> LireTitresATraduireAsync(int limite)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        return (await conn.QueryAsync<string>(
+            """
+            SELECT x.fr FROM (
+                SELECT t.titre AS fr FROM textes t
+                 WHERE t.titre_en IS NULL
+                   AND (EXISTS (SELECT 1 FROM scrutins s WHERE s.texte_id = t.id) OR EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id))
+                UNION
+                SELECT s.titre FROM scrutins s WHERE s.titre_en IS NULL AND s.chambre <> 'UE' AND s.sur_ensemble
+            ) x
+            WHERE NOT EXISTS (SELECT 1 FROM traductions_titres tr WHERE tr.fr = x.fr)
+            ORDER BY x.fr LIMIT @limite
+            """, new { limite })).ToList();
+    }
+
+    /// <summary>Enregistre les traductions (clé : titre français) puis les applique aux textes et scrutins concernés.</summary>
+    public async Task<int> EcrireTraductionsAsync(IEnumerable<(string Fr, string En)> traductions, string modele)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+        await using var tx = await conn.BeginTransactionAsync();
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO traductions_titres (fr, en, modele) VALUES (@Fr, @En, @modele)
+            ON CONFLICT (fr) DO UPDATE SET en = EXCLUDED.en, modele = EXCLUDED.modele, traduit_le = now()
+            """, traductions.Select(t => new { t.Fr, t.En, modele }), tx);
+
+        // Application : seulement là où il n'y a pas déjà un titre anglais (source UE ou traduction précédente) ; `titre_en_auto` le signale.
+        var n = await conn.ExecuteAsync(
+            """
+            UPDATE textes t SET titre_en = tr.en, titre_en_auto = true FROM traductions_titres tr WHERE tr.fr = t.titre AND t.titre_en IS NULL;
+            """, transaction: tx);
+        n += await conn.ExecuteAsync(
+            """
+            UPDATE scrutins s SET titre_en = tr.en, titre_en_auto = true FROM traductions_titres tr
+             WHERE tr.fr = s.titre AND s.titre_en IS NULL AND s.chambre <> 'UE';
+            """, transaction: tx);
+        await tx.CommitAsync();
+        return n;
+    }
+
+    /// <summary>Titres anglais d'origine (HowTheyVote) des votes UE déjà importés : rattrapage de la colonne titre_en.</summary>
+    public async Task<int> MettreTitresEnUeAsync(IEnumerable<(string Id, string Titre)> titres)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        return await conn.ExecuteAsync("UPDATE scrutins SET titre_en = @Titre, titre_en_auto = false WHERE id = @Id AND chambre = 'UE'",
+            titres.Select(t => new { Id = "EP-" + t.Id, t.Titre }));
+    }
+
     // ------------------------------------------------------------------ Étapes de lecture (Dossiers législatifs de l'AN)
 
     /// <summary>
@@ -405,11 +462,11 @@ public sealed class ImportRepository(string connectionString)
                 INSERT INTO scrutins (id, chambre, legislature, numero, date_scrutin, titre, type_vote, sort, dossier_ref,
                                       sur_ensemble, nb_votants, nb_pour, nb_contre, nb_abstentions, nb_non_votants, mode_publication,
                                       nb_votes_manquants, nominatif_incomplet, note,
-                                      type_vote_libelle, type_majorite, suffrages_exprimes, suffrages_requis)
+                                      type_vote_libelle, type_majorite, suffrages_exprimes, suffrages_requis, titre_en)
                 VALUES (@Id, @Chambre, @Legislature, @Numero, @DateScrutin, @Titre, @TypeVote, @Sort, @DossierRef,
                         @SurEnsemble, @NbVotants, @NbPour, @NbContre, @NbAbstentions, @NbNonVotants, @ModePublication,
                         @NbVotesManquants, @NbVotesManquants > 0, @Note,
-                        @TypeVoteLibelle, @TypeMajorite, @SuffragesExprimes, @SuffragesRequis)
+                        @TypeVoteLibelle, @TypeMajorite, @SuffragesExprimes, @SuffragesRequis, @TitreEn)
                 ON CONFLICT (id) DO UPDATE SET titre = EXCLUDED.titre, type_vote = EXCLUDED.type_vote, sort = EXCLUDED.sort,
                     dossier_ref = EXCLUDED.dossier_ref, sur_ensemble = EXCLUDED.sur_ensemble,
                     nb_votants = EXCLUDED.nb_votants, nb_pour = EXCLUDED.nb_pour, nb_contre = EXCLUDED.nb_contre,
@@ -418,7 +475,9 @@ public sealed class ImportRepository(string connectionString)
                     nb_votes_manquants = EXCLUDED.nb_votes_manquants, nominatif_incomplet = EXCLUDED.nominatif_incomplet,
                     note = EXCLUDED.note, type_vote_libelle = EXCLUDED.type_vote_libelle,
                     type_majorite = EXCLUDED.type_majorite, suffrages_exprimes = EXCLUDED.suffrages_exprimes,
-                    suffrages_requis = EXCLUDED.suffrages_requis
+                    suffrages_requis = EXCLUDED.suffrages_requis,
+                    -- titre_en : seulement quand la source en fournit un (UE) ; une traduction automatique déjà enregistrée n'est jamais effacée.
+                    titre_en = COALESCE(EXCLUDED.titre_en, scrutins.titre_en)
                 """,
                 lot.Select(l => new
                 {
@@ -427,7 +486,7 @@ public sealed class ImportRepository(string connectionString)
                     l.Scrutin.Titre, l.Scrutin.TypeVote, l.Scrutin.Sort, l.Scrutin.DossierRef, l.Scrutin.SurEnsemble,
                     l.Scrutin.NbVotants, l.Scrutin.NbPour, l.Scrutin.NbContre, l.Scrutin.NbAbstentions,
                     l.Scrutin.NbNonVotants, l.Scrutin.ModePublication, l.Scrutin.NbVotesManquants, l.Scrutin.Note,
-                    l.Scrutin.TypeVoteLibelle, l.Scrutin.TypeMajorite, l.Scrutin.SuffragesExprimes, l.Scrutin.SuffragesRequis,
+                    l.Scrutin.TypeVoteLibelle, l.Scrutin.TypeMajorite, l.Scrutin.SuffragesExprimes, l.Scrutin.SuffragesRequis, l.Scrutin.TitreEn,
                 }), tx);
 
             // Les votes d'un scrutin sont REMPLACÉS en bloc (suppression puis COPY) : plus simple et plus sûr qu'un

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -18,5 +18,10 @@
     <!-- data/ contient les jeux téléchargés (des milliers de fichiers JSON) : ni compilés, ni listés, ni publiés. -->
     <DefaultItemExcludes>$(DefaultItemExcludes);data/**</DefaultItemExcludes>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Traduction automatique des titres (commande « traductions ») : script Python livré avec l'importeur. -->
+    <Content Include="..\..\tools\traduire_titres.py" Link="tools\traduire_titres.py" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 
 </Project>

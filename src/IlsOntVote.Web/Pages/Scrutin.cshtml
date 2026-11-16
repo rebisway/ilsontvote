@@ -4,11 +4,12 @@
 @model ScrutinModel
 @{
     var s = Model.Scrutin;
-    ViewData["OgImage"] = "/apercu/scrutin/" + s.Id + ".png";
+    ViewData["OgImage"] = L.Lien("/apercu/scrutin/" + s.Id + ".png");
     ViewData["Description"] = L.Anglais
         ? $"{(s.Adopte ? "Adopted" : "Rejected")}: {s.NbPour} for, {s.NbContre} against, {s.NbAbstentions} abstentions ({s.DateScrutin.ToString("d MMMM yyyy", L.Culture)}, {Chambres.Nom(s.Chambre, true)}). See who voted what, group by group."
         : $"{(s.Adopte ? "Adopté" : "Rejeté")} : {s.NbPour} pour, {s.NbContre} contre, {s.NbAbstentions} abstentions ({s.DateScrutin.ToString("d MMMM yyyy", L.Culture)}, {Chambres.Nom(s.Chambre)}). Voyez qui a voté quoi, groupe par groupe.";
-    ViewData["Title"] = s.TitreAffiche.Length > 60 ? s.TitreAffiche[..60] + "…" : s.TitreAffiche;
+    var titre = s.TitreLangue(L.Anglais);
+    ViewData["Title"] = titre.Length > 60 ? titre[..60] + "…" : titre;
     var fr = L.Culture;
     string Libelle(string p) => Pos.Libelle(p, L.Anglais);
     // Types de vote publiés par les assemblées (données françaises) : traduits quand on les connaît, sinon laissés tels quels.
@@ -28,9 +29,13 @@
         @Chambres.Nom(s.Chambre, L.Anglais) · @L.T("scrutin n°", "vote no.") @s.Numero · <time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMMM yyyy", fr)</time>
         · <span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span>
     </p>
-    <h1>@s.TitreAffiche</h1>
+    <h1>@titre</h1>
 <partial name="_OrdreNom" />
 </header>
+@if (s.TitreTraduitAuto(L.Anglais))
+{
+    <p class="note-source">@Doute.Html(NiveauDoute.Calcule, "automatic translation", "Machine-translated title (not official). The official title is the French one.") Official title: <span lang="fr">@s.TitreAffiche</span></p>
+}
 
 @{
     // Jauge de majorité : pour (bleu) puis contre (rouge), sur une échelle qui inclut le seuil requis.

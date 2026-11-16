@@ -81,7 +81,7 @@ else
                 var st = t.Statut.Traduit(L.Anglais);
                 <tr>
                     <td class="nowrap col-date" data-label="@L.T("Dernier vote", "Last vote")">@(t.DernierVote?.ToString("d MMM yy", fr))</td>
-                    <td class="col-titre"><a href="@L.Lien("/texte/" + t.Id)">@t.TitreAffiche</a></td>
+                    <td class="col-titre"><a href="@L.Lien("/texte/" + t.Id)" title="@t.InfobulleTitre(L.Anglais)">@t.TitreLangue(L.Anglais)</a></td>
                     <td class="col-statut" data-label="@L.T("Statut", "Status")">
                         <span class="statut @st.Classe" title="@st.Libelle">@st.Court</span>
                         @foreach (var c in new[] { t.EtatAnEn(L.Anglais), t.EtatSenatEn(L.Anglais) })

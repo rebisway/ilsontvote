@@ -28,14 +28,14 @@ public sealed class ParlementEuropeenSource : IDisposable
     public ParlementEuropeenSource() => _http.DefaultRequestHeaders.UserAgent.ParseAdd("IlsOntVote/1.0 (+https://www.ilsontvote.org)");
 
     /// <summary>Identifiants et dates de tous les votes (liste paginée), du plus récent au plus ancien.</summary>
-    public async Task<List<(string Id, DateOnly Date)>> ListerVotesAsync()
+    public async Task<List<(string Id, DateOnly Date, string Titre)>> ListerVotesAsync()
     {
-        var tous = new List<(string, DateOnly)>();
+        var tous = new List<(string, DateOnly, string)>();
         for (var page = 1; ; page++)
         {
             using var doc = await GetAsync($"{Base}/votes?page_size=100&page={page}");
             foreach (var r in doc.RootElement.GetProperty("results").EnumerateArray())
-                tous.Add((r.GetProperty("id").GetString()!, DateOnly.FromDateTime(r.GetProperty("timestamp").GetDateTime())));
+                tous.Add((r.GetProperty("id").GetString()!, DateOnly.FromDateTime(r.GetProperty("timestamp").GetDateTime()), Texte(r, "display_title")));
             if (!doc.RootElement.GetProperty("has_next").GetBoolean()) return tous;
         }
     }
@@ -90,7 +90,8 @@ public sealed class ParlementEuropeenSource : IDisposable
             pour + contre + abst, pour, contre, abst, 0, "howtheyvote",
             0, titreFr is not null ? NoteTitreFr : NoteTitreEn,
             TypeVoteLibelle: "scrutin public (appel nominal)", TypeMajorite: majorite,
-            SuffragesExprimes: pour + contre);
+            SuffragesExprimes: pour + contre,
+            TitreEn: titre);   // titre anglais de HowTheyVote : sert l'interface /en (donnée source, pas une traduction)
         return (new ScrutinAvecVotes(scrutin, votes), membres);
     }
 

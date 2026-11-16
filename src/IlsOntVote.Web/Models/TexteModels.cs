@@ -82,6 +82,17 @@ public class Texte
 
     /// <summary>Titre lisible : première lettre en majuscule.</summary>
     public string TitreAffiche => Titre.Length == 0 ? Titre : char.ToUpperInvariant(Titre[0]) + Titre[1..];
+    // Interface anglaise : titre anglais (HowTheyVote pour l'UE) ou TRADUCTION AUTOMATIQUE du titre français (titre_en_auto).
+    public string? TitreEn { get; set; }
+    public bool TitreEnAuto { get; set; }
+    /// <summary>Titre dans la langue demandée ; sans titre anglais, le titre français (rien n'est inventé).</summary>
+    public string TitreLangue(bool en) => en && !string.IsNullOrWhiteSpace(TitreEn) ? Majuscule(TitreEn.Trim()) : TitreAffiche;
+    /// <summary>Vrai quand le titre affiché est une traduction automatique (à signaler au lecteur).</summary>
+    public bool TitreTraduitAuto(bool en) => en && TitreEnAuto && !string.IsNullOrWhiteSpace(TitreEn);
+    /// <summary>Infobulle d'un titre traduit automatiquement : le titre officiel français ; null sinon (attribut omis).</summary>
+    public string? InfobulleTitre(bool en) => TitreTraduitAuto(en) ? "Official title (French): " + TitreAffiche : null;
+    private static string Majuscule(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
+
 
     /// <summary>
     /// Statut factuel déduit des données — jamais un jugement. « Adopté par les deux assemblées » sans
@@ -204,4 +215,15 @@ public sealed class ScrutinDuTexte
 
     public bool Adopte => Sort is not null && Sort.StartsWith("adopt", StringComparison.OrdinalIgnoreCase);
     public string TitreAffiche => new Scrutin { Titre = Titre }.TitreAffiche;
+    // Interface anglaise : titre anglais (HowTheyVote pour l'UE) ou TRADUCTION AUTOMATIQUE du titre français (titre_en_auto).
+    public string? TitreEn { get; set; }
+    public bool TitreEnAuto { get; set; }
+    /// <summary>Titre dans la langue demandée ; sans titre anglais, le titre français (rien n'est inventé).</summary>
+    public string TitreLangue(bool en) => en && !string.IsNullOrWhiteSpace(TitreEn) ? Majuscule(TitreEn.Trim()) : TitreAffiche;
+    /// <summary>Vrai quand le titre affiché est une traduction automatique (à signaler au lecteur).</summary>
+    public bool TitreTraduitAuto(bool en) => en && TitreEnAuto && !string.IsNullOrWhiteSpace(TitreEn);
+    /// <summary>Infobulle d'un titre traduit automatiquement : le titre officiel français ; null sinon (attribut omis).</summary>
+    public string? InfobulleTitre(bool en) => TitreTraduitAuto(en) ? "Official title (French): " + TitreAffiche : null;
+    private static string Majuscule(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
+
 }

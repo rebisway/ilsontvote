@@ -6,12 +6,13 @@
     var t = Model.Loi;
     var st = t.Statut.Traduit(L.Anglais);
     var fr = L.Culture;
-    ViewData["Title"] = t.TitreAffiche.Length > 60 ? t.TitreAffiche[..60] + "…" : t.TitreAffiche;
+    var titre = t.TitreLangue(L.Anglais);
+    ViewData["Title"] = titre.Length > 60 ? titre[..60] + "…" : titre;
     ViewData["JsonLd"] = new Dictionary<string, object?>
     {
         ["@context"] = "https://schema.org",
         ["@type"] = "Legislation",
-        ["name"] = t.TitreAffiche,
+        ["name"] = t.TitreAffiche,   // données structurées : toujours le titre officiel (français)
         ["inLanguage"] = "fr",
         ["legislationJurisdiction"] = "FR",
         ["legislationType"] = t.TypeLibelle,
@@ -19,16 +20,20 @@
         ["legislationDate"] = t.DatePromulgation?.ToString("yyyy-MM-dd"),
         ["datePublished"] = t.DateJo?.ToString("yyyy-MM-dd"),
     }.Where(kv => kv.Value is not null).ToDictionary(kv => kv.Key, kv => kv.Value!);
-    ViewData["Description"] = L.T($"{t.TitreAffiche} : {st.Libelle}. Votes, décision du Conseil constitutionnel, promulgation et parution au Journal officiel.", $"{t.TitreAffiche}: {st.Libelle}. Votes, Constitutional Council decision, promulgation and publication in the Official Journal. (Title in French, as published.)");
+    ViewData["Description"] = L.T($"{t.TitreAffiche} : {st.Libelle}. Votes, décision du Conseil constitutionnel, promulgation et parution au Journal officiel.", $"{titre}: {st.Libelle}. Votes, Constitutional Council decision, promulgation and publication in the Official Journal.");
 }
 
 <p class="retour"><a href="@L.Lien("/lois")">@L.T("← Toutes les lois", "← All laws")</a></p>
 
 <header class="scrutin-tete">
     <p class="meta">@(t.TypeLibelle is null ? L.T("Texte", "Text") : char.ToUpperInvariant(LibellesEn.TypeTexte(t.TypeLibelle, L.Anglais)[0]) + LibellesEn.TypeTexte(t.TypeLibelle, L.Anglais)[1..])@(string.IsNullOrEmpty(t.NumeroLoi) ? "" : L.T($" · loi n° {t.NumeroLoi}", $" · law no. {t.NumeroLoi}"))</p>
-    <h1>@t.TitreAffiche</h1>
+    <h1>@titre</h1>
     <p><span class="statut @st.Classe">@st.Libelle</span></p>
 </header>
+@if (t.TitreTraduitAuto(L.Anglais))
+{
+    <p class="note-source">@Doute.Html(NiveauDoute.Calcule, "automatic translation", "Machine-translated title (not official). The official title is the French one.") Official title: <span lang="fr">@t.TitreAffiche</span></p>
+}
 
 <section class="fiche-vote" aria-label="@L.T("Parcours du texte", "Journey of the text")">
     <dl>
@@ -124,7 +129,7 @@ else
                 <tr>
                     <td class="nowrap" data-label="Date">@s.DateScrutin.ToString("d MMM yyyy", fr)</td>
                     <td data-label="@L.T("Chambre", "Chamber")"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@Chambres.Court(s.Chambre, L.Anglais)</span></td>
-                    <td><a href="@L.Lien("/scrutin/" + s.Id)">@s.TitreAffiche</a></td>
+                    <td><a href="@L.Lien("/scrutin/" + s.Id)" title="@s.InfobulleTitre(L.Anglais)">@s.TitreLangue(L.Anglais)</a></td>
                     <td data-label="@L.T("Résultat", "Result")"><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span></td>
                     <td class="num" data-label="@L.T("Pour", "For")">@s.NbPour</td><td class="num" data-label="@L.T("Contre", "Against")">@s.NbContre</td><td class="num" data-label="Abstentions">@s.NbAbstentions</td>
                 </tr>

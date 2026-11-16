@@ -38,6 +38,13 @@ if [ -f "$DOSLEG" ]; then $DOTNET "$IMP" textes --dosleg-sql "$DOSLEG" || rc=1; 
 echo "=== Dossiers législatifs (étapes sans scrutin public) ==="
 if [ "$1" = "historique" ]; then $DOTNET "$IMP" dossiers --legislature all || rc=1; else $DOTNET "$IMP" dossiers || rc=1; fi
 
+# Titres anglais (interface /en) : traduction automatique des NOUVEAUX titres français. Facultatif : sans le modèle (voir
+# deploy/setup-traduction.sh), l'étape est ignorée sans erreur.
+export ILSONVOTE_PYTHON="${ILSONVOTE_PYTHON:-/opt/ilsontvote-traduction/venv/bin/python}"
+export ILSONVOTE_MODELE_TRADUCTION="${ILSONVOTE_MODELE_TRADUCTION:-/opt/ilsontvote-traduction/opus-mt-fr-en}"
+echo "=== Traduction des titres ==="
+$DOTNET "$IMP" traductions || rc=1
+
 # Parlement européen (HowTheyVote) : incrémental, seuls les nouveaux votes sont lus (le tout premier passage est long : un appel par vote).
 echo "=== Parlement européen ==="
 $DOTNET "$IMP" ue || rc=1

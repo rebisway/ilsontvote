@@ -238,15 +238,15 @@ app.MapGet("/sitemap-en.xml", async (DapperContext db) => Results.Text(Plan(awai
     .CacheOutput(p => p.Expire(TimeSpan.FromHours(6)));
 
 // Images d'aperçu de partage (og:image). Mises en cache : un scrutin ne change pas, et chaque image coûte une requête + un dessin.
-app.MapGet("/apercu/scrutin/{id}.png", async (string id, IScrutinRepository scrutins, ApercuImage image) =>
+app.MapGet("/apercu/scrutin/{id}.png", async (string id, IScrutinRepository scrutins, ApercuImage image, Langue langue) =>
 {
     var s = await scrutins.GetAsync(id);
     if (s is null) return Results.NotFound();
     var vue = HemicycleLayout.Construire(await scrutins.GetSiegesAsync(id));
-    return Results.File(image.Scrutin(s, vue), "image/png");
-}).CacheOutput(p => p.Expire(TimeSpan.FromHours(12)).SetVaryByRouteValue("id"));
-app.MapGet("/apercu/defaut.png", (ApercuImage image) => Results.File(image.Defaut(), "image/png"))
-    .CacheOutput(p => p.Expire(TimeSpan.FromHours(12)));
+    return Results.File(image.Scrutin(s, vue, langue.Anglais), "image/png");
+}).CacheOutput(p => p.Expire(TimeSpan.FromHours(12)).SetVaryByRouteValue("id").VaryByValue(c => new KeyValuePair<string, string>("lang", c.Items["lang"] as string ?? "fr")));
+app.MapGet("/apercu/defaut.png", (ApercuImage image, Langue langue) => Results.File(image.Defaut(langue.Anglais), "image/png"))
+    .CacheOutput(p => p.Expire(TimeSpan.FromHours(12)).VaryByValue(c => new KeyValuePair<string, string>("lang", c.Items["lang"] as string ?? "fr")));
 
 app.MapRazorPages();
 

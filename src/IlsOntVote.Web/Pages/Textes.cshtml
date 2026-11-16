@@ -75,7 +75,7 @@ else
                 <tr>
                     <td class="nowrap" data-label="@L.T("Date", "Date")"><time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMM yyyy", fr)</time></td>
                     <td data-label="@L.T("Chambre", "Chamber")"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@Chambres.Court(s.Chambre, L.Anglais)</span></td>
-                    <td><a href="@L.Lien("/scrutin/" + s.Id)">@s.TitreAffiche</a></td>
+                    <td><a href="@L.Lien("/scrutin/" + s.Id)" title="@s.InfobulleTitre(L.Anglais)">@s.TitreLangue(L.Anglais)</a></td>
                     <td data-label="@L.T("Résultat", "Result")"><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span></td>
                     <td class="num" data-label="@L.T("Pour", "For")">@s.NbPour</td><td class="num" data-label="@L.T("Contre", "Against")">@s.NbContre</td><td class="num" data-label="@L.T("Abstentions", "Abstentions")">@s.NbAbstentions</td>
                 </tr>

@@ -23,7 +23,7 @@ public sealed class ScrutinRepository(DapperContext db) : IScrutinRepository
 {
     private const string Colonnes =
         """
-        id, chambre, legislature, numero, date_scrutin, titre, sort, type_vote, sur_ensemble,
+        id, chambre, legislature, numero, date_scrutin, titre, titre_en, titre_en_auto, sort, type_vote, sur_ensemble,
         nb_votants, nb_pour, nb_contre, nb_abstentions, nb_non_votants, featured_title,
         nominatif_incomplet, nb_votes_manquants, note,
         type_vote_libelle, type_majorite, suffrages_exprimes, suffrages_requis
@@ -122,7 +122,7 @@ public sealed class ScrutinRepository(DapperContext db) : IScrutinRepository
             WHERE ((@chambre IS NULL AND chambre <> 'UE') OR chambre = @chambre)
               AND (NOT @ensemble OR sur_ensemble)
               AND NOT (nominatif_incomplet AND @ensemble)
-              AND titre ILIKE ALL (@mots)
+              AND (titre ILIKE ALL (@mots) OR titre_en ILIKE ALL (@mots))   -- recherche aussi dans le titre anglais
               -- Période : bornes incluses ; `date_scrutin` est une date (sans heure).
               AND (@du::date IS NULL OR date_scrutin >= @du::date)
               AND (@au::date IS NULL OR date_scrutin <= @au::date)

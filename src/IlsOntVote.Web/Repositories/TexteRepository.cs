@@ -24,7 +24,7 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
 {
     private const string ColonnesTexte =
         """
-        t.id, t.type_libelle, t.titre, t.etat_code, t.etat_libelle, t.numero_loi, t.date_promulgation, t.date_jo, t.numero_jo,
+        t.id, t.type_libelle, t.titre, t.titre_en, t.titre_en_auto, t.etat_code, t.etat_libelle, t.numero_loi, t.date_promulgation, t.date_jo, t.numero_jo,
         t.url_legifrance, t.url_dossier_senat, t.url_dossier_an, t.saisine_cc_date, t.saisine_cc_par, t.decision_cc_numero,
         t.decision_cc_date, t.decision_cc_code, t.decision_cc_libelle, t.decision_cc_url
         """;
@@ -125,7 +125,7 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
         using var conn = db.CreateConnection();
         return (await conn.QueryAsync<ScrutinDuTexte>(
             """
-            SELECT id, chambre, date_scrutin, titre, sort, nb_pour, nb_contre, nb_abstentions
+            SELECT id, chambre, date_scrutin, titre, titre_en, titre_en_auto, sort, nb_pour, nb_contre, nb_abstentions
               FROM scrutins WHERE texte_id = @texteId ORDER BY date_scrutin, chambre, numero
             """, new { texteId })).ToList();
     }
@@ -162,7 +162,7 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
              WITH base AS (
                  SELECT {ColonnesTexte}, {Agregat}
                    FROM textes t LEFT JOIN scrutins s ON s.texte_id = t.id AND (@chambre IS NULL OR s.chambre = @chambre)
-                  WHERE t.titre ILIKE ALL (@mots)
+                  WHERE (t.titre ILIKE ALL (@mots) OR t.titre_en ILIKE ALL (@mots))   -- recherche aussi dans le titre anglais
                     -- Au moins un vote nominatif, OU des étapes de lecture à l'Assemblée sans scrutin public (main levée) : ces textes
                     -- ne sont pas omis faute de nominatif. Les étapes sont des étapes de l'Assemblée : exclues si l'on filtre Sénat / UE.
                     AND (s.id IS NOT NULL

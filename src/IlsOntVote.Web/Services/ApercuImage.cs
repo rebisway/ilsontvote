@@ -40,19 +40,19 @@ public sealed class ApercuImage
         (File.Exists(chemin) ? SKTypeface.FromFile(chemin) : null) ?? SKTypeface.FromFamilyName(null, repli);
 
     /// <summary>Image d'un scrutin : titre, résultat, décomptes, hémicycle.</summary>
-    public byte[] Scrutin(Scrutin s, HemicycleVue vue)
+    public byte[] Scrutin(Scrutin s, HemicycleVue vue, bool en = false)
     {
         using var surface = SKSurface.Create(new SKImageInfo(L, H));
         var c = surface.Canvas;
         c.Clear(Fond);
         Marque(c);
 
-        var fr = CultureInfo.GetCultureInfo("fr-FR");
-        Texte(c, $"{Chambres.Nom(s.Chambre)} · {s.DateScrutin.ToString("d MMMM yyyy", fr)}", Marge, 132, 26, EncreDouce, _normal);
+        var fr = CultureInfo.GetCultureInfo(en ? "en-GB" : "fr-FR");
+        Texte(c, $"{Chambres.Nom(s.Chambre, en)} · {s.DateScrutin.ToString("d MMMM yyyy", fr)}", Marge, 132, 26, EncreDouce, _normal);
 
         // Titre : 3 lignes au plus, « … » si trop long.
         var y = 196f;
-        foreach (var ligne in Couper(s.TitreAffiche, 46, L - 2 * Marge, 3, _gras))
+        foreach (var ligne in Couper(s.TitreLangue(en), 46, L - 2 * Marge, 3, _gras))
         {
             Texte(c, ligne, Marge, y, 46, Encre, _gras);
             y += 56;
@@ -60,9 +60,9 @@ public sealed class ApercuImage
 
         // Colonne gauche : résultat + décomptes.
         var adopte = s.Adopte;
-        Texte(c, adopte ? "ADOPTÉ" : "REJETÉ", Marge, 420, 40, adopte ? Adopte : Contre, _gras);
-        Compteur(c, s.NbPour, "pour", Pour, Marge, 520);
-        Compteur(c, s.NbContre, "contre", Contre, Marge + 190, 520);
+        Texte(c, adopte ? (en ? "ADOPTED" : "ADOPTÉ") : (en ? "REJECTED" : "REJETÉ"), Marge, 420, 40, adopte ? Adopte : Contre, _gras);
+        Compteur(c, s.NbPour, en ? "for" : "pour", Pour, Marge, 520);
+        Compteur(c, s.NbContre, en ? "against" : "contre", Contre, Marge + 190, 520);
         Compteur(c, s.NbAbstentions, "abst.", Abstention, Marge + 380, 520);
 
         // Colonne droite : l'hémicycle, mêmes coordonnées que le SVG du site (1000 × 520) réduites de moitié.
@@ -81,15 +81,15 @@ public sealed class ApercuImage
     }
 
     /// <summary>Image générale du site (pages sans aperçu propre) : marque et question.</summary>
-    public byte[] Defaut()
+    public byte[] Defaut(bool en = false)
     {
         using var surface = SKSurface.Create(new SKImageInfo(L, H));
         var c = surface.Canvas;
         c.Clear(Fond);
         Marque(c, 72);
-        Texte(c, "Qui a voté quoi ?", Marge, 330, 84, Encre, _gras);
-        Texte(c, "Le vote de chaque député, sénateur et eurodéputé,", Marge, 410, 34, EncreDouce, _normal);
-        Texte(c, "texte par texte. Données officielles, code libre.", Marge, 456, 34, EncreDouce, _normal);
+        Texte(c, en ? "Who voted what?" : "Qui a voté quoi ?", Marge, 330, 84, Encre, _gras);
+        Texte(c, en ? "How every French deputy, senator and MEP" : "Le vote de chaque député, sénateur et eurodéputé,", Marge, 410, 34, EncreDouce, _normal);
+        Texte(c, en ? "voted, law by law. Official data, free software." : "texte par texte. Données officielles, code libre.", Marge, 456, 34, EncreDouce, _normal);
         return Encoder(surface);
     }
 
