@@ -14,7 +14,7 @@ public interface IScrutinRepository
     /// <summary>Tous les sièges (votants + absents déduits) pour un scrutin, sans coordonnées.</summary>
     Task<IReadOnlyList<Siege>> GetSiegesAsync(string scrutinId);
 
-    /// <summary>Liste paginée de scrutins. <paramref name="chambre"/> null = les deux chambres.</summary>
+    /// <summary>Liste paginée de scrutins. <paramref name="chambre"/> null = Assemblée nationale et Sénat (pas le Parlement européen).</summary>
     Task<Resultats<Scrutin>> ListerAsync(string? chambre, string? recherche, bool surEnsembleSeulement, int page, int parPage,
         string tri = "date", bool decroissant = true);
 }
@@ -118,7 +118,8 @@ public sealed class ScrutinRepository(DapperContext db) : IScrutinRepository
             .Take(6).Select(m => "%" + m.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%").ToArray();
 
         var where = """
-            WHERE (@chambre IS NULL OR chambre = @chambre)
+            -- Sans filtre = « Assemblée et Sénat » : le Parlement européen ne s'affiche que si on le choisit explicitement.
+            WHERE ((@chambre IS NULL AND chambre <> 'UE') OR chambre = @chambre)
               AND (NOT @ensemble OR sur_ensemble)
               AND NOT (nominatif_incomplet AND @ensemble)
               AND titre ILIKE ALL (@mots)
