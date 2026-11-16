@@ -69,6 +69,7 @@ builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddSingleton<IIpHasher, IpHasher>();
 builder.Services.AddSingleton<PaysResolver>();
 builder.Services.AddSingleton<ApercuImage>();
+builder.Services.AddHostedService<PurgeVuesService>();
 
 // nginx en reverse proxy devant l'appli : sans ça, l'IP vue serait toujours celle de nginx.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>

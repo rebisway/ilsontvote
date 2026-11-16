@@ -36,6 +36,12 @@ public sealed class IpHasher : IIpHasher
         }
     }
 
+    /// <summary>
+    /// Le mois (UTC) fait partie de la donnée hachée : la même personne a un code différent chaque mois. On peut donc compter
+    /// les visiteurs distincts d'un mois, mais pas suivre quelqu'un au-delà (le code d'un mois ne se rapproche pas de celui du suivant).
+    /// Conséquence assumée : sur une période de plusieurs mois, « visiteurs uniques » compte une personne une fois par mois.
+    /// </summary>
     public string Hash(System.Net.IPAddress? ip) =>
-        Convert.ToHexString(HMACSHA256.HashData(_key, Encoding.UTF8.GetBytes(ip?.ToString() ?? "unknown")));
+        Convert.ToHexString(HMACSHA256.HashData(_key,
+            Encoding.UTF8.GetBytes((ip?.ToString() ?? "unknown") + "|" + DateTime.UtcNow.ToString("yyyy-MM"))));
 }

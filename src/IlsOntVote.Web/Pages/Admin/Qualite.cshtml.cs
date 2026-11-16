@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace IlsOntVote.Web.Pages.Admin;
 
 /// <summary>Un scrutin à signaler dans le tableau de bord qualité.</summary>
-public sealed record ScrutinSignale(string Id, string Chambre, DateTime DateScrutin, string Titre, int? Manquants);
+// Types = ceux que renvoie Npgsql (colonne `date` -> DateOnly, `nb_votes_manquants` entier non nul -> int) : Dapper lie un
+// constructeur positionnel par nom ET par type exact, sans conversion (« A parameterless default constructor or one matching… »).
+public sealed record ScrutinSignale(string Id, string Chambre, DateOnly DateScrutin, string Titre, int Manquants);
 
 /// <summary>Tableau de bord « qualité des données » : ce que le site sait ne pas savoir (règle du doute et des données manquantes).</summary>
 public class QualiteModel(DapperContext db) : PageModel
