@@ -22,8 +22,9 @@
     --radius: 10px;
 }
 
+/* Thème : suit le système, sauf choix explicite du lecteur (bouton de l'en-tête -> data-theme="light|dark" sur <html>). */
 @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
         --bg: #14171a;
         --surface: #1c2024;
         --ink: #eceef0;
@@ -40,6 +41,28 @@
         --tag-delegation: #4fc3cc;
     }
 }
+:root[data-theme="dark"] {
+        --bg: #14171a;
+        --surface: #1c2024;
+        --ink: #eceef0;
+        --ink-soft: #9aa3ad;
+        --line: #2b3137;
+        --absent: #3a424a;
+        --pour: #5b9bf5;
+        --contre: #f0625a;
+        --abstention: #f5a43a;
+        --abstention-texte: #f5a43a;
+        --adopte: #4cc38a;
+        --rejete: #f0625a;
+        --tag-rectifie: #b98af0;
+        --tag-delegation: #4fc3cc;
+}
+:root[data-theme="dark"] { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
+
+/* Bouton de thème (en-tête) */
+.theme-btn { font: inherit; cursor: pointer; background: none; color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; line-height: 1.5; }
+.theme-btn:hover { background: var(--surface); }
 
 * { box-sizing: border-box; }
 
@@ -530,3 +553,12 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
 
 /* Texte adopté SANS VOTE (article 49, alinéa 3) : étiquette neutre, pointillée (ce n'est ni une donnée manquante ni une main levée) */
 .tag-493 { display: inline-block; padding: 0 8px; border-radius: 6px; font-size: 0.74rem; font-weight: 650; line-height: 1.5; border: 1px dashed currentColor; color: var(--ink-soft); cursor: help; white-space: nowrap; }
+
+/* Filtres dynamiques : la page se recharge d'elle-même ; le bouton « Filtrer » ne sert que sans JavaScript (masqué par le script). */
+.js .filtres-auto .sans-js { display: none; }
+.filtres .effacer { display: inline-flex; align-items: center; justify-content: center; padding: 9px 11px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); text-decoration: none; }
+
+/* Accès aux listes complètes sous le titre d'une chambre : boutons bien visibles (de simples liens soulignés passaient inaperçus). */
+.chambre-tete .actions-chambre { display: flex; flex-wrap: wrap; gap: 6px; }
+.bouton-lien { display: inline-block; padding: 4px 11px; font-size: 0.85rem; font-weight: 600; color: var(--ink); background: var(--surface); border: 1px solid var(--ink-soft); border-radius: 999px; text-decoration: none; white-space: nowrap; }
+.bouton-lien:hover, .bouton-lien:focus-visible { background: var(--ink); color: var(--bg); border-color: var(--ink); }

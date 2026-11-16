@@ -16,7 +16,7 @@ public interface IParlementaireRepository
 
     /// <summary>Historique de vote sur les scrutins où le parlementaire siégeait (absences incluses).</summary>
     Task<Resultats<LigneVote>> GetVotesAsync(string parlementaireId, string chambre, bool surEnsembleSeulement, int page, int parPage,
-        DateTime? du = null, DateTime? au = null);
+        DateTime? du = null, DateTime? au = null, string? recherche = null, string? filtreVote = null);
 }
 
 public sealed class ParlementaireRepository(DapperContext db) : IParlementaireRepository
@@ -106,10 +106,15 @@ public sealed class ParlementaireRepository(DapperContext db) : IParlementaireRe
 
     public async Task<Resultats<LigneVote>> GetVotesAsync(
         string parlementaireId, string chambre, bool surEnsembleSeulement, int page, int parPage,
-        DateTime? du = null, DateTime? au = null)
+        DateTime? du = null, DateTime? au = null, string? recherche = null, string? filtreVote = null)
     {
         using var conn = db.CreateConnection();
         page = Math.Max(1, page);
+        // Recherche : chaque mot doit apparaître dans le titre (français ou anglais), insensible à la casse ; jokers LIKE échappés.
+        var mots = (recherche ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Take(6).Select(m => "%" + m.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%").ToArray();
+        // Liste blanche : une valeur inconnue = pas de filtre (jamais de SQL construit depuis l'adresse).
+        var vote = filtreVote is "pour" or "contre" or "abstention" or "non_votant" or "absent" or "delegation" or "mise_au_point" ? filtreVote : null;
 
         const string from =
             """
@@ -119,13 +124,21 @@ public sealed class ParlementaireRepository(DapperContext db) : IParlementaireRe
                AND (NOT @ensemble OR s.sur_ensemble)
                AND (@du::date IS NULL OR s.date_scrutin >= @du::date)
                AND (@au::date IS NULL OR s.date_scrutin <= @au::date)
+               AND (cardinality(@mots) = 0 OR s.titre ILIKE ALL (@mots) OR s.titre_en ILIKE ALL (@mots))
+               -- Filtre de vote : « absent » = pas de ligne dans votes (les absents ne sont pas stockés) ; délégation et mise au point
+               -- sont des attributs d'un vote existant, indépendants de la position.
+               AND (@vote::text IS NULL OR CASE @vote
+                        WHEN 'absent' THEN COALESCE(v.position, 'absent') = 'absent'
+                        WHEN 'delegation' THEN COALESCE(v.par_delegation, false)
+                        WHEN 'mise_au_point' THEN COALESCE(v.rectifie, false)
+                        ELSE v.position = @vote END)
                AND EXISTS (SELECT 1 FROM mandats m
                             WHERE m.parlementaire_id = @parlementaireId
                               AND (m.legislature IS NULL OR m.legislature = s.legislature)
                               AND m.date_debut <= s.date_scrutin
                               AND (m.date_fin IS NULL OR m.date_fin >= s.date_scrutin))
             """;
-        var p = new { parlementaireId, chambre, ensemble = surEnsembleSeulement, du, au, limit = parPage, offset = (page - 1) * parPage };
+        var p = new { parlementaireId, chambre, ensemble = surEnsembleSeulement, du, au, mots, vote, limit = parPage, offset = (page - 1) * parPage };
 
         var total = await conn.ExecuteScalarAsync<int>($"SELECT count(*) {from}", p);
         var lignes = (await conn.QueryAsync<LigneVote>(

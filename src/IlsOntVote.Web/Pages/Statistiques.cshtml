@@ -12,7 +12,7 @@
 <h1 class="titre-page">@L.T("Statistiques", "Statistics")</h1>
 <p class="chapo">@L.TH("Combien de textes votés, et qui est présent au vote ? La <strong>participation</strong> est la part des élus en exercice qui ont voté (pour, contre ou abstention) lors d'un scrutin public ; les autres sont absents ou n'ont pas pris part au vote. Le site n'en donne aucune raison. <a href=\"/methodologie\">Comment c'est calculé</a>.", "How many texts were voted, and who takes part in the vote? <strong>Participation</strong> is the share of elected officials in office who voted (for, against or abstention) in a roll-call vote; the others are absent or did not take part in the vote. The site gives no reason. <a href=\"/en/methodologie\">How it is calculated</a>.")</p>
 
-<form class="filtres filtres-liste" method="get" action="@L.Lien("/statistiques")">
+<form class="filtres filtres-auto filtres-liste" method="get" action="@L.Lien("/statistiques")">
     <select name="chambre" aria-label="@L.T("Chambre", "Chamber")">
         <option value="an" selected="@(Model.ChambreCle == "an")">@L.T("Assemblée nationale", "National Assembly")</option>
         <option value="senat" selected="@(Model.ChambreCle == "senat")">@L.T("Sénat", "Senate")</option>
@@ -29,7 +29,7 @@
         <label class="champ-date">@L.T("au", "to") <input type="date" name="au" value="@Model.Au" aria-label="@L.T("Au (date de fin)", "To (end date)")" /></label>
     </span>
     <label class="case"><input type="checkbox" name="ensemble" value="1" checked="@Model.EnsembleSeul" /> @L.T("votes sur l'ensemble d'un texte seulement", "votes on the whole text only")</label>
-    <button type="submit">@L.T("Afficher", "Show")</button>
+    <button type="submit" class="sans-js">@L.T("Afficher", "Show")</button>
     @if (Model.FiltreActif) { <a class="effacer" href="@L.Lien("/statistiques")">@L.T("Effacer le filtre", "Clear filter")</a> }
 </form>
 

@@ -11,7 +11,7 @@
 <h1 class="titre-page">@L.T("Scrutins", "Votes")</h1>
 <p class="chapo">@L.TH("Les votes sur l'ensemble d'un texte, du plus récent au plus ancien. Cochez « amendements et articles » pour voir aussi les votes intermédiaires. Cliquez sur un titre de colonne pour trier. Pour suivre le parcours complet d'une loi (promulgation, Journal officiel, Conseil constitutionnel), voir <a href=\"/lois\">les lois</a>.", "Votes on the whole text, most recent first. Tick “amendments and articles” to also see intermediate votes. Click a column title to sort. To follow a law's full journey (promulgation, Official Journal, Constitutional Council), see <a href=\"/en/lois\">the laws</a>.")</p>
 
-<form class="filtres filtres-liste" method="get" action="@L.Lien("/textes")">
+<form class="filtres filtres-auto filtres-liste" method="get" action="@L.Lien("/textes")">
     <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("Chercher un texte (ex. retraites, finances, immigration…)", "Search a text (e.g. pensions, finance, immigration…)")" aria-label="@L.T("Chercher un texte", "Search a text")" />
     <select name="chambre" aria-label="@L.T("Chambre", "Chamber")">
         <option value="" selected="@string.IsNullOrEmpty(Model.Chambre)">@L.T("Assemblée et Sénat", "National Assembly and Senate")</option>
@@ -36,8 +36,8 @@
         <option value="desc" selected="@Model.Decroissant">@L.T("Décroissant", "Descending")</option>
         <option value="asc" selected="@(!Model.Decroissant)">@L.T("Croissant", "Ascending")</option>
     </select>
-    <button type="submit">@L.T("Filtrer", "Filter")</button>
-    @if (Model.FiltreActif) { <a class="effacer" href="@Model.LienSansFiltre">@L.T("Effacer le filtre", "Clear filter")</a> }
+    <button type="submit" class="sans-js">@L.T("Filtrer", "Filter")</button>
+    @if (Model.FiltreActif) { <a class="effacer" href="@Model.LienSansFiltre" title="@L.T("Effacer le filtre", "Clear filter")" aria-label="@L.T("Effacer le filtre", "Clear filter")"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></a> }
 </form>
 
 <div class="barre-liste">

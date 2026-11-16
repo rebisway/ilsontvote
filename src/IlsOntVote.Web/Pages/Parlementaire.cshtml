@@ -67,11 +67,24 @@
 
 <section class="historique" aria-labelledby="t-hist">
     <h2 id="t-hist">@L.T("Ses votes", "Their votes")</h2>
-    <form class="filtres" method="get" action="@L.Lien(e.Lien)">
-        <label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" onchange="this.form.submit()" /> @L.T("inclure les amendements et articles", "include amendments and articles")</label>
-        <span class="periode"><label class="champ-date">@L.T("Du", "From") <input type="date" name="du" value="@Model.Du" onchange="this.form.submit()" aria-label="@L.T("Du (date de début)", "From (start date)")" /></label>
-            <label class="champ-date">@L.T("au", "to") <input type="date" name="au" value="@Model.Au" onchange="this.form.submit()" aria-label="@L.T("Au (date de fin)", "To (end date)")" /></label></span>
-        <noscript><button type="submit">@L.T("Filtrer", "Filter")</button></noscript>
+    <form class="filtres filtres-auto" method="get" action="@L.Lien(e.Lien)">
+        <input class="filtre" type="search" name="q" value="@Model.Q" maxlength="100" placeholder="@L.T("Chercher dans les titres des scrutins…", "Search vote titles…")" aria-label="@L.T("Rechercher dans les titres", "Search in titles")" />
+        <select name="vote" aria-label="@L.T("Filtrer sur son vote", "Filter by their vote")">
+                <option value="">@L.T("Tous les votes", "All votes")</option>
+                @foreach (var c in ParlementaireModel.ChoixVote)
+                {
+                    <option value="@c" selected="@(Model.Vote == c)">@(c switch {
+                        "pour" => L.T("Pour", "For"), "contre" => L.T("Contre", "Against"), "abstention" => "Abstention",
+                        "absent" => L.T("Absent", "Absent"), "non_votant" => L.T("Non-votant", "Non-voting"),
+                        "delegation" => L.T("Par délégation", "By proxy"), _ => L.T("Mise au point / rectifié", "Vote correction") })</option>
+                }
+        </select>
+        <label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" /> @L.T("inclure les amendements et articles", "include amendments and articles")</label>
+        <span class="periode"><label class="champ-date">@L.T("Du", "From") <input type="date" name="du" value="@Model.Du" aria-label="@L.T("Du (date de début)", "From (start date)")" /></label>
+            <label class="champ-date">@L.T("au", "to") <input type="date" name="au" value="@Model.Au" aria-label="@L.T("Au (date de fin)", "To (end date)")" /></label></span>
+        <button type="submit" class="sans-js">@L.T("Filtrer", "Filter")</button>
+        @if (Model.FiltreActif) { <a class="effacer" href="@L.Lien(e.Lien)" title="@L.T("Effacer le filtre", "Clear filter")" aria-label="@L.T("Effacer le filtre", "Clear filter")"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></a> }
+        @if (Model.Lignes is int nl) { <input type="hidden" name="lignes" value="@nl" /> }
     </form>
 
     @if (Model.Votes.Lignes.Count == 0)
@@ -104,6 +117,15 @@
                 </tbody>
             </table>
         </div>
+
+        <p class="lignes-page" aria-label="@L.T("Nombre de lignes par page", "Number of rows per page")">
+            @L.T("Lignes par page :", "Rows per page:")
+            @foreach (var n in ParlementaireModel.ChoixLignes)
+            {
+                if (n == Model.ParPageEff) { <strong aria-current="true">@n</strong> }
+                else { <a href="@Model.LienPage(1, n)">@n</a> }
+            }
+        </p>
 
         @if (Model.Votes.NbPages > 1)
         {

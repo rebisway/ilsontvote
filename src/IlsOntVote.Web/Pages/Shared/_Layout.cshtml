@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>try{var th=localStorage.getItem("theme");if(th==="dark"||th==="light")document.documentElement.setAttribute("data-theme",th);}catch(e){}</script>
     <script>try{if(localStorage.getItem("ordreNom")==="nom-prenom")document.documentElement.setAttribute("data-ordre","nom-prenom");}catch(e){}</script>
     <title>@(ViewData["Title"] is string t && t.Length > 0 ? $"{t} — Ils ont voté" : L.T("Ils ont voté — qui a voté quoi à l'Assemblée nationale et au Sénat", "Ils ont voté (They voted) — who voted what in the French National Assembly, Senate and European Parliament"))</title>
     <meta name="description" content="@(ViewData["Description"] ?? L.T("Pour chaque grand texte de loi, voyez d'un coup d'œil le vote de chaque député et de chaque sénateur : pour, contre, abstention, absent.", "For each major law, see at a glance how every French deputy, senator and MEP voted: for, against, abstention, absent."))" />
@@ -100,6 +101,7 @@
                 <a href="@L.Variante(false)@(L.Variante(false).Contains('?') ? "&" : "?")hl=fr" rel="nofollow" lang="fr" hreflang="fr" @Html.Raw(L.Anglais ? "" : "aria-current=\"true\"")>FR</a>
                 <a href="@L.Variante(false)@(L.Variante(false).Contains('?') ? "&" : "?")hl=en" rel="nofollow" lang="en" hreflang="en" @Html.Raw(L.Anglais ? "aria-current=\"true\"" : "")>EN</a>
             </nav>
+            <button type="button" class="theme-btn" id="theme-btn" title="@L.T("Thème clair / sombre", "Light / dark theme")" aria-label="@L.T("Basculer entre thème clair et sombre", "Switch between light and dark theme")">◐</button>
         </div>
     </header>
 
@@ -144,5 +146,37 @@
             marquer();
         })();
     </script>
+<script>
+    // Bascule clair/sombre : mémorisée dans le navigateur ; sans choix, le thème du système s'applique (CSS prefers-color-scheme).
+    (function () {
+        var b = document.getElementById("theme-btn"), r = document.documentElement;
+        if (!b) return;
+        b.addEventListener("click", function () {
+            var sombre = (r.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
+            var n = sombre ? "light" : "dark";
+            r.setAttribute("data-theme", n);
+            try { localStorage.setItem("theme", n); } catch (e) { }
+        });
+    })();
+</script>
+<script>
+    // Filtres dynamiques (formulaires .filtres-auto) : liste, case et date envoient à chaque changement ; la recherche après une courte pause.
+    // Le champ de recherche reprend le focus après rechargement. Sans JavaScript, le bouton « Filtrer » reste visible.
+    (function () {
+        document.documentElement.classList.add("js");
+        document.querySelectorAll("form.filtres-auto").forEach(function (f) {
+            var t;
+            f.addEventListener("change", function (e) { if (e.target.type !== "search") f.submit(); });
+            var q = f.querySelector('input[type="search"]');
+            if (q) {
+                q.addEventListener("input", function () {
+                    clearTimeout(t);
+                    t = setTimeout(function () { try { sessionStorage.setItem("refocus", "1"); } catch (e) { } f.submit(); }, 600);
+                });
+                try { if (sessionStorage.getItem("refocus")) { sessionStorage.removeItem("refocus"); q.focus(); q.setSelectionRange(q.value.length, q.value.length); } } catch (e) { }
+            }
+        });
+    })();
+</script>
 </body>
 </html>

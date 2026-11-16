@@ -18,9 +18,9 @@
     <section class="chambre">
         <div class="chambre-tete">
             <h2>@Chambres.Nom(section.Chambre, L.Anglais)</h2>
-            <p>
-                <a href="@L.Lien("/textes")?chambre=@Chambres.Filtre(section.Chambre)">@L.T("Tous les textes", "All votes")</a>
-                · <a href="@L.Lien("/" + Chambres.Liste(section.Chambre))">@L.T("Tous les ", "All ")@Chambres.Membres(section.Chambre, L.Anglais)</a>
+            <p class="actions-chambre">
+                <a class="bouton-lien" href="@L.Lien("/textes")?chambre=@Chambres.Filtre(section.Chambre)">@L.T("Tous les textes", "All votes")</a>
+                <a class="bouton-lien" href="@L.Lien("/" + Chambres.Liste(section.Chambre))">@L.T("Tous les ", "All ")@Chambres.Membres(section.Chambre, L.Anglais)</a>
             </p>
         </div>
 

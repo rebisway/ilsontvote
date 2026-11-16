@@ -11,7 +11,7 @@
 <h1 class="titre-page">@L.T("Lois", "Laws")</h1>
 <p class="chapo">@L.T("Le parcours de chaque texte voté : adoption par les assemblées, saisine et décision du Conseil constitutionnel, promulgation et parution au Journal officiel. Le statut est déduit des données officielles, il ne porte aucun jugement.", "The journey of each text voted: adoption by the chambers, referral to and decision of the Constitutional Council, promulgation and publication in the Official Journal. The status is deduced from official data and carries no judgement.")</p>
 
-<form class="filtres filtres-liste filtres-lois" method="get" action="@L.Lien("/lois")">
+<form class="filtres filtres-auto filtres-liste filtres-lois" method="get" action="@L.Lien("/lois")">
     <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("Chercher une loi (ex. retraites, immigration, finances…)", "Search a law (e.g. pensions, immigration, finance…)")" aria-label="@L.T("Chercher une loi", "Search a law")" />
     <select name="statut" aria-label="@L.T("Statut", "Status")">
         @foreach (var (cle, libelle, anglais) in LoisModel.Statuts)
@@ -39,8 +39,8 @@
         <option value="desc" selected="@Model.Decroissant">@L.T("Décroissant", "Descending")</option>
         <option value="asc" selected="@(!Model.Decroissant)">@L.T("Croissant", "Ascending")</option>
     </select>
-    <button type="submit">@L.T("Filtrer", "Filter")</button>
-    @if (Model.FiltreActif) { <a class="effacer" href="@Model.LienSansFiltre">@L.T("Effacer le filtre", "Clear filter")</a> }
+    <button type="submit" class="sans-js">@L.T("Filtrer", "Filter")</button>
+    @if (Model.FiltreActif) { <a class="effacer" href="@Model.LienSansFiltre" title="@L.T("Effacer le filtre", "Clear filter")" aria-label="@L.T("Effacer le filtre", "Clear filter")"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></a> }
 </form>
 @if (!string.IsNullOrEmpty(Model.Du) || !string.IsNullOrEmpty(Model.Au))
 {
