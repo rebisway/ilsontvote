@@ -8,7 +8,7 @@ namespace IlsOntVote.Web.Pages;
 /// <summary>Lois (dossiers législatifs) ayant fait l'objet d'un vote sur l'ensemble : parcours et statut.</summary>
 public class LoisModel(ITexteRepository textes) : ListePageModel
 {
-    private const int ParPage = 30;
+    protected override int ParPageDefaut => 30;
 
     [BindProperty(SupportsGet = true, Name = "q")] public string? Recherche { get; set; }
     [BindProperty(SupportsGet = true)] public string? Statut { get; set; }
@@ -34,7 +34,7 @@ public class LoisModel(ITexteRepository textes) : ListePageModel
         ("censure", "Censurés (en tout ou partie)"),
     ];
 
-    public Resultats<Texte> Resultats { get; private set; } = new([], 0, 1, ParPage);
+    public Resultats<Texte> Resultats { get; private set; } = new([], 0, 1, 30);
 
     protected override string TriDefaut => "vote";
     protected override IReadOnlyCollection<string> ClesTri { get; } = [.. TexteRepository.ClesTri];

@@ -9,7 +9,7 @@ namespace IlsOntVote.Web.Pages;
 public class TextesModel(IScrutinRepository scrutins) : ListePageModel
 {
     // 30 lignes : un tableau lisible d'un coup d'œil ; au-delà on pagine (l'export, lui, n'est pas paginé).
-    private const int ParPage = 30;
+    protected override int ParPageDefaut => 30;
 
     /// <summary>an | senat | (vide = les deux)</summary>
     [BindProperty(SupportsGet = true)] public string? Chambre { get; set; }
@@ -21,7 +21,7 @@ public class TextesModel(IScrutinRepository scrutins) : ListePageModel
     [BindProperty(SupportsGet = true)] public string? Du { get; set; }
     [BindProperty(SupportsGet = true)] public string? Au { get; set; }
 
-    public Resultats<Scrutin> Resultats { get; private set; } = new([], 0, 1, ParPage);
+    public Resultats<Scrutin> Resultats { get; private set; } = new([], 0, 1, 30);
 
     public bool ToutAfficher => Portee == "tout";
 

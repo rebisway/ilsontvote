@@ -11,7 +11,7 @@
 <h1 class="titre-page">Lois</h1>
 <p class="chapo">Le parcours de chaque texte voté : adoption par les assemblées, saisine et décision du Conseil constitutionnel, promulgation et parution au Journal officiel. Le statut est déduit des données officielles, il ne porte aucun jugement.</p>
 
-<form class="filtres" method="get" action="/lois">
+<form class="filtres filtres-liste filtres-lois" method="get" action="/lois">
     <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="Chercher une loi (ex. retraites, immigration, finances…)" aria-label="Chercher une loi" />
     <select name="statut" aria-label="Statut">
         @foreach (var (cle, libelle) in LoisModel.Statuts)
@@ -24,8 +24,8 @@
         <option value="an" selected="@(Model.Chambre == "an")">Votée à l'Assemblée</option>
         <option value="senat" selected="@(Model.Chambre == "senat")">Votée au Sénat</option>
     </select>
-    <label class="champ-date" title="Affiche les lois dont une date (vote, promulgation, Journal officiel, Conseil constitutionnel) est dans la période">Du <input type="date" name="du" value="@Model.Du" aria-label="Du (date de début)" /></label>
-    <label class="champ-date">au <input type="date" name="au" value="@Model.Au" aria-label="Au (date de fin)" /></label>
+    <span class="periode"><label class="champ-date" title="Affiche les lois dont une date (vote, promulgation, Journal officiel, Conseil constitutionnel) est dans la période">Du <input type="date" name="du" value="@Model.Du" aria-label="Du (date de début)" /></label>
+        <label class="champ-date">au <input type="date" name="au" value="@Model.Au" aria-label="Au (date de fin)" /></label></span>
     @* Le tri se choisit par les en-têtes de colonne (écran large) ou par ces deux listes (téléphone, où les en-têtes disparaissent). *@
     <select name="tri" class="tri-mobile" aria-label="Trier par">
         <option value="vote" selected="@(Model.TriEffectif == "vote")">Trier : dernier vote</option>
@@ -40,6 +40,7 @@
         <option value="asc" selected="@(!Model.Decroissant)">Croissant</option>
     </select>
     <button type="submit">Filtrer</button>
+    @if (Model.FiltreActif) { <a class="effacer" href="@Model.LienSansFiltre">Effacer le filtre</a> }
 </form>
 @if (!string.IsNullOrEmpty(Model.Du) || !string.IsNullOrEmpty(Model.Au))
 {
@@ -108,6 +109,7 @@ else
             @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">Suivant →</a> }
         </nav>
     }
+    <partial name="_LignesParPage" model="Model" />
 }
 
 <p class="note-source">Le rattachement d'un vote à sa loi se fait par comparaison des intitulés : quand plusieurs textes portent le même, le vote reste sans loi plutôt que d'être attribué au hasard. Les décisions du Conseil constitutionnel et les dates de parution proviennent de la base du Sénat.</p>

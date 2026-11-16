@@ -11,7 +11,7 @@
 <h1 class="titre-page">Scrutins</h1>
 <p class="chapo">Les votes sur l'ensemble d'un texte, du plus récent au plus ancien. Cochez « amendements et articles » pour voir aussi les votes intermédiaires. Cliquez sur un titre de colonne pour trier. Pour suivre le parcours complet d'une loi (promulgation, Journal officiel, Conseil constitutionnel), voir <a href="/lois">les lois</a>.</p>
 
-<form class="filtres" method="get" action="/textes">
+<form class="filtres filtres-liste" method="get" action="/textes">
     <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="Chercher un texte (ex. retraites, finances, immigration…)" aria-label="Chercher un texte" />
     <select name="chambre" aria-label="Chambre">
         <option value="" selected="@string.IsNullOrEmpty(Model.Chambre)">Assemblée et Sénat</option>
@@ -19,8 +19,8 @@
         <option value="senat" selected="@(Model.Chambre == "senat")">Sénat</option>
         <option value="ue" selected="@(Model.Chambre == "ue")">Parlement européen</option>
     </select>
-    <label class="champ-date">Du <input type="date" name="du" value="@Model.Du" aria-label="Du (date de début)" /></label>
-    <label class="champ-date">au <input type="date" name="au" value="@Model.Au" aria-label="Au (date de fin)" /></label>
+    <span class="periode"><label class="champ-date">Du <input type="date" name="du" value="@Model.Du" aria-label="Du (date de début)" /></label>
+        <label class="champ-date">au <input type="date" name="au" value="@Model.Au" aria-label="Au (date de fin)" /></label></span>
     <label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" /> amendements et articles</label>
     @* Tri : en-têtes de colonne (écran large) ou ces listes (téléphone). *@
     <select name="tri" class="tri-mobile" aria-label="Trier par">
@@ -37,6 +37,7 @@
         <option value="asc" selected="@(!Model.Decroissant)">Croissant</option>
     </select>
     <button type="submit">Filtrer</button>
+    @if (Model.FiltreActif) { <a class="effacer" href="@Model.LienSansFiltre">Effacer le filtre</a> }
 </form>
 
 <div class="barre-liste">
@@ -91,4 +92,5 @@ else
             @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">Suivant →</a> }
         </nav>
     }
+    <partial name="_LignesParPage" model="Model" />
 }

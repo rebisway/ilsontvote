@@ -459,3 +459,22 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
 /* Filtre par période (champs date) */
 .champ-date { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-soft); font-size: 0.92rem; }
 .champ-date input { font: inherit; padding: 8px 10px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); color-scheme: light dark; }
+
+/* « Du … au … » reste d'un seul bloc (ne se coupe pas entre deux lignes) ; sur très petit écran seulement, il peut passer à la ligne */
+.periode { display: inline-flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
+@media (max-width: 420px) { .periode { flex-wrap: wrap; } }
+.filtres .effacer { align-self: center; color: var(--ink-soft); font-size: 0.92rem; text-decoration: underline; white-space: nowrap; }
+.filtres .effacer:hover { color: var(--ink); }
+/* Choix du nombre de lignes sous un tableau */
+.lignes-page { margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: flex-end; color: var(--ink-soft); font-size: 0.92rem; }
+.lignes-page strong { color: var(--ink); }
+
+/* Barre de filtres des listes : la recherche prend toute la première ligne (texte d'aide lisible), puis les contrôles s'alignent
+   sur une seconde ligne : sélecteurs, période, options, « Filtrer », « Effacer le filtre ». */
+.filtres-liste { gap: 10px 12px; }
+.filtres-liste .filtre { flex: 1 1 100%; max-width: none; }
+.filtres-liste .champ-date input { width: 11.5rem; }
+.filtres-liste .case { white-space: nowrap; }
+.filtres-liste button[type="submit"] { font-weight: 650; }
+/* /lois : la recherche partage la première ligne avec le statut ; chambre, période et « Filtrer » tiennent sur la seconde. */
+@media (min-width: 721px) { .filtres-liste.filtres-lois .filtre { flex: 1 1 320px; } }

@@ -19,6 +19,18 @@ public abstract class ListePageModel : PageModel
     [BindProperty(SupportsGet = true), FromQuery(Name = "page")] public int NumeroPage { get; set; } = 1;
     [BindProperty(SupportsGet = true)] public string? Format { get; set; }
 
+    /// <summary>Nombres de lignes par page proposés (liste blanche : jamais une valeur libre de l'adresse).</summary>
+    public static readonly int[] ChoixLignes = [30, 50, 100, 200];
+    [BindProperty(SupportsGet = true), FromQuery(Name = "lignes")] public int? Lignes { get; set; }
+    protected virtual int ParPageDefaut => 30;
+    /// <summary>Lignes par page effectives : le choix de l'utilisateur s'il est dans la liste, sinon le défaut de la page.</summary>
+    public int ParPage => Lignes is int n && ChoixLignes.Contains(n) ? n : ParPageDefaut;
+
+    /// <summary>Vrai si au moins un filtre est renseigné : affiche « Effacer le filtre ».</summary>
+    public bool FiltreActif => Filtres.Any(f => !string.IsNullOrWhiteSpace(f.Valeur));
+    /// <summary>Adresse de la page sans aucun paramètre (filtres, tri, pagination).</summary>
+    public string LienSansFiltre => Request.Path.Value ?? "/";
+
     protected abstract string TriDefaut { get; }
     protected virtual bool DecroissantDefaut => true;
     protected abstract IReadOnlyCollection<string> ClesTri { get; }
@@ -35,7 +47,7 @@ public abstract class ListePageModel : PageModel
 
     public bool ExportDemande => Exporteur.EstFormat(Format);
 
-    public string Lien(string? tri = null, bool? decroissant = null, int? page = null, string? format = null)
+    public string Lien(string? tri = null, bool? decroissant = null, int? page = null, string? format = null, int? lignes = null)
     {
         var q = Filtres.Where(f => !string.IsNullOrWhiteSpace(f.Valeur))
             .Select(f => $"{f.Nom}={WebUtility.UrlEncode(f.Valeur)}").ToList();
@@ -46,6 +58,8 @@ public abstract class ListePageModel : PageModel
             q.Add($"tri={t}");
             q.Add($"sens={(decroissant ?? Decroissant ? "desc" : "asc")}");
         }
+        var l = lignes ?? ParPage;
+        if (l != ParPageDefaut) q.Add($"lignes={l}");
         if (page is > 1) q.Add($"page={page}");
         if (format is not null) q.Add($"format={format}");
 

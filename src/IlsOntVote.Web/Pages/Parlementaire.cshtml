@@ -61,8 +61,8 @@
     <h2 id="t-hist">Ses votes</h2>
     <form class="filtres" method="get" action="@e.Lien">
         <label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" onchange="this.form.submit()" /> inclure les amendements et articles</label>
-        <label class="champ-date">Du <input type="date" name="du" value="@Model.Du" onchange="this.form.submit()" aria-label="Du (date de début)" /></label>
-        <label class="champ-date">au <input type="date" name="au" value="@Model.Au" onchange="this.form.submit()" aria-label="Au (date de fin)" /></label>
+        <span class="periode"><label class="champ-date">Du <input type="date" name="du" value="@Model.Du" onchange="this.form.submit()" aria-label="Du (date de début)" /></label>
+            <label class="champ-date">au <input type="date" name="au" value="@Model.Au" onchange="this.form.submit()" aria-label="Au (date de fin)" /></label></span>
         <noscript><button type="submit">Filtrer</button></noscript>
     </form>
 
