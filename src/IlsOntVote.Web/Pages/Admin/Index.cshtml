@@ -1,0 +1,49 @@
+@page
+@model IlsOntVote.Web.Pages.Admin.IndexModel
+@{
+    ViewData["Title"] = "Administration";
+    ViewData["NoIndex"] = true;
+    var fr = new System.Globalization.CultureInfo("fr-FR");
+}
+<partial name="_AdminNav" />
+<h1 class="titre-page">Tableau de bord</h1>
+
+<div class="chiffres">
+    <div><b>@Model.Chiffres.Parlementaires.ToString("N0", fr)</b><span>parlementaires</span></div>
+    <div><b>@Model.Chiffres.Scrutins.ToString("N0", fr)</b><span>scrutins</span></div>
+    <div><b>≈ @Model.Chiffres.Votes.ToString("N0", fr)</b><span>votes</span></div>
+    <div><b>@Model.Chiffres.Unes</b><span>textes à la une</span></div>
+    <div><b>@Model.Semaine.TotalVues.ToString("N0", fr)</b><span>pages vues, 7 jours (lecteurs)</span></div>
+    <div><b>@Model.Semaine.VisiteursUniques.ToString("N0", fr)</b><span>visiteurs uniques, 7 jours</span></div>
+</div>
+
+<h2>Données les plus récentes</h2>
+<ul class="liste-simple">
+    <li>Assemblée nationale : @(Model.Chiffres.DernierScrutinAn?.ToString("d MMMM yyyy", fr) ?? "—")</li>
+    <li>Sénat : @(Model.Chiffres.DernierScrutinSenat?.ToString("d MMMM yyyy", fr) ?? "—")</li>
+</ul>
+
+<h2>Dernier import de chaque source</h2>
+@if (Model.DerniersImports.Count == 0)
+{
+    <p class="vide">Aucun import enregistré.</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Source</th><th>Début</th><th>État</th><th>Scrutins</th><th>Votes</th></tr></thead>
+            <tbody>
+            @foreach (var i in Model.DerniersImports)
+            {
+                <tr>
+                    <td>@i.Source</td>
+                    <td>@i.StartedAt.ToLocalTime().ToString("g", fr)</td>
+                    <td>@if (i.Ok is null) { <span class="note">en cours / interrompu</span> } else if (i.Ok == true) { <span class="badge b-pour">OK</span> } else { <span class="badge b-contre">Échec</span> }</td>
+                    <td>@i.Scrutins</td><td>@i.Votes</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}

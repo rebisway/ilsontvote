@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>try{if(localStorage.getItem("ordreNom")==="nom-prenom")document.documentElement.setAttribute("data-ordre","nom-prenom");}catch(e){}</script>
+    <title>@(ViewData["Title"] is string t && t.Length > 0 ? $"{t} — Ils ont voté" : "Ils ont voté — qui a voté quoi à l'Assemblée nationale et au Sénat")</title>
+    <meta name="description" content="@(ViewData["Description"] ?? "Pour chaque grand texte de loi, voyez d'un coup d'œil le vote de chaque député et de chaque sénateur : pour, contre, abstention, absent.")" />
+    @if (ViewData["NoIndex"] is true)
+    {
+        <meta name="robots" content="noindex, nofollow" />
+    }
+    @{
+        // Adresse canonique : toujours www.ilsontvote.org, sans paramètres (tri, pages, filtres) -> pas de contenu dupliqué.
+        var canon = "https://www.ilsontvote.org" + (Context.Request.Path.Value ?? "/");
+        var titrePage = ViewData["Title"] is string tp && tp.Length > 0 ? tp : "Ils ont voté";
+        var descPage = ViewData["Description"] ?? "Pour chaque grand texte de loi, voyez d'un coup d'œil le vote de chaque député et de chaque sénateur : pour, contre, abstention, absent.";
+    }
+    <link rel="canonical" href="@canon" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" sizes="any" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ils ont voté" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:title" content="@titrePage" />
+    <meta property="og:description" content="@descPage" />
+    <meta property="og:url" content="@canon" />
+    <meta name="twitter:card" content="summary" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    @{
+        var chemin = Context.Request.Path.Value ?? "/";
+        string Actif(string prefixe) => chemin.StartsWith(prefixe, StringComparison.OrdinalIgnoreCase) ? " aria-current=\"page\"" : "";
+    }
+    <header class="site-header">
+        <div class="wrap">
+            <a class="brand" href="/">Ils ont <em>voté</em></a>
+            <nav class="menu" aria-label="Navigation principale">
+                <a href="/lois" @Html.Raw(Actif("/lois")) @Html.Raw(Actif("/texte/"))>Lois</a>
+                <a href="/textes" @Html.Raw(Actif("/textes")) @Html.Raw(Actif("/scrutin"))>Scrutins</a>
+                <a href="/deputes" @Html.Raw(Actif("/depute"))>Députés</a>
+                <a href="/senateurs" @Html.Raw(Actif("/senateur"))>Sénateurs</a>
+                <a href="/eurodeputes" @Html.Raw(Actif("/eurodepute"))>Eurodéputés</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="wrap">
+        @RenderBody()
+    </main>
+
+    <footer class="site-footer">
+        <div class="wrap">
+            <p>
+                Données officielles de l'Assemblée nationale
+                (<a href="https://data.assemblee-nationale.fr/">data.assemblee-nationale.fr</a>) et du Sénat
+                (<a href="https://data.senat.fr/">data.senat.fr</a>) ; votes du Parlement européen via
+                <a href="https://howtheyvote.eu/">HowTheyVote.eu</a> (projet indépendant, d'après les données officielles du Parlement ; <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License</a>).
+                Seuls les <strong>scrutins publics</strong> enregistrent le vote de chaque élu ; les votes à main levée n'apparaissent pas ici.
+            </p>
+            <p>
+                © 2026 Thomas Gourgnier ·
+                <a href="/methodologie">Méthodologie et limites</a> ·
+                <a href="/mentions-legales">Mentions légales et confidentialité</a> ·
+                Code source libre (GPL-3.0) ·
+                <a href="https://www.rebisway.com/fr/">La Voie du Rébis</a> ·
+                <a href="mailto:contact@rebisway.com">contact@rebisway.com</a> ·
+                <a href="/Admin">Administration</a>
+            </p>
+        </div>
+    </footer>
+    <script>
+        (function () {
+            var racine = document.documentElement;
+            var boutons = document.querySelectorAll(".ordre-nom button");
+            function marquer() {
+                var courant = racine.getAttribute("data-ordre") || "prenom-nom";
+                boutons.forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.ordre === courant ? "true" : "false"); });
+            }
+            boutons.forEach(function (b) {
+                b.addEventListener("click", function () {
+                    if (b.dataset.ordre === "nom-prenom") racine.setAttribute("data-ordre", "nom-prenom");
+                    else racine.removeAttribute("data-ordre");
+                    try { localStorage.setItem("ordreNom", b.dataset.ordre); } catch (e) { }
+                    marquer();
+                });
+            });
+            marquer();
+        })();
+    </script>
+</body>
+</html>

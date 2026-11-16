@@ -1,0 +1,14 @@
+# IlsOntVote - déclenche l'import chaque nuit (équivalent d'une ligne de crontab : 30 4 * * *).
+# État : systemctl list-timers ilsontvote-import.timer
+[Unit]
+Description=IlsOntVote (import quotidien)
+
+[Timer]
+OnCalendar=*-*-* 04:30:00
+# Étale un peu l'heure : les sources publiques (AN, Sénat) n'ont pas à recevoir toutes les mêmes requêtes pile à la minute.
+RandomizedDelaySec=15min
+# Si la VM était éteinte à l'heure prévue, l'import part au prochain démarrage.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

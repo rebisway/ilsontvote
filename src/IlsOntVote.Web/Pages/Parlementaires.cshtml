@@ -1,0 +1,69 @@
+@page
+@using IlsOntVote.Web.Models
+@using IlsOntVote.Web.Services
+@model ParlementairesModel
+@{
+    var membres = Chambres.Membres(Model.Chambre);
+    ViewData["Title"] = char.ToUpperInvariant(membres[0]) + membres[1..];
+    ViewData["Description"] = $"Les {Model.Elus.Count} {membres} en exercice : groupe, circonscription et historique de vote.";
+}
+
+<h1 class="titre-page">@ViewData["Title"]</h1>
+<p class="chapo">@Model.Elus.Count @membres en exercice (@Chambres.Nom(Model.Chambre)). Cliquez sur un nom pour voir ses votes et sa participation.</p>
+
+<div class="barre-groupes" id="barre-groupes" role="group" aria-label="Filtrer par groupe">
+    <button type="button" class="puce actif" data-groupe="">Tous <b>@Model.Elus.Count</b></button>
+    @foreach (var g in Model.Groupes)
+    {
+        <button type="button" class="puce" data-groupe="@g.Sigle" data-libelle="@g.Libelle" title="@g.Libelle">
+            <span class="pastille" style="background:@(g.Couleur ?? "#8d949a")"></span>@g.Sigle <b>@g.Effectif</b>
+        </button>
+    }
+</div>
+<p class="nom-groupe" id="nom-groupe" aria-live="polite" hidden></p>
+
+<div class="filtres">
+    <input id="filtre" class="filtre" type="search" placeholder="Chercher un nom, un département…" aria-label="Chercher un @Chambres.Membre(Model.Chambre)" autocomplete="off" />
+    <partial name="_OrdreNom" />
+</div>
+
+<ul class="grille-elus" id="elus">
+    @foreach (var e in Model.Elus)
+    {
+        <li data-groupe="@(e.GroupeSigle ?? "NI")" data-q="@((e.NomComplet + " " + e.Departement + " " + e.GroupeSigle).ToLowerInvariant())">
+            <a href="@e.Lien" title="@e.NomComplet — @(e.GroupeLibelle ?? e.GroupeSigle)@(string.IsNullOrEmpty(e.Departement) ? "" : " — " + Drapeaux.Avec(e.Chambre, e.Departement))">
+                <span class="pastille" style="background:@(e.GroupeCouleur ?? "#8d949a")"></span>
+                <span class="nom">@Noms.Html(e.Prenom, e.Nom)</span>
+                <span class="sous">@e.GroupeSigle@(string.IsNullOrEmpty(e.Departement) ? "" : " · " + Drapeaux.Avec(e.Chambre, e.Departement))</span>
+            </a>
+        </li>
+    }
+</ul>
+
+<script>
+    (function () {
+        var input = document.getElementById('filtre');
+        var items = document.querySelectorAll('#elus li');
+        var puces = document.querySelectorAll('#barre-groupes .puce');
+        var groupe = '';
+        function appliquer() {
+            var q = input.value.trim().toLowerCase();
+            items.forEach(function (li) {
+                var ok = (!groupe || li.dataset.groupe === groupe) && (!q || li.dataset.q.indexOf(q) !== -1);
+                li.hidden = !ok;
+            });
+        }
+        input.addEventListener('input', appliquer);
+        puces.forEach(function (p) {
+            p.addEventListener('click', function () {
+                groupe = p.dataset.groupe;
+                // Nom complet du groupe choisi (les puces n'affichent que le sigle).
+                var nom = document.getElementById('nom-groupe');
+                nom.textContent = p.dataset.libelle || '';
+                nom.hidden = !p.dataset.libelle;
+                puces.forEach(function (x) { x.classList.toggle('actif', x === p); });
+                appliquer();
+            });
+        });
+    })();
+</script>

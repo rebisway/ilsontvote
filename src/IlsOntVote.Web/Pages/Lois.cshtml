@@ -1,0 +1,107 @@
+@page "/lois"
+@model LoisModel
+@using IlsOntVote.Web.Models
+@using IlsOntVote.Web.Services
+@{
+    ViewData["Title"] = "Lois";
+    ViewData["Description"] = "Le parcours de chaque loi : votes de l'Assemblée et du Sénat, promulgation, parution au Journal officiel, décision du Conseil constitutionnel.";
+    var fr = new System.Globalization.CultureInfo("fr-FR");
+}
+
+<h1 class="titre-page">Lois</h1>
+<p class="chapo">Le parcours de chaque texte voté : adoption par les assemblées, saisine et décision du Conseil constitutionnel, promulgation et parution au Journal officiel. Le statut est déduit des données officielles, il ne porte aucun jugement.</p>
+
+<form class="filtres" method="get" action="/lois">
+    <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="Chercher une loi (ex. retraites, immigration, finances…)" aria-label="Chercher une loi" />
+    <select name="statut" aria-label="Statut">
+        @foreach (var (cle, libelle) in LoisModel.Statuts)
+        {
+            <option value="@cle" selected="@((Model.Statut ?? "") == cle)">@libelle</option>
+        }
+    </select>
+    <select name="chambre" aria-label="Chambre">
+        <option value="" selected="@string.IsNullOrEmpty(Model.Chambre)">Assemblée et Sénat</option>
+        <option value="an" selected="@(Model.Chambre == "an")">Votée à l'Assemblée</option>
+        <option value="senat" selected="@(Model.Chambre == "senat")">Votée au Sénat</option>
+    </select>
+    @* Le tri se choisit par les en-têtes de colonne (écran large) ou par ces deux listes (téléphone, où les en-têtes disparaissent). *@
+    <select name="tri" class="tri-mobile" aria-label="Trier par">
+        <option value="vote" selected="@(Model.TriEffectif == "vote")">Trier : dernier vote</option>
+        <option value="titre" selected="@(Model.TriEffectif == "titre")">Trier : titre</option>
+        <option value="statut" selected="@(Model.TriEffectif == "statut")">Trier : statut</option>
+        <option value="promulgation" selected="@(Model.TriEffectif == "promulgation")">Trier : promulgation</option>
+        <option value="jo" selected="@(Model.TriEffectif == "jo")">Trier : parution au JO</option>
+        <option value="scrutins" selected="@(Model.TriEffectif == "scrutins")">Trier : nombre de votes</option>
+    </select>
+    <select name="sens" class="tri-mobile" aria-label="Sens du tri">
+        <option value="desc" selected="@Model.Decroissant">Décroissant</option>
+        <option value="asc" selected="@(!Model.Decroissant)">Croissant</option>
+    </select>
+    <button type="submit">Filtrer</button>
+</form>
+
+<div class="barre-liste">
+    <p class="compte">@Model.Resultats.Total.ToString("N0", fr) loi@(Model.Resultats.Total > 1 ? "s" : "")</p>
+    <p class="export">Exporter ce tableau :
+        @foreach (var f in Exporteur.Formats)
+        {
+            <a href="@Model.Lien(format: f)" download>@f.ToUpperInvariant()</a>
+        }
+    </p>
+</div>
+
+@if (Model.Resultats.Lignes.Count == 0)
+{
+    <p class="vide">Aucun résultat.</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table class="liste-textes">
+            <thead>
+                <tr>
+                    @Model.Th("vote", "Dernier vote", "col-date")
+                    @Model.Th("titre", "Loi", "col-titre")
+                    @Model.Th("statut", "Statut", "col-statut")
+                    @Model.Th("promulgation", "Promulgation", "col-date")
+                    @Model.Th("jo", "Parution JO", "col-date")
+                    <th scope="col" class="col-liens">Liens</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var t in Model.Resultats.Lignes)
+            {
+                var st = t.Statut;
+                <tr>
+                    <td class="nowrap col-date" data-label="Dernier vote">@(t.DernierVote?.ToString("d MMM yy", fr))</td>
+                    <td class="col-titre"><a href="/texte/@t.Id">@t.TitreAffiche</a></td>
+                    <td class="col-statut" data-label="Statut">
+                        <span class="statut @st.Classe" title="@st.Libelle">@st.Court</span>
+                        @foreach (var c in new[] { t.EtatAn, t.EtatSenat })
+                        {
+                            <span class="tag-ch @c.Classe" title="@c.Infobulle" tabindex="0">@c.Etiquette @c.Symbole</span>
+                        }
+                    </td>
+                    <td class="nowrap col-date" data-label="Promulgation" title="@(string.IsNullOrEmpty(t.NumeroLoi) ? "" : "Loi n° " + t.NumeroLoi)">@(t.DatePromulgation?.ToString("d MMM yy", fr))</td>
+                    <td class="nowrap col-date" data-label="Parution au JO">@(t.DateJo?.ToString("d MMM yy", fr))</td>
+                    <td class="col-liens liens" data-label="Liens">
+                        @if (!string.IsNullOrEmpty(t.UrlLegifrance)) { <a href="@t.UrlLegifrance" rel="noopener" target="_blank" title="Texte sur Légifrance">Légifrance ↗</a> }
+                        @if (!string.IsNullOrEmpty(t.UrlDossierSenat)) { <a href="@t.UrlDossierSenat" rel="noopener" target="_blank" title="Dossier législatif du Sénat">Dossier ↗</a> }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.Resultats.NbPages > 1)
+    {
+        <nav class="pagination" aria-label="Pagination">
+            @if (Model.Resultats.Page > 1) { <a href="@Model.Lien(page: Model.Resultats.Page - 1)" rel="prev">← Précédent</a> }
+            <span>Page @Model.Resultats.Page / @Model.Resultats.NbPages</span>
+            @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">Suivant →</a> }
+        </nav>
+    }
+}
+
+<p class="note-source">Le rattachement d'un vote à sa loi se fait par comparaison des intitulés : quand plusieurs textes portent le même, le vote reste sans loi plutôt que d'être attribué au hasard. Les décisions du Conseil constitutionnel et les dates de parution proviennent de la base du Sénat.</p>

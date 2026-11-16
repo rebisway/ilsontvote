@@ -1,0 +1,81 @@
+@page
+@model IlsOntVote.Web.Pages.Admin.UnesModel
+@using IlsOntVote.Web.Models
+@{
+    ViewData["Title"] = "Textes à la une";
+    ViewData["NoIndex"] = true;
+    var fr = new System.Globalization.CultureInfo("fr-FR");
+}
+<partial name="_AdminNav" />
+<h1 class="titre-page">Textes à la une</h1>
+<p class="chapo">Les textes choisis ici remplacent la sélection automatique sur l'accueil, par chambre et dans l'ordre du rang (1 = en premier). S'il n'y en a aucun pour une chambre, l'accueil affiche ses derniers votes sur l'ensemble d'une loi.</p>
+
+<h2>À la une actuellement</h2>
+@if (Model.Unes.Count == 0)
+{
+    <p class="vide">Aucun texte choisi : sélection automatique.</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Chambre</th><th>Rang</th><th>Texte</th><th>Titre court</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var u in Model.Unes)
+            {
+                <tr>
+                    <td>@Chambres.Court(u.Chambre)</td>
+                    <td colspan="4">
+                        <form method="post" asp-page-handler="Ajouter" class="ligne-form">
+                            <input type="number" name="rang" value="@u.FeaturedRank" min="1" max="99" class="champ-court" aria-label="Rang" />
+                            <span class="texte-une"><a href="/scrutin/@u.Id">@u.Titre</a><span class="note">@u.DateScrutin.ToString("d MMM yyyy", fr)</span></span>
+                            <input type="text" name="titreCourt" value="@u.FeaturedTitle" maxlength="200" placeholder="(titre officiel)" class="champ" aria-label="Titre court" />
+                            <input type="hidden" name="id" value="@u.Id" />
+                            <button type="submit" class="bouton petit">Enregistrer</button>
+                            <button type="submit" class="bouton petit secondaire" asp-page-handler="Retirer">Retirer</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+<h2>Ajouter un texte</h2>
+<form method="get" class="filtres">
+    <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="Chercher un texte (votes sur l'ensemble)…" aria-label="Chercher un texte" />
+    <button type="submit">Chercher</button>
+</form>
+
+@if (Model.Candidats.Count > 0)
+{
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Date</th><th>Chambre</th><th>Texte et réglages</th></tr></thead>
+            <tbody>
+            @foreach (var s in Model.Candidats)
+            {
+                <tr>
+                    <td class="nowrap">@s.DateScrutin.ToString("d MMM yyyy", fr)</td>
+                    <td>@Chambres.Court(s.Chambre)</td>
+                    <td>
+                        <form method="post" asp-page-handler="Ajouter" class="ligne-form">
+                            <input type="number" name="rang" min="1" max="99" class="champ-court" placeholder="rang" aria-label="Rang" />
+                            <span class="texte-une"><a href="/scrutin/@s.Id">@s.TitreAffiche</a></span>
+                            <input type="text" name="titreCourt" maxlength="200" placeholder="titre court (optionnel)" class="champ" aria-label="Titre court" />
+                            <input type="hidden" name="id" value="@s.Id" />
+                            <input type="hidden" name="q" value="@Model.Recherche" />
+                            <button type="submit" class="bouton petit">Mettre à la une</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(Model.Recherche))
+{
+    <p class="vide">Aucun résultat.</p>
+}

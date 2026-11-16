@@ -1,0 +1,58 @@
+@page
+@model IlsOntVote.Web.Pages.Admin.UtilisateursModel
+@{
+    ViewData["Title"] = "Utilisateurs";
+    ViewData["NoIndex"] = true;
+    var fr = new System.Globalization.CultureInfo("fr-FR");
+}
+<partial name="_AdminNav" />
+<h1 class="titre-page">Utilisateurs</h1>
+<p class="chapo">Comptes ayant accès à l'espace d'administration. Il n'y a pas d'inscription publique : les comptes sont créés ici.</p>
+
+@if (Model.Message is not null) { <p class="info" role="status">@Model.Message</p> }
+@if (Model.Erreur is not null) { <p class="alerte" role="alert">@Model.Erreur</p> }
+
+<div class="table-wrap">
+    <table>
+        <thead><tr><th>Adresse e-mail</th><th>Créé le</th><th>Rôle</th><th>État</th><th>Actions</th></tr></thead>
+        <tbody>
+        @foreach (var u in Model.Lignes)
+        {
+            var moi = u.Id == Model.CurrentUserId;
+            <tr>
+                <td>@u.Email@(moi ? " (vous)" : "")</td>
+                <td class="nowrap">@u.CreeLe.ToLocalTime().ToString("d MMM yyyy", fr)</td>
+                <td>@(u.Admin ? "Administrateur" : "Utilisateur")</td>
+                <td>@if (u.Verrouille) { <span class="badge b-contre">Verrouillé</span> } else { <span class="badge b-pour">Actif</span> }</td>
+                <td class="nowrap">
+                    @if (!moi)
+                    {
+                        <form method="post" asp-page-handler="Role" class="en-ligne">
+                            <input type="hidden" name="id" value="@u.Id" />
+                            <input type="hidden" name="devenirAdmin" value="@((!u.Admin).ToString().ToLowerInvariant())" />
+                            <button type="submit" class="bouton petit secondaire">@(u.Admin ? "Retirer admin" : "Rendre admin")</button>
+                        </form>
+                        <form method="post" asp-page-handler="Verrou" class="en-ligne">
+                            <input type="hidden" name="id" value="@u.Id" />
+                            <input type="hidden" name="verrouiller" value="@((!u.Verrouille).ToString().ToLowerInvariant())" />
+                            <button type="submit" class="bouton petit secondaire">@(u.Verrouille ? "Déverrouiller" : "Verrouiller")</button>
+                        </form>
+                        <form method="post" asp-page-handler="Supprimer" class="en-ligne" onsubmit="return confirm('Supprimer définitivement ce compte ?');">
+                            <input type="hidden" name="id" value="@u.Id" />
+                            <button type="submit" class="bouton petit danger">Supprimer</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<h2>Créer un compte</h2>
+<form method="post" asp-page-handler="Creer" class="formulaire">
+    <label>Adresse e-mail <input type="email" name="email" required autocomplete="off" /></label>
+    <label>Mot de passe (12 caractères minimum) <input type="password" name="motDePasse" required minlength="12" autocomplete="new-password" /></label>
+    <label class="case"><input type="checkbox" name="admin" value="true" /> Administrateur</label>
+    <button type="submit" class="bouton">Créer le compte</button>
+</form>

@@ -1,0 +1,97 @@
+@page
+@model IlsOntVote.Web.Pages.Admin.StatsModel
+@{
+    ViewData["Title"] = "Fréquentation";
+    ViewData["NoIndex"] = true;
+    var fr = new System.Globalization.CultureInfo("fr-FR");
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    var max = Model.Apercu.Serie.Count == 0 ? 1 : Math.Max(1, Model.Apercu.Serie.Max(p => p.Vues));
+    var parMois = Model.Periode is "annee" or "tout";
+    var periodes = new[] { ("jour", "Aujourd'hui"), ("hier", "Hier"), ("mois", "Ce mois"), ("annee", "Cette année"), ("tout", "Tout") };
+    var sources = new[] { ("humains", "Lecteurs"), ("bots", "Robots"), ("tous", "Tous") };
+}
+<partial name="_AdminNav" />
+<h1 class="titre-page">Fréquentation</h1>
+<p class="chapo">Pages vues et visiteurs uniques. Aucune adresse IP n'est conservée : seule une empreinte irréversible sert à compter les visiteurs uniques.</p>
+
+<div class="barre-groupes" role="group" aria-label="Période et source">
+    @foreach (var (cle, nom) in periodes)
+    {
+        <a class="puce @(Model.Periode == cle ? "actif" : "")" href="@Model.Lien(periode: cle)">@nom</a>
+    }
+    <span class="separateur"></span>
+    @foreach (var (cle, nom) in sources)
+    {
+        <a class="puce @(Model.Source == cle ? "actif" : "")" href="@Model.Lien(source: cle)">@nom</a>
+    }
+</div>
+
+<div class="chiffres">
+    <div><b>@Model.Apercu.TotalVues.ToString("N0", fr)</b><span>pages vues</span></div>
+    <div><b>@Model.Apercu.VisiteursUniques.ToString("N0", fr)</b><span>visiteurs uniques</span></div>
+</div>
+
+<h2>Évolution</h2>
+@if (Model.Apercu.Serie.Count == 0)
+{
+    <p class="vide">Aucune donnée sur cette période.</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>@(parMois ? "Mois" : "Jour")</th><th class="num">Vues</th><th class="num">Visiteurs</th><th class="col-barre"></th></tr></thead>
+            <tbody>
+            @foreach (var p in Model.Apercu.Serie)
+            {
+                <tr>
+                    <td>@(parMois ? p.Debut.ToString("MMMM yyyy", fr) : p.Debut.ToString("ddd d MMM", fr))</td>
+                    <td class="num">@p.Vues</td>
+                    <td class="num">@p.Visiteurs</td>
+                    <td class="col-barre"><div class="barre-empilee fine"><span class="b-pour" style="width:@((100.0 * p.Vues / max).ToString("0.#", inv))%"></span></div></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+<h2>Pays</h2>
+@if (Model.Apercu.Pays.Count > 0)
+{
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Pays</th><th class="num">Vues</th><th class="num">Visiteurs</th></tr></thead>
+            <tbody>
+            @foreach (var c in Model.Apercu.Pays)
+            {
+                <tr><td>@IlsOntVote.Web.Services.PaysResolver.Libelle(c.Cle)</td><td class="num">@c.Vues</td><td class="num">@c.Visiteurs</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="vide">Aucune donnée sur cette période.</p>
+}
+
+<h2>Pages les plus vues</h2>
+@if (Model.Apercu.TopPages.Count > 0)
+{
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Page</th><th class="num">Vues</th><th class="num">Visiteurs</th></tr></thead>
+            <tbody>
+            @foreach (var c in Model.Apercu.TopPages)
+            {
+                <tr><td><a href="@c.Cle">@c.Cle</a></td><td class="num">@c.Vues</td><td class="num">@c.Visiteurs</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="vide">Aucune donnée sur cette période.</p>
+}

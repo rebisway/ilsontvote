@@ -1,0 +1,25 @@
+@page
+@model IlsOntVote.Web.Pages.Identity.Account.LoginModel
+@{
+    ViewData["Title"] = "Connexion";
+    ViewData["NoIndex"] = true;
+}
+
+<h1 class="titre-page">Connexion</h1>
+<p class="chapo">Espace réservé à l'administration du site.</p>
+
+<form method="post" class="formulaire">
+    @if (Model.Erreur is not null)
+    {
+        <p class="alerte" role="alert">@Model.Erreur</p>
+    }
+    <div asp-validation-summary="ModelOnly"></div>
+    <label>Adresse e-mail
+        <input asp-for="Input.Email" type="email" autocomplete="username" required autofocus />
+    </label>
+    <label>Mot de passe
+        <input asp-for="Input.Password" type="password" autocomplete="current-password" required />
+    </label>
+    <label class="case"><input asp-for="Input.SeSouvenir" type="checkbox" /> Rester connecté</label>
+    <button type="submit" class="bouton">Se connecter</button>
+</form>

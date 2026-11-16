@@ -1,0 +1,55 @@
+using System.Text.RegularExpressions;
+using IlsOntVote.Web.Repositories;
+using IlsOntVote.Web.Services;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+
+namespace IlsOntVote.Web.Middleware;
+
+/// <summary>
+/// Enregistre une vue par Razor Page GET réussie (200), hors /Admin et /Identity (navigation de
+/// l'admin et flux d'authentification ne sont pas du trafic public). Placé après UseRouting
+/// (l'endpoint doit être résolu) et AVANT le cache de sortie : une page servie depuis le cache
+/// compte aussi. Vie privée : ni IP ni User-Agent en clair, cf. <see cref="IIpHasher"/>.
+/// </summary>
+public sealed class PageViewTrackingMiddleware(RequestDelegate next)
+{
+    // Crawlers/outils qui s'annoncent comme tels — ne détecte pas les bots furtifs.
+    private static readonly Regex BotUserAgent = new(
+        "bot|crawler|spider|slurp|crawl|archive[.]org|python-requests|python-urllib|curl|wget|scrapy|" +
+        "headless|phantomjs|node-fetch|axios|go-http-client|java/|libwww-perl",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    public async Task InvokeAsync(HttpContext context, IPageViewRepository vues, IIpHasher hasher, PaysResolver pays)
+    {
+        await next(context);
+
+        if (!DoitEtreSuivi(context)) return;
+
+        var path = context.Request.Path.Value ?? "/";
+        var userAgent = context.Request.Headers.UserAgent.ToString();
+        var estBot = string.IsNullOrWhiteSpace(userAgent) || BotUserAgent.IsMatch(userAgent);
+
+        // Best-effort : une erreur de statistiques ne doit jamais casser une page déjà servie.
+        try
+        {
+            await vues.RecordAsync(path.Length > 300 ? path[..300] : path, hasher.Hash(context.Connection.RemoteIpAddress), estBot,
+                pays.Resolve(context.Connection.RemoteIpAddress));
+        }
+        catch (Exception ex)
+        {
+            context.RequestServices.GetRequiredService<ILogger<PageViewTrackingMiddleware>>()
+                .LogWarning(ex, "Échec d'enregistrement de la vue de page pour {Path}", path);
+        }
+    }
+
+    private static bool DoitEtreSuivi(HttpContext context)
+    {
+        if (context.Request.Method != HttpMethods.Get || context.Response.StatusCode != StatusCodes.Status200OK) return false;
+
+        var path = context.Request.Path.Value ?? "";
+        if (path.StartsWith("/Admin", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/Identity", StringComparison.OrdinalIgnoreCase)) return false;
+
+        return context.GetEndpoint()?.Metadata.GetMetadata<PageActionDescriptor>() is not null;
+    }
+}

@@ -1,0 +1,25 @@
+# IlsOntVote - import quotidien des données (AN, Sénat, textes de loi). Lancé par ilsontvote-import.timer ; à la main :
+#   sudo systemctl start ilsontvote-import.service     puis     journalctl -u ilsontvote-import.service -f
+[Unit]
+Description=IlsOntVote (import des données)
+After=network.target postgresql.service
+
+[Service]
+Type=oneshot
+User=www-data
+# Les jeux téléchargés (zips extraits, plusieurs centaines de Mo) vont dans ./data de ce dossier.
+WorkingDirectory=/var/lib/ilsontvote-import
+ExecStart=/var/www/ilsontvote_importer/import-all.sh
+TimeoutStartSec=2h
+Nice=10
+
+Environment=DOTNET_ENVIRONMENT=Production
+# Mêmes secrets que le site (une seule copie du mot de passe de la base).
+Environment=ILSONVOTE_LOCAL_CONFIG=/var/www/ilsontvote_app/appsettings.Local.json
+Environment=DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
+Environment=DOTNET_CLI_TELEMETRY_OPTOUT=1
+Environment=HOME=/var/lib/ilsontvote-import
+
+NoNewPrivileges=true
+ProtectHome=true
+PrivateTmp=true

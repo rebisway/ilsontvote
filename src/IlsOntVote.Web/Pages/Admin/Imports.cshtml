@@ -1,0 +1,37 @@
+@page
+@model IlsOntVote.Web.Pages.Admin.ImportsModel
+@{
+    ViewData["Title"] = "Imports";
+    ViewData["NoIndex"] = true;
+    var fr = new System.Globalization.CultureInfo("fr-FR");
+}
+<partial name="_AdminNav" />
+<h1 class="titre-page">Journal des imports</h1>
+<p class="chapo">Chaque exécution d'une source de données (cron ou manuelle). Le déclenchement manuel et le test à blanc des sources arriveront avec la routine d'import.</p>
+
+@if (Model.Executions.Count == 0)
+{
+    <p class="vide">Aucun import enregistré.</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>#</th><th>Source</th><th>Début</th><th>Durée</th><th>État</th><th>Scrutins</th><th>Votes</th><th>Message</th></tr></thead>
+            <tbody>
+            @foreach (var i in Model.Executions)
+            {
+                <tr>
+                    <td>@i.Id</td>
+                    <td>@i.Source</td>
+                    <td class="nowrap">@i.StartedAt.ToLocalTime().ToString("g", fr)</td>
+                    <td class="nowrap">@(i.Duree is { } d ? $"{(int)d.TotalMinutes} min {d.Seconds:00} s" : "—")</td>
+                    <td>@if (i.Ok is null) { <span class="note">interrompu</span> } else if (i.Ok == true) { <span class="badge b-ok">OK</span> } else { <span class="badge b-ko">Échec</span> }</td>
+                    <td>@i.Scrutins</td><td>@i.Votes</td>
+                    <td class="note-cell">@i.Message</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}

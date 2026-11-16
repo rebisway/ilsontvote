@@ -1,0 +1,85 @@
+@using System.Globalization
+@using IlsOntVote.Web.Models
+@using IlsOntVote.Web.Services
+@model (HemicycleVue Vue, bool Detaille)
+@{
+    var inv = CultureInfo.InvariantCulture;
+    var vue = Model.Vue;
+    string F(double d) => d.ToString("0.#", inv);
+
+    // Chaque groupe reçoit une classe g0, g1… dont la couleur est définie UNE fois dans un <style> propre à ce
+    // dessin (l'identifiant le rend indépendant des autres hémicycles de la page) : plus léger qu'un style par point.
+    var id = "h" + Guid.NewGuid().ToString("N")[..8];
+    var indexGroupe = new Dictionary<string, int>();
+    foreach (var a in vue.Arcs) indexGroupe.TryAdd(a.Sigle, indexGroupe.Count);
+
+    // Une couleur n'est injectée dans le CSS que si elle est un code hexadécimal valide (la donnée vient de la base).
+    static string CouleurSure(string? c) =>
+        c is not null && System.Text.RegularExpressions.Regex.IsMatch(c, "^#[0-9a-fA-F]{3,8}$") ? c : "#8d949a";
+    var couleurs = vue.Arcs.GroupBy(a => a.Sigle).ToDictionary(g => g.Key, g => CouleurSure(g.First().Couleur));
+    var css = string.Concat(indexGroupe.Select(kv => $"#{id} .g{kv.Value}{{--g:{couleurs[kv.Key]}}}"));
+
+    // Chemin d'un arc de cercle, de l'angle de gauche vers l'angle de droite (sens horaire à l'écran).
+    string Arc(ArcGroupe a, double r)
+    {
+        var x1 = HemicycleLayout.CentreX + r * Math.Cos(a.AngleDebut);
+        var y1 = HemicycleLayout.CentreY - r * Math.Sin(a.AngleDebut);
+        var x2 = HemicycleLayout.CentreX + r * Math.Cos(a.AngleFin);
+        var y2 = HemicycleLayout.CentreY - r * Math.Sin(a.AngleFin);
+        var grand = a.AngleDebut - a.AngleFin > Math.PI ? 1 : 0;
+        return $"M{F(x1)} {F(y1)}A{F(r)} {F(r)} 0 {grand} 1 {F(x2)} {F(y2)}";
+    }
+}
+<svg id="@id" class="hemicycle" viewBox="0 0 @HemicycleLayout.Largeur.ToString(inv) @HemicycleLayout.Hauteur.ToString(inv)"
+     role="img" aria-label="Hémicycle : un point par élu, coloré selon son vote, entouré de la couleur de son groupe">
+
+    @* Couleurs des groupes, propres à ce dessin. <style> est valide dans un SVG en ligne. *@
+    @Html.Raw("<style>" + css + "</style>")
+
+    @* Arcs de groupes (toujours visibles, quel que soit le mode de coloration des points). *@
+    <g class="arcs">
+        @foreach (var a in vue.Arcs)
+        {
+            <path class="arc" d="@Arc(a, HemicycleLayout.RayonArc)" style="stroke:@CouleurSure(a.Couleur)">
+                <title>@a.Sigle — @a.Effectif</title>
+            </path>
+        }
+    </g>
+
+    @if (Model.Detaille)
+    {
+        <g class="etiquettes">
+            @foreach (var a in vue.Arcs.Where(x => x.Etiquetable))
+            {
+                var cos = Math.Cos(a.AngleMilieu);
+                var y = HemicycleLayout.CentreY - HemicycleLayout.RayonEtiquette * Math.Sin(a.AngleMilieu);
+                // Aux deux extrémités l'arc est vertical : l'étiquette se place à côté de lui, pas dessus.
+                var extremite = Math.Abs(cos) > 0.85;
+                var x = extremite
+                    ? HemicycleLayout.CentreX + Math.Sign(cos) * (HemicycleLayout.RayonArc + 14)
+                    : HemicycleLayout.CentreX + HemicycleLayout.RayonEtiquette * cos;
+                var ancre = extremite ? (cos < 0 ? "end" : "start") : "middle";
+                @* <text> est un nom réservé de Razor : on émet l'élément SVG en HTML brut (sigle encodé). *@
+                @Html.Raw($"<text x=\"{F(x)}\" y=\"{F(y)}\" text-anchor=\"{ancre}\" dominant-baseline=\"middle\">{System.Net.WebUtility.HtmlEncode(a.Sigle)}</text>")
+            }
+        </g>
+    }
+
+    <g class="sieges">
+    @foreach (var s in vue.Sieges)
+    {
+        var g = indexGroupe.TryGetValue(s.GroupeSigle, out var gi) ? $" g{gi}" : "";
+        if (Model.Detaille)
+        {
+            <circle class="p-@s.Position@(s.Rectifie ? " rectifie" : "")@g" cx="@s.X.ToString(inv)" cy="@s.Y.ToString(inv)" r="@vue.Rayon.ToString(inv)">
+                <title>@s.NomComplet (@s.GroupeSigle) — @Pos.Libelle(s.Position)@(s.Rectifie ? " (mise au point)" : "")@(s.ParDelegation ? " — par délégation" : "")</title>
+            </circle>
+        }
+        else
+        {
+            @* Cartes de l'accueil : pas d'infobulle, pour garder la page légère. *@
+            <circle class="p-@s.Position@g" cx="@s.X.ToString(inv)" cy="@s.Y.ToString(inv)" r="@vue.Rayon.ToString(inv)" />
+        }
+    }
+    </g>
+</svg>

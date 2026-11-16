@@ -1,0 +1,92 @@
+@page "/textes"
+@model TextesModel
+@using IlsOntVote.Web.Models
+@using IlsOntVote.Web.Services
+@{
+    ViewData["Title"] = "Scrutins";
+    ViewData["Description"] = "Tous les scrutins publics de l'Assemblée nationale et du Sénat : cherchez un texte, triez, exportez, et voyez qui a voté quoi.";
+    var fr = new System.Globalization.CultureInfo("fr-FR");
+}
+
+<h1 class="titre-page">Scrutins</h1>
+<p class="chapo">Les votes sur l'ensemble d'un texte, du plus récent au plus ancien. Cochez « amendements et articles » pour voir aussi les votes intermédiaires. Cliquez sur un titre de colonne pour trier. Pour suivre le parcours complet d'une loi (promulgation, Journal officiel, Conseil constitutionnel), voir <a href="/lois">les lois</a>.</p>
+
+<form class="filtres" method="get" action="/textes">
+    <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="Chercher un texte (ex. retraites, finances, immigration…)" aria-label="Chercher un texte" />
+    <select name="chambre" aria-label="Chambre">
+        <option value="" selected="@string.IsNullOrEmpty(Model.Chambre)">Assemblée et Sénat</option>
+        <option value="an" selected="@(Model.Chambre == "an")">Assemblée nationale</option>
+        <option value="senat" selected="@(Model.Chambre == "senat")">Sénat</option>
+        <option value="ue" selected="@(Model.Chambre == "ue")">Parlement européen</option>
+    </select>
+    <label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" /> amendements et articles</label>
+    @* Tri : en-têtes de colonne (écran large) ou ces listes (téléphone). *@
+    <select name="tri" class="tri-mobile" aria-label="Trier par">
+        <option value="date" selected="@(Model.TriEffectif == "date")">Trier : date</option>
+        <option value="chambre" selected="@(Model.TriEffectif == "chambre")">Trier : chambre</option>
+        <option value="titre" selected="@(Model.TriEffectif == "titre")">Trier : texte</option>
+        <option value="resultat" selected="@(Model.TriEffectif == "resultat")">Trier : résultat</option>
+        <option value="pour" selected="@(Model.TriEffectif == "pour")">Trier : pour</option>
+        <option value="contre" selected="@(Model.TriEffectif == "contre")">Trier : contre</option>
+        <option value="abst" selected="@(Model.TriEffectif == "abst")">Trier : abstentions</option>
+    </select>
+    <select name="sens" class="tri-mobile" aria-label="Sens du tri">
+        <option value="desc" selected="@Model.Decroissant">Décroissant</option>
+        <option value="asc" selected="@(!Model.Decroissant)">Croissant</option>
+    </select>
+    <button type="submit">Filtrer</button>
+</form>
+
+<div class="barre-liste">
+    <p class="compte">@Model.Resultats.Total.ToString("N0", fr) scrutin@(Model.Resultats.Total > 1 ? "s" : "")</p>
+    <p class="export">Exporter ce tableau :
+        @foreach (var f in Exporteur.Formats)
+        {
+            <a href="@Model.Lien(format: f)" download>@f.ToUpperInvariant()</a>
+        }
+    </p>
+</div>
+
+@if (Model.Resultats.Lignes.Count == 0)
+{
+    <p class="vide">Aucun résultat.</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table class="liste-textes">
+            <thead>
+                <tr>
+                    @Model.Th("date", "Date")
+                    @Model.Th("chambre", "Chambre")
+                    @Model.Th("titre", "Texte")
+                    @Model.Th("resultat", "Résultat")
+                    @Model.Th("pour", "Pour", "num")
+                    @Model.Th("contre", "Contre", "num")
+                    @Model.Th("abst", "Abst.", "num")
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var s in Model.Resultats.Lignes)
+            {
+                <tr>
+                    <td class="nowrap" data-label="Date"><time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMM yyyy", fr)</time></td>
+                    <td data-label="Chambre"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@Chambres.Court(s.Chambre)</span></td>
+                    <td><a href="/scrutin/@s.Id">@s.TitreAffiche</a></td>
+                    <td data-label="Résultat"><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? "✓ Adopté" : "✗ Rejeté")</span></td>
+                    <td class="num" data-label="Pour">@s.NbPour</td><td class="num" data-label="Contre">@s.NbContre</td><td class="num" data-label="Abstentions">@s.NbAbstentions</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.Resultats.NbPages > 1)
+    {
+        <nav class="pagination" aria-label="Pagination">
+            @if (Model.Resultats.Page > 1) { <a href="@Model.Lien(page: Model.Resultats.Page - 1)" rel="prev">← Précédent</a> }
+            <span>Page @Model.Resultats.Page / @Model.Resultats.NbPages</span>
+            @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">Suivant →</a> }
+        </nav>
+    }
+}

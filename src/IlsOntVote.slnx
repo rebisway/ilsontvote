@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="IlsOntVote.Importer/IlsOntVote.Importer.csproj" />
+  <Project Path="IlsOntVote.Web/IlsOntVote.Web.csproj" />
+</Solution>

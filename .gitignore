@@ -1,0 +1,32 @@
+# .NET
+bin/
+obj/
+.vs/
+*.user
+publish/
+Deploy/publish/
+
+# Secrets / config locale : jamais dans un dépôt public
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Local.json
+**/appsettings.Local.json
+appsettings.*.local.json
+secrets.json
+*.pfx
+*.key
+*.pem
+.env
+
+# Clés Data Protection ASP.NET
+**/App_Data/
+
+# Données téléchargées (régénérables par l'Importer)
+data/
+*.zip
+
+# Réglages locaux de l'outil d'assistance (aperçu, permissions)
+.claude/
+
+# Contexte de travail de l'assistant (non publié)
+CLAUDE.md

@@ -1,0 +1,56 @@
+@page
+@using IlsOntVote.Web.Models
+@model IndexModel
+@{
+    ViewData["Title"] = "";
+    var fr = new System.Globalization.CultureInfo("fr-FR");
+}
+
+<section class="intro">
+    <h1>Qui a voté quoi ?</h1>
+    <p>Chaque point est un élu. Pour chaque texte, voyez en un coup d'œil qui a voté <strong class="c-pour">pour</strong>, <strong class="c-contre">contre</strong>, s'est <strong class="c-abstention">abstenu</strong>, ou n'a pas pris part au vote (<strong class="c-absent">absent</strong>).</p>
+</section>
+
+<div class="colonnes">
+@foreach (var section in Model.Sections)
+{
+    <section class="chambre">
+        <div class="chambre-tete">
+            <h2>@Chambres.Nom(section.Chambre)</h2>
+            <p>
+                <a href="/textes?chambre=@Chambres.Filtre(section.Chambre)">Tous les textes</a>
+                · <a href="/@Chambres.Liste(section.Chambre)">Tous les @Chambres.Membres(section.Chambre)</a>
+            </p>
+        </div>
+
+        @if (section.Cartes.Count == 0)
+        {
+            <p class="vide">Aucun scrutin importé pour le moment.</p>
+        }
+
+        <div class="cartes">
+            @foreach (var c in section.Cartes)
+            {
+                <article class="carte">
+                    <header>
+                        <time datetime="@c.Scrutin.DateScrutin.ToString("yyyy-MM-dd")">@c.Scrutin.DateScrutin.ToString("d MMMM yyyy", fr)</time>
+                        <span class="sort @(c.Scrutin.Adopte ? "adopte" : "rejete")">@(c.Scrutin.Adopte ? "✓ Adopté" : "✗ Rejeté")</span>
+                    </header>
+                    <h3><a href="/scrutin/@c.Scrutin.Id">@c.Scrutin.TitreAffiche</a></h3>
+
+                    <a class="carte-hemicycle" href="/scrutin/@c.Scrutin.Id" tabindex="-1" aria-hidden="true">
+                        <partial name="_Hemicycle" model="(c.Vue, false)" />
+                    </a>
+
+                    <ul class="decompte">
+                        <li class="d-pour"><b>@c.Pour</b> pour</li>
+                        <li class="d-contre"><b>@c.Contre</b> contre</li>
+                        <li class="d-abstention"><b>@c.Abstention</b> abst.</li>
+                        <li class="d-absent"><b>@c.Absent</b> absents</li>
+                    </ul>
+                </article>
+            }
+        </div>
+    </section>
+}
+</div>

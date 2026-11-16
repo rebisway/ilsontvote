@@ -1,0 +1,87 @@
+@page "/texte/{id}"
+@model TexteModel
+@using IlsOntVote.Web.Models
+@{
+    var t = Model.Loi;
+    var st = t.Statut;
+    var fr = new System.Globalization.CultureInfo("fr-FR");
+    ViewData["Title"] = t.TitreAffiche.Length > 60 ? t.TitreAffiche[..60] + "…" : t.TitreAffiche;
+    ViewData["Description"] = $"{t.TitreAffiche} : {st.Libelle}. Votes, décision du Conseil constitutionnel, promulgation et parution au Journal officiel.";
+}
+
+<p class="retour"><a href="/lois">← Toutes les lois</a></p>
+
+<header class="scrutin-tete">
+    <p class="meta">@(t.TypeLibelle is null ? "Texte" : char.ToUpperInvariant(t.TypeLibelle[0]) + t.TypeLibelle[1..])@(string.IsNullOrEmpty(t.NumeroLoi) ? "" : $" · loi n° {t.NumeroLoi}")</p>
+    <h1>@t.TitreAffiche</h1>
+    <p><span class="statut @st.Classe">@st.Libelle</span></p>
+</header>
+
+<section class="fiche-vote" aria-label="Parcours du texte">
+    <dl>
+        <div><dt>Promulgation</dt><dd>@(t.DatePromulgation?.ToString("d MMMM yyyy", fr) ?? "Pas de promulgation")</dd></div>
+        <div>
+            <dt>Parution au Journal officiel</dt>
+            <dd>@(t.DateJo?.ToString("d MMMM yyyy", fr) ?? "—")</dd>
+            @if (!string.IsNullOrEmpty(t.NumeroJo)) { <dd class="detail">JO n° @t.NumeroJo</dd> }
+        </div>
+        <div><dt>Votes sur l'ensemble</dt><dd>@t.NbScrutins</dd><dd class="detail">@(t.AdopteAn ? "adopté à l'Assemblée" : "")@(t.AdopteAn && t.AdopteSenat ? " · " : "")@(t.AdopteSenat ? "adopté au Sénat" : "")</dd></div>
+    </dl>
+    <p class="liens-externes">
+        @if (!string.IsNullOrEmpty(t.UrlLegifrance)) { <a href="@t.UrlLegifrance" rel="noopener" target="_blank">Texte sur Légifrance ↗</a> }
+        @if (!string.IsNullOrEmpty(t.UrlDossierSenat)) { <a href="@t.UrlDossierSenat" rel="noopener" target="_blank">Dossier législatif du Sénat ↗</a> }
+        @if (!string.IsNullOrEmpty(t.UrlDossierAn)) { <a href="@t.UrlDossierAn" rel="noopener" target="_blank">Dossier de l'Assemblée ↗</a> }
+    </p>
+</section>
+
+@if (t.DecisionCcCode is not null || t.SaisineCcDate is not null)
+{
+    var cc = t.DecisionCcCode switch { "01" => "cc-conforme", "02" => "cc-partiel", "03" => "cc-censure", _ => "" };
+    <section class="bloc-cc" aria-labelledby="t-cc">
+        <h2 id="t-cc">Conseil constitutionnel</h2>
+        <dl class="liste-def">
+            @if (t.SaisineCcDate is not null)
+            {
+                <div><dt>Saisine</dt><dd>@t.SaisineCcDate.Value.ToString("d MMMM yyyy", fr)@(string.IsNullOrEmpty(t.SaisineCcPar) ? "" : $" — par {t.SaisineCcPar}")</dd></div>
+            }
+            @if (t.DecisionCcCode is not null)
+            {
+                <div>
+                    <dt>Décision</dt>
+                    <dd>
+                        <span class="statut @cc">@(char.ToUpperInvariant(t.DecisionCcLibelle![0]) + t.DecisionCcLibelle[1..])</span>
+                        @if (!string.IsNullOrEmpty(t.DecisionCcNumero)) { <span class="note"> décision n° @t.DecisionCcNumero</span> }
+                        @if (t.DecisionCcDate is not null) { <span class="note"> du @t.DecisionCcDate.Value.ToString("d MMMM yyyy", fr)</span> }
+                        @if (!string.IsNullOrEmpty(t.DecisionCcUrl)) { <a href="@t.DecisionCcUrl" rel="noopener" target="_blank" class="note">texte de la décision ↗</a> }
+                    </dd>
+                </div>
+            }
+        </dl>
+    </section>
+}
+
+<h2>Les votes sur ce texte</h2>
+@if (Model.Scrutins.Count == 0)
+{
+    <p class="vide">Aucun vote nominatif enregistré pour ce texte dans nos données.</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table class="liste-textes">
+            <thead><tr><th>Date</th><th>Chambre</th><th>Scrutin</th><th>Résultat</th><th class="num">Pour</th><th class="num">Contre</th><th class="num">Abst.</th></tr></thead>
+            <tbody>
+            @foreach (var s in Model.Scrutins)
+            {
+                <tr>
+                    <td class="nowrap" data-label="Date">@s.DateScrutin.ToString("d MMM yyyy", fr)</td>
+                    <td data-label="Chambre"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@Chambres.Court(s.Chambre)</span></td>
+                    <td><a href="/scrutin/@s.Id">@s.TitreAffiche</a></td>
+                    <td data-label="Résultat"><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? "✓ Adopté" : "✗ Rejeté")</span></td>
+                    <td class="num" data-label="Pour">@s.NbPour</td><td class="num" data-label="Contre">@s.NbContre</td><td class="num" data-label="Abstentions">@s.NbAbstentions</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}

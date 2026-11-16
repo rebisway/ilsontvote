@@ -1,0 +1,38 @@
+# IlsOntVote - site nginx (copié par setup-site.sh dans /etc/nginx/sites-available/ilsontvote ; __CANONICAL__ et __ALIASES__
+# y sont remplacés par les noms de domaine choisis dans setup-site.sh).
+# HTTP seulement, exprès : « certbot --nginx » ajoute lui-même le bloc TLS et la redirection http -> https.
+# nginx n'est que la porte d'entrée du site ASP.NET Core (service ilsontvote, 127.0.0.1:5295).
+
+server {
+    listen 80;
+    server_name __CANONICAL__;
+
+    # Pas de journal d'accès nginx : les visites sont comptées par le site, sans adresse IP (voir la page de confidentialité).
+    # Les erreurs restent journalisées (error_log).
+    access_log off;
+
+    # Le site ne reçoit aucun fichier (seulement des formulaires de connexion et d'administration).
+    client_max_body_size 1m;
+
+    # Les pages avec hémicycle (SVG) pèsent 200 à 500 Ko : compressées, 10 à 20 fois moins. Les exports CSV/JSON aussi.
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 5;
+    gzip_types text/css text/csv application/json application/javascript image/svg+xml;
+
+    location / {
+        proxy_pass http://127.0.0.1:5295;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+}
+
+# Autres noms (www, .com) : une seule adresse officielle, sinon le même contenu existerait à plusieurs endroits.
+server {
+    listen 80;
+    server_name __ALIASES__;
+    return 301 https://__CANONICAL__$request_uri;
+}

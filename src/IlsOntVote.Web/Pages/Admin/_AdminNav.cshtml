@@ -1,0 +1,15 @@
+@{
+    var chemin = Context.Request.Path.Value ?? "";
+    string Actif(string p) => chemin.Equals(p, StringComparison.OrdinalIgnoreCase) || (p != "/Admin" && chemin.StartsWith(p, StringComparison.OrdinalIgnoreCase)) ? " aria-current=\"page\"" : "";
+}
+<nav class="admin-nav" aria-label="Administration">
+    <a href="/Admin" @Html.Raw(chemin.Equals("/Admin", StringComparison.OrdinalIgnoreCase) ? "aria-current=\"page\"" : "")>Tableau de bord</a>
+    <a href="/Admin/Stats" @Html.Raw(Actif("/Admin/Stats"))>Fréquentation</a>
+    <a href="/Admin/Imports" @Html.Raw(Actif("/Admin/Imports"))>Imports</a>
+    <a href="/Admin/Qualite" @Html.Raw(Actif("/Admin/Qualite"))>Qualité</a>
+    <a href="/Admin/Unes" @Html.Raw(Actif("/Admin/Unes"))>Textes à la une</a>
+    <a href="/Admin/Utilisateurs" @Html.Raw(Actif("/Admin/Utilisateurs"))>Utilisateurs</a>
+    <form method="post" action="/Identity/Account/Logout" class="deconnexion">
+        <button type="submit">Se déconnecter</button>
+    </form>
+</nav>

@@ -1,0 +1,225 @@
+@page "/scrutin/{id}"
+@using IlsOntVote.Web.Models
+@using IlsOntVote.Web.Services
+@model ScrutinModel
+@{
+    var s = Model.Scrutin;
+    ViewData["Title"] = s.TitreAffiche.Length > 60 ? s.TitreAffiche[..60] + "…" : s.TitreAffiche;
+    var fr = new System.Globalization.CultureInfo("fr-FR");
+    string Libelle(string p) => p switch
+    {
+        Pos.Pour => "Pour", Pos.Contre => "Contre", Pos.Abstention => "Abstention", Pos.NonVotant => "Non-votant", _ => "Absent",
+    };
+}
+
+<p class="retour"><a href="/textes">← Tous les textes</a></p>
+
+<header class="scrutin-tete">
+    <p class="meta">
+        @Chambres.Nom(s.Chambre) · scrutin n° @s.Numero · <time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMMM yyyy", fr)</time>
+        · <span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? "✓ Adopté" : "✗ Rejeté")</span>
+    </p>
+    <h1>@s.TitreAffiche</h1>
+<partial name="_OrdreNom" />
+</header>
+
+@{
+    // Jauge de majorité : pour (bleu) puis contre (rouge), sur une échelle qui inclut le seuil requis.
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    var exprimes = s.SuffragesExprimes ?? ((s.NbPour ?? 0) + (s.NbContre ?? 0));
+    var base100 = Math.Max(1, Math.Max(exprimes, s.SuffragesRequis ?? 0));
+    string Pc(int? n) => (100.0 * (n ?? 0) / base100).ToString("0.##", inv);
+    var typeVote = string.IsNullOrWhiteSpace(s.TypeVoteLibelle) ? "scrutin public" : s.TypeVoteLibelle!.Trim();
+    typeVote = char.ToUpperInvariant(typeVote[0]) + typeVote[1..];
+}
+
+@if (Model.Loi is { } loi)
+{
+    var statutLoi = loi.Statut;
+    <section class="bloc-texte" aria-label="Le texte voté">
+        <p class="bloc-texte-titre"><span class="statut @statutLoi.Classe">@statutLoi.Libelle</span>
+            <a href="/texte/@loi.Id">Voir tout le parcours de ce texte →</a></p>
+        <p class="bloc-texte-faits">
+            @if (loi.DatePromulgation is not null) { <span>Promulgué le <b>@loi.DatePromulgation.Value.ToString("d MMMM yyyy", fr)</b></span> }
+            @if (loi.DateJo is not null) { <span>Paru au Journal officiel le <b>@loi.DateJo.Value.ToString("d MMMM yyyy", fr)</b></span> }
+            @if (!string.IsNullOrEmpty(loi.NumeroLoi)) { <span>Loi n° <b>@loi.NumeroLoi</b></span> }
+            @if (loi.DecisionCcLibelle is not null) { <span>Conseil constitutionnel : <b>@loi.DecisionCcLibelle</b></span> }
+            @if (!string.IsNullOrEmpty(loi.UrlLegifrance)) { <a href="@loi.UrlLegifrance" rel="noopener" target="_blank">Texte sur Légifrance ↗</a> }
+            @if (!string.IsNullOrEmpty(loi.UrlDossierSenat)) { <a href="@loi.UrlDossierSenat" rel="noopener" target="_blank">Dossier législatif ↗</a> }
+        </p>
+    </section>
+}
+
+<section class="fiche-vote" aria-label="Caractéristiques du vote">
+    <dl>
+        <div><dt>Type de vote</dt><dd>@typeVote</dd></div>
+        <div><dt>Votants</dt><dd>@(s.NbVotants?.ToString("N0", fr) ?? "—")</dd><dd class="detail">@(s.NbNonVotants is > 0 ? $"{s.NbNonVotants} non-votant{(s.NbNonVotants > 1 ? "s" : "")}" : "")</dd></div>
+        <div><dt>Suffrages exprimés</dt><dd>@exprimes.ToString("N0", fr)</dd><dd class="detail">pour + contre (hors abstentions)</dd></div>
+        @if (s.SuffragesRequis is not null)
+        {
+            <div>
+                <dt>Majorité requise</dt>
+                <dd>@s.SuffragesRequis.Value.ToString("N0", fr) voix</dd>
+                <dd class="detail">@(string.IsNullOrWhiteSpace(s.TypeMajorite) ? "pour être adopté" : char.ToUpperInvariant(s.TypeMajorite.Trim()[0]) + s.TypeMajorite.Trim()[1..])</dd>
+            </div>
+        }
+    </dl>
+
+    <div class="jauge" role="img" aria-label="Pour @s.NbPour, contre @s.NbContre@(s.SuffragesRequis is null ? "" : $", majorité requise {s.SuffragesRequis}")">
+        <span class="j-pour" style="width:@(Pc(s.NbPour))%"></span>
+        <span class="j-contre" style="width:@(Pc(s.NbContre))%"></span>
+        @if (s.SuffragesRequis is not null)
+        {
+            <i class="j-seuil" style="left:@(Pc(s.SuffragesRequis))%" title="Majorité requise : @s.SuffragesRequis voix"></i>
+        }
+    </div>
+    <p class="jauge-legende">
+        <span class="c-pour"><b>@s.NbPour</b> pour</span>
+        <span class="c-contre"><b>@s.NbContre</b> contre</span>
+        <span class="c-abstention"><b>@s.NbAbstentions</b> abstention@(s.NbAbstentions > 1 ? "s" : "")</span>
+        @if (s.SuffragesRequis is not null) { <span class="seuil">▏seuil : @s.SuffragesRequis voix</span> }
+    </p>
+</section>
+
+@if (s.NominatifIncomplet)
+{
+    <p class="alerte" role="note">
+        @Doute.Html(NiveauDoute.Incertain, "décompte incomplet", "La source ne détaille pas tous les votes de ce scrutin.")
+        Données officielles incomplètes : pour ce scrutin, l'@Chambres.Nom(s.Chambre) ne détaille pas le vote de
+        @s.NbVotesManquants @Chambres.Membre(s.Chambre)@(s.NbVotesManquants > 1 ? "s" : ""). Certains « absents » ci-dessous peuvent donc
+        avoir voté ; seuls les totaux officiels font foi.
+    </p>
+}
+
+@if (s.Chambre == Chambres.Senat)
+{
+    <p class="note-source">Au Sénat, « absent » signifie « n'a pas pris part au vote » : un sénateur absent de l'hémicycle peut y avoir fait voter un collègue par délégation, ce qui compte comme un vote.</p>
+}
+
+<div class="bascule" role="group" aria-label="Colorer les points">
+    <span>Colorer par :</span>
+    <button type="button" class="actif" data-mode="vote">Vote</button>
+    <button type="button" data-mode="groupe">Groupe</button>
+    <label class="case anneau-case"><input type="checkbox" id="anneau" /> Cercle de groupe</label>
+</div>
+
+<div class="hemicycle-grand" id="hemicycle">
+    <partial name="_Hemicycle" model="(Model.Vue, true)" />
+</div>
+
+<ul class="legende" id="legende-vote">
+    <li class="d-pour"><i></i> Pour <b>@Model.Sieges.Count(x => x.Position == Pos.Pour)</b></li>
+    <li class="d-contre"><i></i> Contre <b>@Model.Sieges.Count(x => x.Position == Pos.Contre)</b></li>
+    <li class="d-abstention"><i></i> Abstention <b>@Model.Sieges.Count(x => x.Position == Pos.Abstention)</b></li>
+    <li class="d-nonvotant"><i></i> Non-votant <b>@Model.Sieges.Count(x => x.Position == Pos.NonVotant)</b></li>
+    <li class="d-absent"><i></i> Absent <b>@Model.Sieges.Count(x => x.Position == Pos.Absent)</b></li>
+</ul>
+
+<ul class="legende" id="legende-groupe" hidden>
+    @foreach (var g in Model.Groupes)
+    {
+        <li><span class="pastille" style="background:@(g.Couleur ?? "#8d949a")"></span> @g.Sigle <b>@g.Total</b></li>
+    }
+</ul>
+
+@if (!string.IsNullOrWhiteSpace(s.Note))
+{
+    @if (s.Chambre == Chambres.UE)
+    {
+        <p class="note-source">@Doute.Html(NiveauDoute.Calcule, "source tierce", "Données du Parlement européen retraitées par un projet indépendant, pas publiées directement par l'institution.") @s.Note</p>
+    }
+    else
+    {
+        <p class="note-source"><strong>Note officielle :</strong> @s.Note</p>
+    }
+}
+
+<h2>Par groupe</h2>
+<div class="table-wrap">
+    <table class="groupes">
+        <thead>
+            <tr>
+                <th>Groupe</th>
+                <th class="th-pour">Pour</th><th class="th-contre">Contre</th><th class="th-abstention">Abst.</th>
+                <th>Non-votant</th><th>Absents</th><th>Total</th><th class="col-barre">Répartition</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var g in Model.Groupes)
+        {
+            string W(int n) => g.Total == 0 ? "0" : (100.0 * n / g.Total).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+            <tr>
+                <th scope="row"><span class="pastille" style="background:@(g.Couleur ?? "#8d949a")"></span>@g.Sigle</th>
+                <td class="c-pour">@g.Pour</td><td class="c-contre">@g.Contre</td><td class="c-abstention">@g.Abstention</td>
+                <td>@g.NonVotant</td><td>@g.Absent</td><td>@g.Total</td>
+                <td class="col-barre">
+                    <div class="barre-empilee fine" role="img" aria-label="Répartition des votes du groupe @g.Sigle">
+                        <span class="b-pour" style="width:@(W(g.Pour))%"></span>
+                        <span class="b-contre" style="width:@(W(g.Contre))%"></span>
+                        <span class="b-abstention" style="width:@(W(g.Abstention))%"></span>
+                        <span class="b-non_votant" style="width:@(W(g.NonVotant))%"></span>
+                        <span class="b-absent" style="width:@(W(g.Absent))%"></span>
+                    </div>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<h2>Tous les @Chambres.Membres(s.Chambre)</h2>
+<input id="filtre" class="filtre" type="search" placeholder="Chercher un nom, un groupe…" aria-label="Chercher un élu" autocomplete="off" />
+<div class="table-wrap">
+    <table class="deputes" id="deputes">
+        <thead><tr><th>@char.ToUpper(Chambres.Membre(s.Chambre)[0])@Chambres.Membre(s.Chambre)[1..]</th><th>Groupe</th><th>Vote</th></tr></thead>
+        <tbody>
+        @foreach (var d in Model.Sieges.OrderBy(x => x.Nom).ThenBy(x => x.Prenom))
+        {
+            <tr data-q="@((d.NomComplet + " " + d.GroupeSigle).ToLowerInvariant())">
+                <td><a href="@d.Lien">@Noms.Html(d.Prenom, d.Nom)</a></td>
+                <td>@d.GroupeSigle</td>
+                <td>
+                    <span class="badge b-@d.Position">@Libelle(d.Position)</span>
+                    @if (d.Rectifie)
+                    {
+                        <span class="tag tag-rectifie">@(d.OrigineInconnue ? "mise au point" : "rectifié (à l'origine : " + (d.PositionOrigine is null ? "absent" : Libelle(d.PositionOrigine).ToLowerInvariant()) + ")")</span>
+@if (d.OrigineInconnue) { @Doute.Html(NiveauDoute.Manquant, "origine inconnue", "La position publiée au scrutin avant la mise au point n'est pas fournie par la source.") }
+                    }
+                    @if (d.ParDelegation)
+                    {
+                        <span class="tag tag-delegation">par délégation</span>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<script>
+    (function () {
+        var svg = document.querySelector('#hemicycle svg');
+        var lv = document.getElementById('legende-vote');
+        var lg = document.getElementById('legende-groupe');
+        var boutons = document.querySelectorAll('.bascule button');
+        boutons.forEach(function (b) {
+            b.addEventListener('click', function () {
+                var parGroupe = b.dataset.mode === 'groupe';
+                svg.classList.toggle('par-groupe', parGroupe);
+                lv.hidden = parGroupe;
+                lg.hidden = !parGroupe;
+                boutons.forEach(function (x) { x.classList.toggle('actif', x === b); });
+            });
+        });
+        var anneau = document.getElementById('anneau');
+        anneau.addEventListener('change', function () { svg.classList.toggle('anneau', anneau.checked); });
+    })();
+    (function () {
+        var input = document.getElementById('filtre');
+        var rows = document.querySelectorAll('#deputes tbody tr');
+        input.addEventListener('input', function () {
+            var q = input.value.trim().toLowerCase();
+            rows.forEach(function (r) { r.hidden = q && r.dataset.q.indexOf(q) === -1; });
+        });
+    })();
+</script>

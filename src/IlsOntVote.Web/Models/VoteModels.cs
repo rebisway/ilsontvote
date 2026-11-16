@@ -1,0 +1,183 @@
+using System.Text.RegularExpressions;
+
+namespace IlsOntVote.Web.Models;
+
+/// <summary>Les chambres couvertes et leurs libellés. Le code « AN » / « SENAT » est celui stocké en base.</summary>
+public static class Chambres
+{
+    public const string AN = "AN";
+    public const string Senat = "SENAT";
+    public const string UE = "UE";
+
+    public static string Nom(string chambre) => chambre switch { Senat => "Sénat", UE => "Parlement européen", _ => "Assemblée nationale" };
+    public static string Membre(string chambre) => chambre switch { Senat => "sénateur", UE => "eurodéputé", _ => "député" };
+    public static string Membres(string chambre) => chambre switch { Senat => "sénateurs", UE => "eurodéputés", _ => "députés" };
+    /// <summary>Sigle court pour les étiquettes de tableau.</summary>
+    public static string Court(string chambre) => chambre switch { Senat => "Sénat", UE => "UE", _ => "AN" };
+    /// <summary>Classe CSS de l'étiquette de chambre (couleur propre à chaque assemblée).</summary>
+    public static string ClasseTag(string chambre) => chambre switch { Senat => "ch-senat", UE => "ch-ue", _ => "ch-an" };
+    /// <summary>Valeur du filtre d'URL (?chambre=) pour cette chambre.</summary>
+    public static string Filtre(string chambre) => chambre switch { Senat => "senat", UE => "ue", _ => "an" };
+
+    /// <summary>Préfixe d'URL des fiches : /depute/{slug}, /senateur/{slug} ou /eurodepute/{slug}.</summary>
+    public static string Fiche(string chambre) => chambre switch { Senat => "senateur", UE => "eurodepute", _ => "depute" };
+    /// <summary>Adresse de la liste des élus de la chambre.</summary>
+    public static string Liste(string chambre) => chambre switch { Senat => "senateurs", UE => "eurodeputes", _ => "deputes" };
+    /// <summary>Chambre d'après le début d'une adresse (/senateurs, /eurodepute/x…) ; AN par défaut.</summary>
+    public static string DepuisChemin(string chemin) =>
+        chemin.StartsWith("/senateur", StringComparison.OrdinalIgnoreCase) ? Senat :
+        chemin.StartsWith("/eurodepute", StringComparison.OrdinalIgnoreCase) ? UE : AN;
+}
+
+/// <summary>Valeurs de <c>Position</c> d'un parlementaire pour un scrutin.</summary>
+public static class Pos
+{
+    public const string Pour = "pour";
+    public const string Contre = "contre";
+    public const string Abstention = "abstention";
+    public const string NonVotant = "non_votant";
+    public const string Absent = "absent";
+
+    public static string Libelle(string p) => p switch
+    {
+        Pour => "Pour",
+        Contre => "Contre",
+        Abstention => "Abstention",
+        NonVotant => "Non-votant",
+        _ => "Absent",
+    };
+}
+
+/// <summary>Un scrutin public (un vote), tel qu'importé de l'Assemblée nationale ou du Sénat.</summary>
+public sealed class Scrutin
+{
+    public string Id { get; set; } = "";
+    public string Chambre { get; set; } = Chambres.AN;
+    public int Legislature { get; set; }
+    public int Numero { get; set; }
+    public DateTime DateScrutin { get; set; }
+    public string Titre { get; set; } = "";
+    public string? Sort { get; set; }
+    public string? TypeVote { get; set; }
+    public bool SurEnsemble { get; set; }
+    public int? NbVotants { get; set; }
+    public int? NbPour { get; set; }
+    public int? NbContre { get; set; }
+    public int? NbAbstentions { get; set; }
+    public int? NbNonVotants { get; set; }
+    public string? FeaturedTitle { get; set; }
+    public bool NominatifIncomplet { get; set; }
+    public int NbVotesManquants { get; set; }
+    public string? Note { get; set; }
+    public string? TypeVoteLibelle { get; set; }
+    public string? TypeMajorite { get; set; }
+    public int? SuffragesExprimes { get; set; }
+    public int? SuffragesRequis { get; set; }
+
+    public string TitreAffiche => string.IsNullOrWhiteSpace(FeaturedTitle) ? Capitalise(Titre) : FeaturedTitle!;
+    public bool Adopte => Sort is not null && Sort.StartsWith("adopt", StringComparison.OrdinalIgnoreCase);
+
+    // « l'ensemble du projet de loi X » -> « Projet de loi X » : le vote sur l'ensemble est le cas courant.
+    private static readonly Regex PrefixeEnsemble =
+        new(@"^l['’]ensemble (du|de la|des|de l['’]) ?", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    private static string Capitalise(string s)
+    {
+        s = PrefixeEnsemble.Replace(s.Trim().TrimEnd('.'), "");
+        return s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
+    }
+}
+
+/// <summary>Un siège : un parlementaire et sa position pour un scrutin donné.</summary>
+/// <summary>Un siège de l'hémicycle : un élu en fonction à la date du scrutin, avec sa position (vote, absent, non-votant).</summary>
+public sealed class Siege
+{
+    public string ParlementaireId { get; set; } = "";
+    public string Chambre { get; set; } = Chambres.AN;
+    public string Prenom { get; set; } = "";
+    public string Nom { get; set; } = "";
+    public string Slug { get; set; } = "";
+    public string? GroupeId { get; set; }
+    public string GroupeSigle { get; set; } = "";
+    public string? GroupeCouleur { get; set; }
+    public int GroupeOrdre { get; set; }
+    public string Position { get; set; } = Pos.Absent;
+    public bool ParDelegation { get; set; }
+    public bool Rectifie { get; set; }
+    public string? PositionOrigine { get; set; }
+    public bool OrigineInconnue { get; set; }
+
+    public string NomComplet => $"{Prenom} {Nom}";
+    public string Lien => $"/{Chambres.Fiche(Chambre)}/{Slug}";
+
+    // Coordonnées calculées par HemicycleLayout.
+    public double X { get; set; }
+    public double Y { get; set; }
+}
+
+/// <summary>Décompte des votes d'un groupe politique pour un scrutin.</summary>
+public sealed record GroupeDecompte(
+    string Sigle, string? Couleur, int Ordre, int Pour, int Contre, int Abstention, int NonVotant, int Absent)
+{
+    public int Total => Pour + Contre + Abstention + NonVotant + Absent;
+}
+
+/// <summary>Un parlementaire en exercice (ou une fiche), avec son groupe courant.</summary>
+/// <summary>Un élu (député ou sénateur) et son groupe courant. `EnExercice` : un mandat couvre aujourd'hui, dans la législature la plus récente pour l'AN.</summary>
+public sealed class Parlementaire
+{
+    public string Id { get; set; } = "";
+    public string Chambre { get; set; } = Chambres.AN;
+    public string? Civilite { get; set; }
+    public string Prenom { get; set; } = "";
+    public string Nom { get; set; } = "";
+    public string Slug { get; set; } = "";
+    public string? Departement { get; set; }
+    public string? Circonscription { get; set; }
+    public string? GroupeSigle { get; set; }
+    public string? GroupeLibelle { get; set; }
+    public string? GroupeCouleur { get; set; }
+    public int GroupeOrdre { get; set; } = 130;
+    public bool EnExercice { get; set; }
+
+    public string NomComplet => $"{Prenom} {Nom}";
+    public string Lien => $"/{Chambres.Fiche(Chambre)}/{Slug}";
+}
+
+/// <summary>Bilan de participation d'un parlementaire sur les scrutins publics de son mandat.</summary>
+/// <summary>Bilan de participation d'un élu. La participation compte pour, contre et abstention ; non-votant et absent n'y entrent pas.</summary>
+public sealed class BilanParlementaire
+{
+    public int Total { get; set; }
+    public int Pour { get; set; }
+    public int Contre { get; set; }
+    public int Abstention { get; set; }
+    public int NonVotant { get; set; }
+    public int Absent { get; set; }
+
+    public int Participations => Pour + Contre + Abstention;
+    public double TauxParticipation => Total == 0 ? 0 : 100.0 * Participations / Total;
+}
+
+/// <summary>Une ligne de l'historique de vote d'un parlementaire.</summary>
+/// <summary>Une ligne de l'historique de vote d'un élu (absence incluse : un scrutin où il siégeait sans voter).</summary>
+public sealed class LigneVote
+{
+    public string ScrutinId { get; set; } = "";
+    public DateTime DateScrutin { get; set; }
+    public string Titre { get; set; } = "";
+    public string? Sort { get; set; }
+    public string Position { get; set; } = Pos.Absent;
+    public bool ParDelegation { get; set; }
+    public bool Rectifie { get; set; }
+    public string? PositionOrigine { get; set; }
+    public bool OrigineInconnue { get; set; }
+
+    public string TitreAffiche => new Scrutin { Titre = Titre }.TitreAffiche;
+}
+
+/// <summary>Une page de résultats (lignes + total) ; `ParPage` vaut le total lors d'un export non paginé.</summary>
+public sealed record Resultats<T>(IReadOnlyList<T> Lignes, int Total, int Page, int ParPage)
+{
+    public int NbPages => Math.Max(1, (int)Math.Ceiling(Total / (double)ParPage));
+}
