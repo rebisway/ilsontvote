@@ -92,7 +92,10 @@ public sealed class ParlementaireRepository(DapperContext db) : IParlementaireRe
                    count(*) FILTER (WHERE v.position = 'abstention')::int AS abstention,
                    count(*) FILTER (WHERE v.position = 'non_votant')::int AS non_votant,
                    -- Absent = siégeait ce jour-là mais aucune ligne de vote : il n'est pas stocké, il se déduit.
-                   count(*) FILTER (WHERE v.parlementaire_id IS NULL)::int AS absent
+                   count(*) FILTER (WHERE v.parlementaire_id IS NULL)::int AS absent,
+                   -- Attributs d'un vote existant, SANS exclusivité avec la position : un vote par délégation est aussi un pour/contre/abstention.
+                   count(*) FILTER (WHERE v.par_delegation)::int AS delegation,
+                   count(*) FILTER (WHERE v.rectifie)::int AS mise_au_point
               FROM scrutins s
               LEFT JOIN votes v ON v.scrutin_id = s.id AND v.parlementaire_id = @parlementaireId
              WHERE s.chambre = @chambre AND NOT s.nominatif_incomplet

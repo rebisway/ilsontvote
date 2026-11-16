@@ -188,6 +188,30 @@ public sealed class ImportRepository(string connectionString)
         await conn.ExecuteAsync(
             "UPDATE scrutins s SET texte_id = v.t FROM unnest(@ids::text[], @tids::text[]) AS v(i, t) WHERE s.id = v.i",
             new { ids = ids.ToArray(), tids = texteIds.ToArray() }, tx);
+
+        // 2e passe : les autres scrutins publics qui citent un texte (amendement, sous-amendement, article…). Le titre du texte est la fin de
+        // l'intitulé, à partir de « projet de loi » / « proposition de loi » : on en tire la même clé que pour un vote sur l'ensemble.
+        // Plusieurs textes possibles -> même règle de départage que ci-dessus ; si l'ambiguïté demeure, le scrutin reste non rattaché.
+        var autres = (await conn.QueryAsync<(string Id, string Titre)>(
+            "SELECT id, titre FROM scrutins WHERE NOT sur_ensemble AND titre ~* '(projet|proposition) de loi'")).ToList();
+        var idsLies = new List<string>();
+        var texteLies = new List<string>();
+        foreach (var (id, titre) in autres)
+        {
+            var m = System.Text.RegularExpressions.Regex.Match(titre, @"\b(projet|proposition) de loi\b.*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (!m.Success) continue;
+            var cle = TitreTexte.CleScrutin(m.Value);
+            var candidats = parTitre[cle].Concat(parIntitule[cle]).DistinctBy(t => t.Id).ToList();
+            if (candidats.Count > 1) candidats = candidats.Where(t => t.Etat != "02").ToList();
+            if (candidats.Count > 1 && candidats.Any(t => t.Promulgation is not null))
+                candidats = candidats.Where(t => t.Promulgation is not null).ToList();
+            if (candidats.Count == 1) { idsLies.Add(id); texteLies.Add(candidats[0].Id); }
+        }
+        await conn.ExecuteAsync("UPDATE scrutins SET texte_lie_id = NULL WHERE texte_lie_id IS NOT NULL", transaction: tx);
+        await conn.ExecuteAsync(
+            "UPDATE scrutins s SET texte_lie_id = v.t FROM unnest(@ids::text[], @tids::text[]) AS v(i, t) WHERE s.id = v.i",
+            new { ids = idsLies.ToArray(), tids = texteLies.ToArray() }, tx);
+        Console.WriteLine($"  scrutins liés à un texte (amendements, articles…) : {idsLies.Count} sur {autres.Count}");
         await tx.CommitAsync();
 
         return (ids.Count, ambigus, sans);

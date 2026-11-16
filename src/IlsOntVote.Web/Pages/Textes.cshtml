@@ -13,6 +13,7 @@
 
 <form class="filtres filtres-auto filtres-liste" method="get" action="@L.Lien("/textes")">
     <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("Chercher un texte (ex. retraites, finances, immigration…)", "Search a text (e.g. pensions, finance, immigration…)")" aria-label="@L.T("Chercher un texte", "Search a text")" />
+    @if (!string.IsNullOrEmpty(Model.TexteId)) { <input type="hidden" name="texte" value="@Model.TexteId" /> }
     <select name="chambre" aria-label="@L.T("Chambre", "Chamber")">
         <option value="" selected="@string.IsNullOrEmpty(Model.Chambre)">@L.T("Assemblée et Sénat", "National Assembly and Senate")</option>
         <option value="an" selected="@(Model.Chambre == "an")">@L.T("Assemblée nationale", "National Assembly")</option>

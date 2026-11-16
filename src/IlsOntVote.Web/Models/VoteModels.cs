@@ -175,6 +175,10 @@ public sealed class BilanParlementaire
     public int Abstention { get; set; }
     public int NonVotant { get; set; }
     public int Absent { get; set; }
+    /// <summary>Votes exprimés par délégation (compris dans pour / contre / abstention, pas en plus).</summary>
+    public int Delegation { get; set; }
+    /// <summary>Votes rectifiés ou mises au point (compris dans les positions finales ci-dessus).</summary>
+    public int MiseAuPoint { get; set; }
 
     public int Participations => Pour + Contre + Abstention;
     public double TauxParticipation => Total == 0 ? 0 : 100.0 * Participations / Total;

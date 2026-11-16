@@ -584,3 +584,13 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
     .menu a[aria-current="page"] { border-bottom-color: var(--line); font-weight: 650; box-shadow: inset 3px 0 0 var(--contre); padding-left: 10px; }
     .js .menu:not(.ouvert) { display: none; }
 }
+
+/* Fiche d'élu : délégation et mise au point (attributs d'un vote, couleurs des étiquettes correspondantes) */
+.legende .d-delegation i { background: var(--tag-delegation); }
+.legende .d-rectifie i { background: var(--tag-rectifie); }
+.legende-attributs { padding-top: 4px; }
+.legende-attributs .note-source { margin: 0; }
+
+/* En-tête et menu toujours visibles au défilement (sur mobile, le menu déplié défile avec l'écran s'il est plus haut que lui). */
+.site-header { position: sticky; top: 0; z-index: 100; }
+@media (max-width: 720px) { .site-header .menu { max-height: calc(100vh - 70px); overflow-y: auto; } }

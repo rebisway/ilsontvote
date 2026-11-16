@@ -148,3 +148,29 @@ else
         </table>
     </div>
 }
+
+@if (Model.NbLies > 0)
+{
+    <h2>@L.T("Amendements, articles et autres votes", "Amendments, articles and other votes")</h2>
+    <p class="note-source">@L.T($"{Model.NbLies.ToString("N0", fr)} autres scrutins publics citent ce texte (amendements, sous-amendements, articles). Rattachement calculé d'après le titre du texte : il peut manquer des votes quand plusieurs textes portent le même titre.", $"{Model.NbLies.ToString("N0", fr)} other roll-call votes mention this text (amendments, sub-amendments, articles). Matching is computed from the text's title: some votes may be missing when several texts share the same title.")</p>
+    <div class="table-wrap">
+        <table class="liste-textes">
+            <thead><tr><th>Date</th><th>@L.T("Chambre", "Chamber")</th><th>@L.T("Scrutin", "Vote")</th><th>@L.T("Résultat", "Result")</th></tr></thead>
+            <tbody>
+            @foreach (var s in Model.Lies)
+            {
+                <tr>
+                    <td class="nowrap" data-label="Date">@s.DateScrutin.ToString("d MMM yyyy", fr)</td>
+                    <td data-label="@L.T("Chambre", "Chamber")"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@Chambres.Court(s.Chambre, L.Anglais)</span></td>
+                    <td><a href="@L.Lien("/scrutin/" + s.Id)" title="@s.InfobulleTitre(L.Anglais)">@s.TitreLangue(L.Anglais)</a></td>
+                    <td data-label="@L.T("Résultat", "Result")"><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    @if (Model.NbLies > Model.Lies.Count)
+    {
+        <p><a class="bouton-lien" href="@L.Lien("/textes")?texte=@Model.Loi.Id&portee=tout">@L.T("Voir les ", "See all ")@Model.NbLies.ToString("N0", fr)@L.T(" votes", " votes")</a></p>
+    }
+}

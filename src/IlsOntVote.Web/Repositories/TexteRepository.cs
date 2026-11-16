@@ -13,6 +13,8 @@ public interface ITexteRepository
     Task<Texte?> GetAsync(string id);
     Task<Texte?> GetParScrutinAsync(string scrutinId);
     Task<IReadOnlyList<ScrutinDuTexte>> GetScrutinsAsync(string texteId);
+    /// <summary>Autres scrutins publics liés au texte (amendements, articles…) : leur nombre et les plus récents.</summary>
+    Task<(int Total, IReadOnlyList<ScrutinDuTexte> Recents)> GetScrutinsLiesAsync(string texteId, int limite);
     /// <summary>Décisions de séance publique à l'Assemblée sur ce texte (avec ou sans scrutin public), de la plus ancienne à la plus récente.</summary>
     Task<IReadOnlyList<EtapeTexte>> GetEtapesAsync(string texteId);
 
@@ -129,6 +131,19 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
             SELECT id, chambre, date_scrutin, titre, titre_en, titre_en_auto, sort, nb_pour, nb_contre, nb_abstentions
               FROM scrutins WHERE texte_id = @texteId ORDER BY date_scrutin, chambre, numero
             """, new { texteId })).ToList();
+    }
+
+    public async Task<(int Total, IReadOnlyList<ScrutinDuTexte> Recents)> GetScrutinsLiesAsync(string texteId, int limite)
+    {
+        using var conn = db.CreateConnection();
+        // texte_lie_id : rattachement calculé par le titre du texte cité (cf. migration 017) ; absent en cas d'ambiguïté.
+        var total = await conn.ExecuteScalarAsync<int>("SELECT count(*) FROM scrutins WHERE texte_lie_id = @texteId", new { texteId });
+        var recents = (await conn.QueryAsync<ScrutinDuTexte>(
+            """
+            SELECT id, chambre, date_scrutin, titre, titre_en, titre_en_auto, sort, nb_pour, nb_contre, nb_abstentions
+              FROM scrutins WHERE texte_lie_id = @texteId ORDER BY date_scrutin DESC, numero DESC LIMIT @limite
+            """, new { texteId, limite })).ToList();
+        return (total, recents);
     }
 
     public async Task<Resultats<Texte>> ListerAsync(FiltreTextes filtre, string tri, bool decroissant, int page, int parPage)

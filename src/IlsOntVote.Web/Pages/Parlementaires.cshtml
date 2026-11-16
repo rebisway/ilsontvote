@@ -9,7 +9,6 @@
 }
 
 <h1 class="titre-page">@ViewData["Title"]</h1>
-<p class="chapo">@Model.Elus.Count @membres @L.T("en exercice", "in office") (@Chambres.Nom(Model.Chambre, L.Anglais)). @L.T("Cliquez sur un nom pour voir ses votes et sa participation.", "Click a name to see their votes and participation.")</p>
 
 @{
     // Anneau de répartition par groupe (SVG) : un segment par groupe, couleur du groupe. Technique du cercle à tirets : chaque segment est
@@ -58,6 +57,7 @@
 
 <div class="filtres">
     <input id="filtre" class="filtre" type="search" placeholder="@(Model.Chambre == Chambres.UE ? L.T("Chercher un nom, un pays…", "Search a name, a country…") : L.T("Chercher un nom, un département…", "Search a name, a département…"))" aria-label="@L.T("Chercher un ", "Search a ")@Chambres.Membre(Model.Chambre, L.Anglais)" autocomplete="off" />
+    <span class="compte" id="compte" aria-live="polite"></span>
     <button type="button" class="effacer" id="effacer" hidden title="@L.T("Effacer le filtre", "Clear filter")" aria-label="@L.T("Effacer le filtre", "Clear filter")"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></button>
     <partial name="_OrdreNom" />
 </div>
@@ -91,6 +91,10 @@
                 var ok = (!groupe || li.dataset.groupe === groupe) && mots.every(function (m) { return li.dataset.n.indexOf(m) !== -1; });
                 li.hidden = !ok;
             });
+            // Total des résultats affichés (se met à jour à chaque frappe ou choix de groupe).
+            var n = 0; items.forEach(function (li) { if (!li.hidden) n++; });
+            var c = document.getElementById('compte');
+            c.textContent = n.toLocaleString(document.documentElement.lang || 'fr') + ' ' + (n > 1 ? '@Html.Raw(L.T("résultats", "results"))' : '@Html.Raw(L.T("résultat", "result"))') + (n < items.length ? ' / ' + items.length.toLocaleString(document.documentElement.lang || 'fr') : '');
             // La corbeille n'apparaît que si un filtre (recherche ou groupe) est actif.
             document.getElementById('effacer').hidden = !q && !groupe;
         }
@@ -118,5 +122,6 @@
                 appliquer();
             });
         });
+        appliquer();   // total initial
     })();
 </script>

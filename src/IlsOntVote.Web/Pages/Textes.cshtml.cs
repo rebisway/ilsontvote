@@ -21,6 +21,9 @@ public class TextesModel(IScrutinRepository scrutins) : ListePageModel
     [BindProperty(SupportsGet = true)] public string? Du { get; set; }
     [BindProperty(SupportsGet = true)] public string? Au { get; set; }
 
+    /// <summary>Identifiant d'un texte : ne garde que les votes de ce texte (vote sur l'ensemble, amendements, articles).</summary>
+    [BindProperty(SupportsGet = true, Name = "texte")] public string? TexteId { get; set; }
+
     public Resultats<Scrutin> Resultats { get; private set; } = new([], 0, 1, 30);
 
     public bool ToutAfficher => Portee == "tout";
@@ -31,7 +34,7 @@ public class TextesModel(IScrutinRepository scrutins) : ListePageModel
     protected override bool DecroissantInitial(string cle) => cle is "date" or "votants" or "pour" or "contre" or "abst";
 
     protected override IEnumerable<(string Nom, string? Valeur)> Filtres =>
-        [("q", Recherche), ("chambre", Chambre), ("portee", ToutAfficher ? "tout" : null), ("du", Du), ("au", Au)];
+        [("q", Recherche), ("chambre", Chambre), ("portee", ToutAfficher ? "tout" : null), ("du", Du), ("au", Au), ("texte", TexteId)];
 
     private static readonly IReadOnlyList<Colonne<Scrutin>> ColonnesExport =
     [
@@ -59,11 +62,11 @@ public class TextesModel(IScrutinRepository scrutins) : ListePageModel
 
         if (ExportDemande)
         {
-            var tout = await scrutins.ListerAsync(chambre, Recherche, !ToutAfficher, 1, 0, TriEffectif, Decroissant, du, au);
+            var tout = await scrutins.ListerAsync(chambre, Recherche, !ToutAfficher, 1, 0, TriEffectif, Decroissant, du, au, TexteId);
             return Exporteur.Ecrire(Format!, "scrutins", ColonnesExport, tout.Lignes);
         }
 
-        Resultats = await scrutins.ListerAsync(chambre, Recherche, !ToutAfficher, NumeroPage, ParPage, TriEffectif, Decroissant, du, au);
+        Resultats = await scrutins.ListerAsync(chambre, Recherche, !ToutAfficher, NumeroPage, ParPage, TriEffectif, Decroissant, du, au, TexteId);
         return Page();
     }
 }
