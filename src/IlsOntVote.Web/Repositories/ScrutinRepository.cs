@@ -16,7 +16,7 @@ public interface IScrutinRepository
 
     /// <summary>Liste paginée de scrutins. <paramref name="chambre"/> null = Assemblée nationale et Sénat (pas le Parlement européen).</summary>
     Task<Resultats<Scrutin>> ListerAsync(string? chambre, string? recherche, bool surEnsembleSeulement, int page, int parPage,
-        string tri = "date", bool decroissant = true, DateTime? du = null, DateTime? au = null, string? texteId = null);
+        string tri = "date", bool decroissant = true, DateTime? du = null, DateTime? au = null, string? texteId = null, bool resolutionsSeulement = false);
 }
 
 public sealed class ScrutinRepository(DapperContext db) : IScrutinRepository
@@ -108,7 +108,7 @@ public sealed class ScrutinRepository(DapperContext db) : IScrutinRepository
     public static IEnumerable<string> ClesTri => Tris.Keys;
 
     public async Task<Resultats<Scrutin>> ListerAsync(string? chambre, string? recherche, bool surEnsembleSeulement, int page, int parPage,
-        string tri = "date", bool decroissant = true, DateTime? du = null, DateTime? au = null, string? texteId = null)
+        string tri = "date", bool decroissant = true, DateTime? du = null, DateTime? au = null, string? texteId = null, bool resolutionsSeulement = false)
     {
         using var conn = db.CreateConnection();
         page = Math.Max(1, page);
@@ -121,14 +121,17 @@ public sealed class ScrutinRepository(DapperContext db) : IScrutinRepository
             WHERE ((@chambre IS NULL AND chambre <> 'UE') OR chambre = @chambre)
               AND (NOT @ensemble OR sur_ensemble)
               AND NOT (nominatif_incomplet AND @ensemble)
-              AND (translate(titre, '-''’', '   ') ILIKE ALL (@mots) OR translate(titre_en, '-''’', '   ') ILIKE ALL (@mots))   -- aussi dans le titre anglais ; tirets = espaces
+              AND (recherche_norm(titre) ILIKE ALL (@mots) OR recherche_norm(titre_en) ILIKE ALL (@mots))   -- aussi dans le titre anglais ; tirets = espaces
               -- Période : bornes incluses ; `date_scrutin` est une date (sans heure).
               AND (@du::date IS NULL OR date_scrutin >= @du::date)
               AND (@au::date IS NULL OR date_scrutin <= @au::date)
               -- Votes d'un texte : le vote sur l'ensemble (texte_id) et ceux qui le citent (amendements, articles : texte_lie_id).
               AND (@texte::text IS NULL OR texte_id = @texte OR texte_lie_id = @texte)
+              -- Résolutions : le titre cite une « proposition de résolution » (européenne, article 34-1, commission d'enquête...). Elles n'ont pas force
+              -- de loi : elles ont leur propre entrée de menu et ne sont pas rattachées à un texte de loi.
+              AND (NOT @resolutions OR titre ~* 'proposition de r[ée]solution')
             """;
-        var p = new { chambre, ensemble = surEnsembleSeulement, mots, du, au, texte = texteId, limit = parPage, offset = (page - 1) * parPage };
+        var p = new { chambre, ensemble = surEnsembleSeulement, mots, du, au, texte = texteId, resolutions = resolutionsSeulement, limit = parPage, offset = (page - 1) * parPage };
 
         var total = await conn.ExecuteScalarAsync<int>($"SELECT count(*) FROM scrutins {where}", p);
         var colonne = Tris.GetValueOrDefault(tri, "date_scrutin");

@@ -177,7 +177,7 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
              WITH base AS (
                  SELECT {ColonnesTexte}, {Agregat}
                    FROM textes t LEFT JOIN scrutins s ON s.texte_id = t.id AND (@chambre IS NULL OR s.chambre = @chambre)
-                  WHERE (translate(t.titre, '-''’', '   ') ILIKE ALL (@mots) OR translate(t.titre_en, '-''’', '   ') ILIKE ALL (@mots))   -- aussi dans le titre anglais ; tirets = espaces
+                  WHERE (recherche_norm(t.titre) ILIKE ALL (@mots) OR recherche_norm(t.titre_en) ILIKE ALL (@mots))   -- aussi dans le titre anglais ; tirets = espaces
                     -- Au moins un vote nominatif, OU des étapes de lecture à l'Assemblée sans scrutin public (main levée) : ces textes
                     -- ne sont pas omis faute de nominatif. Les étapes sont des étapes de l'Assemblée : exclues si l'on filtre Sénat / UE.
                     AND (s.id IS NOT NULL

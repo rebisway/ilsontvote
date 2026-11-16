@@ -83,6 +83,7 @@
 <body>
     @{
         var chemin = Context.Request.Path.Value ?? "/";
+        var resolutions = Context.Request.Query["nature"] == "resolution";
         string Actif(string prefixe) => chemin.StartsWith(prefixe, StringComparison.OrdinalIgnoreCase) ? " aria-current=\"page\"" : "";
     }
     <header class="site-header">
@@ -90,7 +91,8 @@
             <a class="brand" href="@L.Lien("/")">Ils ont <em>voté</em></a>
             <nav class="menu" id="menu-principal" aria-label="@L.T("Navigation principale", "Main navigation")">
                 <a href="@L.Lien("/lois")" @Html.Raw(Actif("/lois")) @Html.Raw(Actif("/texte/"))>@L.T("Lois", "Laws")</a>
-                <a href="@L.Lien("/textes")" @Html.Raw(Actif("/textes")) @Html.Raw(Actif("/scrutin"))>@L.T("Scrutins", "Votes")</a>
+                <a href="@L.Lien("/textes")" @Html.Raw(Actif("/scrutin") + (chemin.StartsWith("/textes", StringComparison.OrdinalIgnoreCase) && !resolutions ? " aria-current=\"page\"" : ""))>@L.T("Scrutins", "Votes")</a>
+                <a href="@L.Lien("/textes")?nature=resolution" @Html.Raw(chemin.StartsWith("/textes", StringComparison.OrdinalIgnoreCase) && resolutions ? "aria-current=\"page\"" : "")>@L.T("Résolutions", "Resolutions")</a>
                 <a href="@L.Lien("/deputes")" @Html.Raw(Actif("/depute"))>@L.T("Députés", "Deputies")</a>
                 <a href="@L.Lien("/senateurs")" @Html.Raw(Actif("/senateur"))>@L.T("Sénateurs", "Senators")</a>
                 <a href="@L.Lien("/eurodeputes")" @Html.Raw(Actif("/eurodepute"))>@L.T("Eurodéputés", "MEPs")</a>

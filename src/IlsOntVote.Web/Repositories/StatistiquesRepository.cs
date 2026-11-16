@@ -204,7 +204,7 @@ public sealed class StatistiquesRepository(DapperContext db) : IStatistiquesRepo
                     SELECT gr.sigle, gr.couleur FROM groupe_appartenances ga JOIN groupes gr ON gr.id = ga.groupe_id
                      WHERE ga.parlementaire_id = p.id ORDER BY ga.date_debut DESC LIMIT 1) g ON true
              WHERE a.scrutins > 0
-               AND (cardinality(@mots) = 0 OR (translate(p.prenom || ' ' || p.nom, '-''’', '   ') || ' ' || COALESCE(g.sigle, '')) ILIKE ALL (@mots))
+               AND (cardinality(@mots) = 0 OR (recherche_norm(p.prenom || ' ' || p.nom) || ' ' || COALESCE(g.sigle, '')) ILIKE ALL (@mots))
             """;
         var p = new { chambre, du, au, ensemble = ensembleSeulement, mots, limit = parPage, offset = (page - 1) * parPage };
 

@@ -168,7 +168,7 @@ public sealed class ParlementaireRepository(DapperContext db) : IParlementaireRe
                AND (NOT @ensemble OR s.sur_ensemble)
                AND (@du::date IS NULL OR s.date_scrutin >= @du::date)
                AND (@au::date IS NULL OR s.date_scrutin <= @au::date)
-               AND (cardinality(@mots) = 0 OR translate(s.titre, '-''’', '   ') ILIKE ALL (@mots) OR translate(s.titre_en, '-''’', '   ') ILIKE ALL (@mots))
+               AND (cardinality(@mots) = 0 OR recherche_norm(s.titre) ILIKE ALL (@mots) OR recherche_norm(s.titre_en) ILIKE ALL (@mots))
                -- Filtre de vote : « absent » = pas de ligne dans votes (les absents ne sont pas stockés) ; délégation et mise au point
                -- sont des attributs d'un vote existant, indépendants de la position.
                AND (@vote::text IS NULL OR CASE @vote

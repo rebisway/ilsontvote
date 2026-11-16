@@ -24,6 +24,10 @@ public class TextesModel(IScrutinRepository scrutins) : ListePageModel
     /// <summary>Identifiant d'un texte : ne garde que les votes de ce texte (vote sur l'ensemble, amendements, articles).</summary>
     [BindProperty(SupportsGet = true, Name = "texte")] public string? TexteId { get; set; }
 
+    /// <summary>« resolution » : ne garde que les votes sur des propositions de résolution (menu « Résolutions »).</summary>
+    [BindProperty(SupportsGet = true)] public string? Nature { get; set; }
+    public bool Resolutions => Nature == "resolution";
+
     public Resultats<Scrutin> Resultats { get; private set; } = new([], 0, 1, 30);
 
     public bool ToutAfficher => Portee == "tout";
@@ -34,7 +38,7 @@ public class TextesModel(IScrutinRepository scrutins) : ListePageModel
     protected override bool DecroissantInitial(string cle) => cle is "date" or "votants" or "pour" or "contre" or "abst";
 
     protected override IEnumerable<(string Nom, string? Valeur)> Filtres =>
-        [("q", Recherche), ("chambre", Chambre), ("portee", ToutAfficher ? "tout" : null), ("du", Du), ("au", Au), ("texte", TexteId)];
+        [("q", Recherche), ("chambre", Chambre), ("portee", ToutAfficher ? "tout" : null), ("du", Du), ("au", Au), ("texte", TexteId), ("nature", Resolutions ? "resolution" : null)];
 
     private static readonly IReadOnlyList<Colonne<Scrutin>> ColonnesExport =
     [
@@ -62,11 +66,11 @@ public class TextesModel(IScrutinRepository scrutins) : ListePageModel
 
         if (ExportDemande)
         {
-            var tout = await scrutins.ListerAsync(chambre, Recherche, !ToutAfficher, 1, 0, TriEffectif, Decroissant, du, au, TexteId);
+            var tout = await scrutins.ListerAsync(chambre, Recherche, !ToutAfficher, 1, 0, TriEffectif, Decroissant, du, au, TexteId, Resolutions);
             return Exporteur.Ecrire(Format!, "scrutins", ColonnesExport, tout.Lignes);
         }
 
-        Resultats = await scrutins.ListerAsync(chambre, Recherche, !ToutAfficher, NumeroPage, ParPage, TriEffectif, Decroissant, du, au, TexteId);
+        Resultats = await scrutins.ListerAsync(chambre, Recherche, !ToutAfficher, NumeroPage, ParPage, TriEffectif, Decroissant, du, au, TexteId, Resolutions);
         return Page();
     }
 }

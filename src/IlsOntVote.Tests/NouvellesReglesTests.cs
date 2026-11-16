@@ -90,3 +90,14 @@ public class TexteCiteTests
     public void SansTexteCite_Null() =>
         Assert.Null(TitreTexte.CleTexteCite("l'article unique de la proposition de résolution européenne visant à soutenir le Danemark."));
 }
+
+/// <summary>Recherche sans accents : le texte saisi est normalisé comme la colonne (fonction SQL recherche_norm).</summary>
+public class RechercheSansAccentsTests
+{
+    [Theory]
+    [InlineData("état d'urgence", "etat d urgence")]
+    [InlineData("Éléonore", "Eleonore")]
+    [InlineData("cœur", "coeur")]
+    [InlineData("Sécurité sociale", "Securite sociale")]
+    public void LesAccentsSontRetires(string saisie, string attendu) => Assert.Equal(attendu, string.Join(' ', RechercheSql.Mots(saisie).Select(m => m.Trim('%'))), ignoreCase: true);
+}

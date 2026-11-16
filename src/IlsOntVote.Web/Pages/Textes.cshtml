@@ -3,17 +3,27 @@
 @using IlsOntVote.Web.Models
 @using IlsOntVote.Web.Services
 @{
-    ViewData["Title"] = L.T("Scrutins", "Votes");
+    ViewData["Title"] = Model.Resolutions ? L.T("Résolutions", "Resolutions") : L.T("Scrutins", "Votes");
     ViewData["Description"] = L.T("Tous les scrutins publics de l'Assemblée nationale et du Sénat : cherchez un texte, triez, exportez, et voyez qui a voté quoi.", "All roll-call votes of the French National Assembly and Senate: search a text, sort, export, and see who voted what.");
     var fr = L.Culture;
 }
 
-<h1 class="titre-page">@L.T("Scrutins", "Votes")</h1>
+@if (Model.Resolutions)
+{
+    <h1 class="titre-page">@L.T("Résolutions", "Resolutions")</h1>
+    <p class="chapo">@L.TH("Votes sur des propositions de <strong>résolution</strong> : une assemblée y exprime une position (article 34-1 de la Constitution), donne son avis sur un projet de texte européen, ou décide de sa propre organisation (commission d'enquête, règlement). Une résolution <strong>n'a pas force de loi</strong> : elle n'est pas promulguée et ne lie pas le Gouvernement. Pour les lois, voir <a href=\"/lois\">les lois</a>.", "Votes on proposals for a <strong>resolution</strong>: an assembly states a position (article 34-1 of the Constitution), gives its opinion on a draft European text, or decides on its own organisation (inquiry committee, rules of procedure). A resolution <strong>has no force of law</strong>: it is not promulgated and does not bind the Government. For laws, see <a href=\"/lois\">the laws</a>.")</p>
+}
+else
+{
+    <h1 class="titre-page">@L.T("Scrutins", "Votes")</h1>
+@* chapô des scrutins : voir plus bas *@
 <p class="chapo">@L.TH("Les votes sur l'ensemble d'un texte, du plus récent au plus ancien. Cochez « amendements et articles » pour voir aussi les votes intermédiaires. Cliquez sur un titre de colonne pour trier. Pour suivre le parcours complet d'une loi (promulgation, Journal officiel, Conseil constitutionnel), voir <a href=\"/lois\">les lois</a>.", "Votes on the whole text, most recent first. Tick “amendments and articles” to also see intermediate votes. Click a column title to sort. To follow a law's full journey (promulgation, Official Journal, Constitutional Council), see <a href=\"/en/lois\">the laws</a>.")</p>
+}
 
 <form class="filtres filtres-auto filtres-liste" method="get" action="@L.Lien("/textes")">
     <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("Chercher un texte (ex. retraites, finances, immigration…)", "Search a text (e.g. pensions, finance, immigration…)")" aria-label="@L.T("Chercher un texte", "Search a text")" />
     @if (!string.IsNullOrEmpty(Model.TexteId)) { <input type="hidden" name="texte" value="@Model.TexteId" /> }
+    @if (Model.Resolutions) { <input type="hidden" name="nature" value="resolution" /> }
     <select name="chambre" aria-label="@L.T("Chambre", "Chamber")">
         <option value="" selected="@string.IsNullOrEmpty(Model.Chambre)">@L.T("Assemblée et Sénat", "National Assembly and Senate")</option>
         <option value="an" selected="@(Model.Chambre == "an")">@L.T("Assemblée nationale", "National Assembly")</option>
