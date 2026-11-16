@@ -96,8 +96,9 @@
                 <a href="@L.Lien("/statistiques")" @Html.Raw(Actif("/statistiques"))>@L.T("Statistiques", "Statistics")</a>
             </nav>
             <nav class="langue" aria-label="@L.T("Langue", "Language")">
-                <a href="@L.Variante(false)" lang="fr" hreflang="fr" @Html.Raw(L.Anglais ? "" : "aria-current=\"true\"")>FR</a>
-                <a href="@L.Variante(true)" lang="en" hreflang="en" @Html.Raw(L.Anglais ? "aria-current=\"true\"" : "")>EN</a>
+                @* hl= mémorise le choix explicite (cookie) : sinon la langue du navigateur reprendrait la main *@
+                <a href="@L.Variante(false)@(L.Variante(false).Contains('?') ? "&" : "?")hl=fr" rel="nofollow" lang="fr" hreflang="fr" @Html.Raw(L.Anglais ? "" : "aria-current=\"true\"")>FR</a>
+                <a href="@L.Variante(false)@(L.Variante(false).Contains('?') ? "&" : "?")hl=en" rel="nofollow" lang="en" hreflang="en" @Html.Raw(L.Anglais ? "aria-current=\"true\"" : "")>EN</a>
             </nav>
         </div>
     </header>

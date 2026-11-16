@@ -36,6 +36,59 @@ public sealed class Langue(IHttpContextAccessor accessor)
     /// <summary>Même page dans l'autre langue (sélecteur FR | EN et balises hreflang), paramètres de l'adresse conservés.</summary>
     public string AutreLangue => Variante(!Anglais);
 
+    private const string Cookie_Langue = "ilsontvote_lang";
+
+    /// <summary>
+    /// Langue par défaut : français pour un navigateur dont la première langue est le français, anglais sinon. Appliquée UNE fois (302) sur
+    /// les pages de la racine ; un choix explicite (<c>?hl=fr|en</c> du sélecteur) est mémorisé dans un cookie fonctionnel et prime ensuite.
+    /// Sans en-tête Accept-Language (robots d'indexation) : français, l'adresse canonique. Renvoie vrai si la réponse est déjà faite.
+    /// </summary>
+    private static Task<bool> ChoixLangue(HttpContext ctx)
+    {
+        var req = ctx.Request;
+        if (!HttpMethods.IsGet(req.Method) && !HttpMethods.IsHead(req.Method)) return Task.FromResult(false);
+        var chemin = req.Path;
+        // Exclus : version anglaise elle-même, administration, comptes, images d'aperçu, fichiers (robots, sitemaps, CSS…).
+        if (chemin.StartsWithSegments("/en") || chemin.StartsWithSegments("/Admin", StringComparison.OrdinalIgnoreCase)
+            || chemin.StartsWithSegments("/Identity", StringComparison.OrdinalIgnoreCase) || chemin.StartsWithSegments("/apercu")
+            || (chemin.Value ?? "").Contains('.')) return Task.FromResult(false);
+
+        // Choix explicite : cookie, puis adresse nettoyée du paramètre hl.
+        var hl = req.Query["hl"].ToString();
+        if (hl is "fr" or "en")
+        {
+            ctx.Response.Cookies.Append(Cookie_Langue, hl, new CookieOptions
+            { MaxAge = TimeSpan.FromDays(365), SameSite = SameSiteMode.Lax, Secure = req.IsHttps, HttpOnly = true, IsEssential = true });
+            var autres = req.Query.Where(q => q.Key != "hl").Select(q => $"{Uri.EscapeDataString(q.Key)}={Uri.EscapeDataString(q.Value.ToString())}");
+            var q = string.Join('&', autres);
+            var cible = (hl == "en" ? "/en" + (chemin == "/" ? "" : chemin.Value) : chemin.Value) + (q.Length > 0 ? "?" + q : "");
+            ctx.Response.Redirect(cible.Length == 0 ? "/en" : cible);
+            return Task.FromResult(true);
+        }
+        if (req.Cookies.ContainsKey(Cookie_Langue)) return Task.FromResult(false);
+
+        // Pas de choix mémorisé : on suit la langue du navigateur (la réponse dépend donc de Accept-Language).
+        ctx.Response.Headers.Vary = "Accept-Language";
+        if (!PrefereAnglais(req.Headers.AcceptLanguage.ToString())) return Task.FromResult(false);
+        ctx.Response.Redirect("/en" + (chemin == "/" ? "" : chemin.Value) + req.QueryString.Value);
+        return Task.FromResult(true);
+    }
+
+    /// <summary>Vrai si la langue la plus prioritaire de l'en-tête n'est pas le français (« fr-FR,fr;q=0.9,en;q=0.8 » -> faux). En-tête absent -> faux.</summary>
+    internal static bool PrefereAnglais(string entete)
+    {
+        string? meilleure = null; var qMax = -1.0;
+        foreach (var part in entete.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var morceaux = part.Split(';', 2);
+            var q = 1.0;
+            if (morceaux.Length == 2 && morceaux[1].Trim().StartsWith("q=", StringComparison.OrdinalIgnoreCase))
+                double.TryParse(morceaux[1].Trim()[2..], System.Globalization.NumberStyles.Float, CultureInfo.InvariantCulture, out q);
+            if (q > qMax && morceaux[0] != "*") { qMax = q; meilleure = morceaux[0]; }
+        }
+        return meilleure is not null && !meilleure.StartsWith("fr", StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>Adresse de la page dans la langue demandée (true = anglais).</summary>
     public string Variante(bool anglais)
     {
@@ -50,6 +103,7 @@ public sealed class Langue(IHttpContextAccessor accessor)
     /// </summary>
     public static async Task Middleware(HttpContext ctx, Func<Task> suite)
     {
+        if (await ChoixLangue(ctx)) return;
         if (ctx.Request.Path.StartsWithSegments("/en", out var reste)
             && !reste.StartsWithSegments("/Admin", StringComparison.OrdinalIgnoreCase)
             && !reste.StartsWithSegments("/Identity", StringComparison.OrdinalIgnoreCase))
