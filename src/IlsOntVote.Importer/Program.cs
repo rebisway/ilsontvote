@@ -19,7 +19,7 @@ const int LegislatureEnCours = 17;
 int[] LegislaturesCompletes = [15, 16, 17];
 
 var argv = args.ToList();
-if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions"))
+if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export"))
 {
     Console.Error.WriteLine("Usage : IlsOntVote.Importer an [--legislature 17|15,16,17|all] [--scrutins-dir D --amo-dir D]");
     Console.Error.WriteLine("        IlsOntVote.Importer senat [--senateurs-dir D --dosleg-sql F]");
@@ -61,6 +61,7 @@ return argv[0] switch
     "stats" => await RafraichirStatsAsync(),
     "dossiers" => await ImporterDossiersAsync(),
     "traductions" => await TraduireTitresAsync(),
+    "export" => await ExporterDonneesAsync(),
     _ => await ImporterTextesAsync(),
 };
 
@@ -360,6 +361,29 @@ async Task<IReadOnlyList<(string Source, string Cible)>> LancerScriptTraductionA
     finally { try { Directory.Delete(dossier, true); } catch (IOException) { } }
 }
 
+/// <summary>
+/// Données ouvertes : écrit les fichiers CSV compressés (scrutins, votes, élus, textes…) et le manifeste dans le dossier d'export
+/// (ILSONVOTE_EXPORT_DIR, défaut ./data/export) que le site sert sur /donnees. À lancer après les imports (import-all.sh).
+/// </summary>
+async Task<int> ExporterDonneesAsync()
+{
+    Console.WriteLine("=== Export des données ouvertes ===");
+    var dossier = Environment.GetEnvironmentVariable("ILSONVOTE_EXPORT_DIR") ?? Path.Combine(Directory.GetCurrentDirectory(), "data", "export");
+    var runId = await repo.DemarrerAsync("EXPORT");
+    try
+    {
+        var manifeste = await ExportDonnees.ExporterAsync(connectionString, dossier, Console.WriteLine);
+        await repo.TerminerAsync(runId, true, (int)Math.Min(int.MaxValue, manifeste.Sum(m => m.Lignes)), 0, $"{manifeste.Count} fichiers");
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex);
+        await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
+        return 1;
+    }
+}
+
 /// <summary>Recalcule les statistiques de participation (à lancer après les imports ; plusieurs minutes).</summary>
 async Task<int> RafraichirStatsAsync()
 {
@@ -443,13 +467,17 @@ async Task<int> ImporterTextesAsync()
         Console.WriteLine($"  {textes.Count} textes lus.");
         await repo.EcrireTextesAsync(textes);
 
+        // Décisions du Sénat en séance (DOSLEG), avec ou sans scrutin public : écrites AVANT le rattachement (la date d'une décision aide à
+        // départager les textes de même titre), liées aux scrutins APRÈS.
+        var etapesSenat = new TexteSource().LireDecisionsSenat(doslegSql);
+        await repo.EcrireEtapesSenatAsync(etapesSenat);
+
         var (rattaches, ambigus, sans) = await repo.RattacherScrutinsAsync();
         Console.WriteLine($"  Scrutins sur l'ensemble : {rattaches} rattachés, {ambigus} ambigus (laissés sans texte), {sans} sans texte.");
 
-        // Décisions du Sénat en séance (DOSLEG), avec ou sans scrutin public : après le rattachement, qui leur sert de repère.
-        var etapesSenat = new TexteSource().LireDecisionsSenat(doslegSql);
-        var (ecrites, liees, sansScrutin) = await repo.EcrireEtapesSenatAsync(etapesSenat);
+        var (ecrites, liees, sansScrutin) = await repo.RelierEtapesSenatAsync();
         Console.WriteLine($"  Décisions du Sénat : {ecrites} retenues sur {etapesSenat.Count} lues ({liees} avec scrutin public, {sansScrutin} sans scrutin public).");
+
 
         await repo.TerminerAsync(runId, true, rattaches, textes.Count, $"{ambigus} ambigus, {sans} sans texte");
         return 0;

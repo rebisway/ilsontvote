@@ -101,3 +101,63 @@ public class RechercheSansAccentsTests
     [InlineData("Sécurité sociale", "Securite sociale")]
     public void LesAccentsSontRetires(string saisie, string attendu) => Assert.Equal(attendu, string.Join(' ', RechercheSql.Mots(saisie).Select(m => m.Trim('%'))), ignoreCase: true);
 }
+
+/// <summary>Rattachement par la date : jamais de choix au hasard ; la nature du texte (ordinaire, organique, constitutionnel) doit concorder.</summary>
+public class RattachementParDateTests
+{
+    private static readonly (string Id, string Titre)[] Jour =
+    [
+        ("A", "proposition de loi visant a reformer le mode d election des membres du conseil de paris"),
+        ("B", "proposition de loi relative aux missions des professionnels de sante veterinaires"),
+    ];
+
+    [Fact]
+    public void DeuxTextesDeMemeTitre_LaDateTranche() =>
+        Assert.Equal("A", Rattachement.ChoisirParDate("x", ["A", "C"], [("A", "t")]));
+
+    [Fact]
+    public void DeuxTextesDeMemeTitre_SiLaDateNeTranchePas_Null() =>
+        Assert.Null(Rattachement.ChoisirParDate("x", ["A", "C"], [("A", "t"), ("C", "t")]));
+
+    [Fact]
+    public void SansTexteDeMemeTitre_LaRessemblanceDepartage() =>
+        Assert.Equal("A", Rattachement.ChoisirParDate("proposition de loi relative au mode d election des membres du conseil de paris", [], Jour));
+
+    [Fact]
+    public void RessemblanceTropFaible_Null() =>
+        Assert.Null(Rattachement.ChoisirParDate("projet de loi sur la peche en mer", [], Jour));
+
+    [Fact]
+    public void LoiOrganiqueEtOrdinaire_NeSeConfondentPas() =>
+        Assert.Null(Rattachement.ChoisirParDate("projet de loi pour la confiance dans la vie publique", [],
+            [("O", "projet de loi organique pour la confiance dans la vie publique")]));
+}
+
+/// <summary>Données ouvertes : seuls les fichiers du manifeste, au nom valide, sont servis (jamais un chemin venant de l'adresse).</summary>
+public class DonneesOuvertesTests : IDisposable
+{
+    private readonly string _dossier = Path.Combine(Path.GetTempPath(), "ilsontvote-test-" + Guid.NewGuid().ToString("N"));
+
+    public DonneesOuvertesTests()
+    {
+        Directory.CreateDirectory(_dossier);
+        File.WriteAllText(Path.Combine(_dossier, "votes.csv.gz"), "x");
+        File.WriteAllText(Path.Combine(_dossier, "cache.csv.gz"), "x");   // présent sur disque mais absent du manifeste
+        File.WriteAllText(Path.Combine(_dossier, "manifest.json"), "[{\"Fichier\":\"votes.csv.gz\",\"Description\":\"d\",\"Lignes\":1,\"Octets\":1,\"Sha256\":\"a\",\"GenereLe\":\"2026-01-01T00:00:00Z\"}]");
+    }
+
+    public void Dispose() => Directory.Delete(_dossier, true);
+
+    [Fact]
+    public void UnFichierDuManifeste_EstServi() => Assert.NotNull(new DonneesOuvertes(_dossier).Chemin("votes.csv.gz"));
+
+    [Theory]
+    [InlineData("cache.csv.gz")]          // hors manifeste
+    [InlineData("../manifest.json")]      // traversée de dossier
+    [InlineData("manifest.json")]         // nom invalide (pas .csv.gz)
+    [InlineData("Votes.csv.gz")]          // casse
+    public void LesAutresNoms_SontRefuses(string nom) => Assert.Null(new DonneesOuvertes(_dossier).Chemin(nom));
+
+    [Fact]
+    public void SansManifeste_AucunFichier() => Assert.Empty(new DonneesOuvertes(Path.Combine(_dossier, "absent")).Lire());
+}

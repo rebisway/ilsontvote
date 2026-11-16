@@ -55,4 +55,9 @@ $DOTNET "$IMP" traductions || rc=1
 echo "=== Statistiques ==="
 $DOTNET "$IMP" stats || rc=1
 
+# Données ouvertes : fichiers CSV compressés téléchargeables sur /donnees (le site les lit dans ce dossier). Après tous les imports.
+export ILSONVOTE_EXPORT_DIR="${ILSONVOTE_EXPORT_DIR:-/var/lib/ilsontvote-export}"
+echo "=== Export des données ouvertes ==="
+$DOTNET "$IMP" export || rc=1
+
 exit $rc

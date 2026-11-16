@@ -4,6 +4,11 @@
 
 Site : <https://www.ilsontvote.org> · English version: [README.md](README.md)
 
+<p align="center">
+  <img src="docs/images/accueil.jpg" alt="Page d'accueil : les derniers votes de l'Assemblée nationale et du Sénat, un point par élu" width="49%">
+  <img src="docs/images/scrutin.jpg" alt="Page d'un scrutin : l'hémicycle coloré par vote, avec les arcs des groupes et le détail par groupe" width="49%">
+</p>
+
 ## Fonctionnalités
 
 - **Un hémicycle par vote** : un point par élu, coloré par vote ou par groupe politique.
@@ -13,6 +18,7 @@ Site : <https://www.ilsontvote.org> · English version: [README.md](README.md)
 - **« Absent » veut dire absent** : aucune raison affichée, le site ne juge pas.
 - **Le doute et les données manquantes se voient toujours** : décomptes incomplets, valeurs calculées et sources tierces sont signalés (voir la [méthodologie](https://www.ilsontvote.org/methodologie)).
 - Listes triables, export CSV/JSON, affichage adapté au téléphone, espace d'administration avec statistiques.
+- **Données ouvertes** : tous les jeux de données (votes, élus, textes) en CSV compressés téléchargeables, régénérés chaque nuit (`/donnees`).
 
 Seuls les **scrutins publics** enregistrent le vote de chaque élu ; les votes à main levée apparaissent sans le détail de qui a voté quoi, et le site le dit.
 

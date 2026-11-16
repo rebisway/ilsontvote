@@ -4,6 +4,11 @@
 
 Live site: <https://www.ilsontvote.org> · Version française : [README.fr.md](README.fr.md)
 
+<p align="center">
+  <img src="docs/images/accueil.jpg" alt="Home page: the latest votes of the National Assembly and the Senate, one dot per elected official" width="49%">
+  <img src="docs/images/scrutin.jpg" alt="A vote page: the hemicycle coloured by vote, with the political group arcs and the breakdown by group" width="49%">
+</p>
+
 ## Features
 
 - **Hemicycle per vote**: one dot per elected official, coloured by vote or by political group.
@@ -13,6 +18,7 @@ Live site: <https://www.ilsontvote.org> · Version française : [README.fr.md](R
 - **"Absent" means absent**: no reason is shown, the site does not judge.
 - **Doubt and missing data are always visible**: incomplete counts, computed values and third-party sources are flagged (see the [methodology page](https://www.ilsontvote.org/methodologie)).
 - Sortable lists, CSV/JSON export, responsive layout, admin area with statistics.
+- **Open data**: every dataset (votes, officials, laws) downloadable as compressed CSV, regenerated each night (`/donnees`).
 
 Only **roll-call votes** record each member's vote; show-of-hands votes appear without the detail of who voted what, and the site says so.
 

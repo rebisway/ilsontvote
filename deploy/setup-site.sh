@@ -29,6 +29,8 @@ fi
 mkdir -p /var/www/ilsontvote_app /var/www/ilsontvote_importer /var/lib/ilsontvote-import /home/ubuntu/backups/ilsontvote
 chown www-data:www-data /var/www/ilsontvote_app /var/www/ilsontvote_importer /var/lib/ilsontvote-import
 chmod 700 /home/ubuntu/backups/ilsontvote
+# Dossier des données ouvertes : écrit par l'import nocturne, lu par le site (tous deux sous www-data).
+mkdir -p /var/lib/ilsontvote-export && chown www-data:www-data /var/lib/ilsontvote-export && chmod 755 /var/lib/ilsontvote-export
 
 # 3. nginx + certificat. Les noms de domaine sont injectés dans le modèle.
 sed -e "s/__CANONICAL__/$CANONICAL/g" -e "s/__ALIASES__/$ALIASES/g" "$HERE/nginx-ilsontvote" > /etc/nginx/sites-available/ilsontvote

@@ -66,6 +66,9 @@ builder.Services.AddScoped<IParlementaireRepository, ParlementaireRepository>();
 builder.Services.AddScoped<ITexteRepository, TexteRepository>();
 builder.Services.AddScoped<IPageViewRepository, PageViewRepository>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
+// Données ouvertes : dossier de l'export nocturne (Export:Dir, ou ILSONVOTE_EXPORT_DIR, ou /var/lib/ilsontvote-export en production).
+builder.Services.AddSingleton(new DonneesOuvertes(
+    builder.Configuration["Export:Dir"] ?? Environment.GetEnvironmentVariable("ILSONVOTE_EXPORT_DIR") ?? "/var/lib/ilsontvote-export"));
 builder.Services.AddSingleton<IIpHasher, IpHasher>();
 builder.Services.AddSingleton<PaysResolver>();
 builder.Services.AddSingleton<ApercuImage>();
@@ -114,7 +117,8 @@ builder.Services.AddOutputCache(options =>
 {
     options.AddBasePolicy(b => b
         .With(c => !(c.HttpContext.Request.Path.StartsWithSegments("/Admin", StringComparison.OrdinalIgnoreCase)
-                  || c.HttpContext.Request.Path.StartsWithSegments("/Identity", StringComparison.OrdinalIgnoreCase)))
+                  || c.HttpContext.Request.Path.StartsWithSegments("/Identity", StringComparison.OrdinalIgnoreCase)
+                  || c.HttpContext.Request.Path.StartsWithSegments("/donnees/fichier", StringComparison.OrdinalIgnoreCase)))   // gros fichiers : jamais en cache mémoire
         .Expire(builder.Environment.IsDevelopment() ? TimeSpan.FromSeconds(1) : TimeSpan.FromMinutes(5))
         .SetVaryByQuery("*")
         .VaryByValue(c => new KeyValuePair<string, string>("lang", c.Items["lang"] as string ?? "fr")));
@@ -183,6 +187,11 @@ app.UseMiddleware<PageViewTrackingMiddleware>();
 app.UseOutputCache();
 // --- SEO : robots.txt et sitemap.xml (adresse canonique fixe : les alias .com / www redirigent déjà vers .org via nginx) ---
 const string SiteUrl = "https://www.ilsontvote.org";
+// Téléchargement d'un fichier de données ouvertes (liste blanche : nom valide ET présent au manifeste). Reprise de téléchargement permise.
+app.MapGet("/donnees/fichier/{nom}", (string nom, DonneesOuvertes donnees) =>
+    donnees.Chemin(nom) is { } chemin
+        ? Results.File(chemin, "application/gzip", fileDownloadName: nom, enableRangeProcessing: true)
+        : Results.NotFound());
 app.MapGet("/robots.txt", () => Results.Text(
     string.Join('\n',
         "User-agent: *",
@@ -205,7 +214,7 @@ async Task<List<(string Url, string? Date)>> PagesPubliques(DapperContext db)
     using var cx = db.CreateConnection();
     var aujourdhui = DateTime.UtcNow.ToString("yyyy-MM-dd");
     var urls = new List<(string, string?)>();
-    foreach (var u in new[] { "/", "/lois", "/textes", "/deputes", "/senateurs", "/eurodeputes", "/statistiques", "/elus" }) urls.Add((u, aujourdhui));
+    foreach (var u in new[] { "/", "/lois", "/textes", "/deputes", "/senateurs", "/eurodeputes", "/statistiques", "/elus", "/donnees" }) urls.Add((u, aujourdhui));
     foreach (var u in new[] { "/methodologie", "/mentions-legales", "/soutenir" }) urls.Add((u, null));
     // Un scrutin ne change plus après son vote : sa date sert de « dernière modification ».
     urls.AddRange((await cx.QueryAsync<(string, DateTime)>("SELECT '/scrutin/' || id, date_scrutin FROM scrutins")).Select(r => (r.Item1, (string?)r.Item2.ToString("yyyy-MM-dd"))));

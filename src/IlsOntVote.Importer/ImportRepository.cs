@@ -163,14 +163,19 @@ public sealed class ImportRepository(string connectionString)
         var parTitre = textes.ToLookup(t => t.Titre);
         var parIntitule = textes.ToLookup(t => t.Intitule);
 
-        var scrutins = (await conn.QueryAsync<(string Id, string Titre)>(
-            "SELECT id, titre FROM scrutins WHERE sur_ensemble AND titre ~* '(projet|proposition) de loi'")).ToList();
+        var scrutins = (await conn.QueryAsync<(string Id, string Titre, string Chambre, DateTime Date)>(
+            "SELECT id, titre, chambre, date_scrutin FROM scrutins WHERE sur_ensemble AND titre ~* '(projet|proposition) de loi'")).ToList();
+
+        // Décisions de séance connues par chambre (Assemblée : Dossiers législatifs ; Sénat : DOSLEG) : aident à départager par la date.
+        var titreDe = textes.ToDictionary(t => t.Id, t => t.Titre);
+        var decisions = (await conn.QueryAsync<(string TexteId, string Chambre, DateTime Date)>(
+            "SELECT texte_id, chambre, date_acte FROM texte_etapes WHERE texte_id IS NOT NULL")).ToLookup(d => d.Chambre);
 
         var ids = new List<string>();
         var texteIds = new List<string>();
-        int ambigus = 0, sans = 0;
+        int ambigus = 0, sans = 0, parDate = 0;
 
-        foreach (var (id, titre) in scrutins)
+        foreach (var (id, titre, chambre, dateScrutin) in scrutins)
         {
             var cle = TitreTexte.CleScrutin(titre);
             var candidats = parTitre[cle].Concat(parIntitule[cle]).DistinctBy(t => t.Id).ToList();
@@ -178,10 +183,18 @@ public sealed class ImportRepository(string connectionString)
             if (candidats.Count > 1 && candidats.Any(t => t.Promulgation is not null))
                 candidats = candidats.Where(t => t.Promulgation is not null).ToList();
 
-            if (candidats.Count == 1) { ids.Add(id); texteIds.Add(candidats[0].Id); }
+            if (candidats.Count == 1) { ids.Add(id); texteIds.Add(candidats[0].Id); continue; }
+
+            // Le titre ne suffit pas (plusieurs textes de même titre, ou aucun) : on s'aide de la date (cf. Rattachement).
+            var avecDecision = decisions[chambre]
+                .Where(d => Math.Abs((d.Date.Date - dateScrutin.Date).Days) <= Rattachement.JoursTolerance)
+                .Select(d => d.TexteId).Distinct().Where(titreDe.ContainsKey).Select(t => (Id: t, Titre: titreDe[t])).ToList();
+            var choisi = Rattachement.ChoisirParDate(cle, parTitre[cle].Concat(parIntitule[cle]).Select(t => t.Id).Distinct().ToList(), avecDecision);
+            if (choisi is not null) { ids.Add(id); texteIds.Add(choisi); parDate++; }
             else if (candidats.Count > 1) ambigus++;
             else sans++;
         }
+        Console.WriteLine($"  rattachés grâce à la date de la décision de séance : {parDate}");
 
         await using var tx = await conn.BeginTransactionAsync();
         await conn.ExecuteAsync("UPDATE scrutins SET texte_id = NULL WHERE texte_id IS NOT NULL", transaction: tx);
@@ -349,9 +362,9 @@ public sealed class ImportRepository(string connectionString)
     ///  - seulement à partir du premier scrutin public du Sénat de nos données : avant, on ne pourrait pas dire « sans scrutin public » ;
     ///  - un scrutin public SUR L'ENSEMBLE du même texte à ±3 jours est lié à la décision ; sans lui, « sans scrutin public » n'est affirmé que
     ///    si AUCUN scrutin sur l'ensemble du Sénat non rattaché à un texte n'a eu lieu à ±3 jours (il pourrait être le vote de ce texte : pas de « main levée »).
-    /// Retourne (écrites, liées à un scrutin, sans scrutin public).
+    /// Le lien avec les scrutins se fait ensuite (<see cref="RelierEtapesSenatAsync"/>) : le rattachement des scrutins aux textes a besoin de ces lignes.
     /// </summary>
-    public async Task<(int Ecrites, int Liees, int SansScrutin)> EcrireEtapesSenatAsync(IReadOnlyList<EtapeSenatRow> etapes)
+    public async Task<int> EcrireEtapesSenatAsync(IReadOnlyList<EtapeSenatRow> etapes)
     {
         await using var conn = new NpgsqlConnection(connectionString);
         await conn.OpenAsync();
@@ -373,6 +386,20 @@ public sealed class ImportRepository(string connectionString)
                 codes = etapes.Select(e => e.CodeActe).ToArray(), dates = etapes.Select(e => e.DateActe.ToDateTime(TimeOnly.MinValue)).ToArray(),
                 resultats = etapes.Select(e => e.Resultat).ToArray(),
             }, tx);
+        await tx.CommitAsync();
+        return etapes.Count;
+    }
+
+    /// <summary>
+    /// Après le rattachement des scrutins aux textes : lie chaque décision du Sénat au scrutin public sur l'ensemble du même texte, et marque
+    /// « sans scrutin public » celles qui n'en ont pas. Retourne (décisions, liées à un scrutin, sans scrutin public).
+    /// </summary>
+    public async Task<(int Ecrites, int Liees, int SansScrutin)> RelierEtapesSenatAsync()
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+        await using var tx = await conn.BeginTransactionAsync();
+        await conn.ExecuteAsync("UPDATE texte_etapes SET scrutin_id = NULL, sans_scrutin_public = false WHERE chambre = 'SENAT'", transaction: tx);
 
         // Lien avec le scrutin public sur l'ensemble du même texte, le plus proche à ±3 jours.
         await conn.ExecuteAsync(
@@ -400,6 +427,7 @@ public sealed class ImportRepository(string connectionString)
         await tx.CommitAsync();
         return (n, liees, sans);
     }
+
 
     // ------------------------------------------------------------------ Étapes de lecture (Dossiers législatifs de l'AN)
 
