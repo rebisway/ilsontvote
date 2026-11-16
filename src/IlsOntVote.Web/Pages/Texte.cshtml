@@ -97,6 +97,12 @@
                         {
                             <a href="@L.Lien("/scrutin/" + e.ScrutinId)">@L.T("Voir qui a voté quoi", "See who voted what")</a>
                         }
+                        else if (e.EstMotion)
+                        {
+                            @* La source ne cite pas toujours le scrutin d'une motion de censure : on renvoie vers les scrutins « motion de censure » de ce jour-là. *@
+                            var jour = e.DateActe.ToString("yyyy-MM-dd");
+                            <a href="@L.Lien("/textes")?q=motion+de+censure&du=@jour&au=@jour&portee=tout">@L.T("Voir les scrutins de ce jour", "See the votes of that day")</a>
+                        }
                         else if (e.Article493)
                         {
                             <span class="tag tag-493" tabindex="0" title="@L.T("Le Gouvernement a engagé sa responsabilité (article 49, alinéa 3 de la Constitution) : le texte est considéré comme adopté sauf si une motion de censure est votée. Il n'y a aucun vote sur le texte lui-même.", "The Government made the text a matter of confidence (article 49, paragraph 3 of the Constitution): the text is deemed adopted unless a censure motion passes. There is no vote on the text itself.")">@L.T("sans vote · art. 49-3", "no vote · art. 49-3")</span>
