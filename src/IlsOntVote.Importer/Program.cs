@@ -19,7 +19,7 @@ const int LegislatureEnCours = 17;
 int[] LegislaturesCompletes = [15, 16, 17];
 
 var argv = args.ToList();
-if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue"))
+if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats"))
 {
     Console.Error.WriteLine("Usage : IlsOntVote.Importer an [--legislature 17|15,16,17|all] [--scrutins-dir D --amo-dir D]");
     Console.Error.WriteLine("        IlsOntVote.Importer senat [--senateurs-dir D --dosleg-sql F]");
@@ -58,6 +58,7 @@ return argv[0] switch
     "an" => await ImporterAnAsync(),
     "senat" => await ImporterSenatAsync(),
     "ue" => await ImporterUeAsync(),
+    "stats" => await RafraichirStatsAsync(),
     _ => await ImporterTextesAsync(),
 };
 
@@ -207,6 +208,26 @@ static string? CouleurUe(string sigle) => sigle.ToUpperInvariant() switch
     "THE LEFT" => "#a4123f", "GREENS/EFA" => "#5aa02c", "S&D" => "#e75480", "RENEW" => "#f2b705",
     "EPP" => "#3399cc", "ECR" => "#1f5f8b", "PFE" => "#6b3fa0", "ESN" => "#4a4a8a", "NI" => "#8d949a", _ => null,
 };
+
+/// <summary>Recalcule les statistiques de participation (à lancer après les imports ; plusieurs minutes).</summary>
+async Task<int> RafraichirStatsAsync()
+{
+    Console.WriteLine("=== Statistiques de participation ===");
+    var runId = await repo.DemarrerAsync("STATS");
+    try
+    {
+        await repo.RafraichirStatsAsync();
+        Console.WriteLine("  Vues stats_participation_groupe et stats_participation_elu recalculées.");
+        await repo.TerminerAsync(runId, true, 0, 0, null);
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex);
+        await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
+        return 1;
+    }
+}
 
 async Task<int> ImporterSenatAsync()
 {

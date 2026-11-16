@@ -194,6 +194,21 @@ public sealed class ImportRepository(string connectionString)
     }
 
     /// <summary>Retourne (scrutins écrits, votes écrits, votes ignorés faute de parlementaire connu).</summary>
+    /// <summary>
+    /// Recalcule les statistiques de participation (vue matérialisée, migration 013). CONCURRENTLY quand la vue est déjà remplie :
+    /// le site continue de lire l'ancienne version pendant le calcul (plusieurs minutes). La toute première fois (vue vide), c'est impossible.
+    /// </summary>
+    public async Task RafraichirStatsAsync()
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+        foreach (var vue in new[] { "stats_participation_groupe", "stats_participation_elu" })
+        {
+            var remplie = await conn.ExecuteScalarAsync<bool>("SELECT ispopulated FROM pg_matviews WHERE matviewname = @vue", new { vue });
+            await conn.ExecuteAsync(remplie ? $"REFRESH MATERIALIZED VIEW CONCURRENTLY {vue}" : $"REFRESH MATERIALIZED VIEW {vue}", commandTimeout: 3600);
+        }
+    }
+
     // ------------------------------------------------------------------ Parlement européen (import incrémental)
 
     /// <summary>Identifiants des scrutins UE déjà en base (l'import UE ne relit que les votes nouveaux) et date du plus récent.</summary>

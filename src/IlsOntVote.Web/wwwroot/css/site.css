@@ -490,3 +490,19 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
 .bouton-don-principal:hover { opacity: 0.88; border-color: var(--ink); }
 .lien-don { color: var(--ink-soft); font-size: 0.92rem; text-decoration: underline; }
 @media (max-width: 720px) { .encart-don .bouton-don { flex: 1 1 140px; text-align: center; } }
+
+/* ---- Page Statistiques : cartes de chiffres clés, jauge de participation ---- */
+.cartes-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 0 0 24px; }
+.carte-stat { padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); display: flex; flex-direction: column; gap: 2px; }
+.carte-stat b { font-size: 1.9rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.carte-stat span { color: var(--ink-soft); }
+.carte-stat small { color: var(--ink-soft); font-size: 0.82rem; margin-top: 2px; }
+.jauge { display: inline-block; vertical-align: middle; width: 120px; height: 10px; border-radius: 999px; background: var(--absent); overflow: hidden; margin-right: 8px; }
+.jauge > span { display: block; height: 100%; background: var(--ink-soft); }
+.jauge-val { font-variant-numeric: tabular-nums; }
+
+.periode-rappel { margin: 0 0 12px; color: var(--ink-soft); }
+.deux-colonnes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; align-items: start; }
+.deux-colonnes > div { min-width: 0; }
+.sous-titre-stats { margin: 12px 0 8px; font-size: 1.02rem; }
+@media (max-width: 900px) { .deux-colonnes { grid-template-columns: minmax(0, 1fr); } }

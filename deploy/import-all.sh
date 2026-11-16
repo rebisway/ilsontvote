@@ -37,4 +37,8 @@ if [ -f "$DOSLEG" ]; then $DOTNET "$IMP" textes --dosleg-sql "$DOSLEG" || rc=1; 
 echo "=== Parlement européen ==="
 $DOTNET "$IMP" ue || rc=1
 
+# Statistiques de participation (vue matérialisée) : à recalculer APRÈS les imports, qui en changent les données. Plusieurs minutes.
+echo "=== Statistiques ==="
+$DOTNET "$IMP" stats || rc=1
+
 exit $rc

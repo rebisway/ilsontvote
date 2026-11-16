@@ -69,6 +69,7 @@ builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddSingleton<IIpHasher, IpHasher>();
 builder.Services.AddSingleton<PaysResolver>();
 builder.Services.AddSingleton<ApercuImage>();
+builder.Services.AddScoped<IStatistiquesRepository, StatistiquesRepository>();
 builder.Services.AddHostedService<PurgeVuesService>();
 
 // nginx en reverse proxy devant l'appli : sans ça, l'IP vue serait toujours celle de nginx.
@@ -183,7 +184,7 @@ app.MapGet("/robots.txt", () => Results.Text(
 app.MapGet("/sitemap.xml", async (DapperContext db) =>
 {
     using var cx = db.CreateConnection();
-    var urls = new List<string> { "/", "/lois", "/textes", "/deputes", "/senateurs", "/methodologie", "/mentions-legales", "/soutenir" };
+    var urls = new List<string> { "/", "/lois", "/textes", "/deputes", "/senateurs", "/methodologie", "/mentions-legales", "/soutenir", "/statistiques" };
     urls.AddRange(await cx.QueryAsync<string>("SELECT '/scrutin/' || id FROM scrutins"));
     urls.AddRange(await cx.QueryAsync<string>("SELECT '/texte/' || id FROM textes"));
     urls.AddRange(await cx.QueryAsync<string>(

@@ -1,0 +1,154 @@
+@page "/statistiques"
+@model StatistiquesModel
+@using IlsOntVote.Web.Models
+@using IlsOntVote.Web.Services
+@{
+    ViewData["Title"] = "Statistiques";
+    ViewData["Description"] = "Nombre de textes votés, lois promulguées, participation et présence des élus par groupe politique : Assemblée nationale, Sénat, Parlement européen.";
+    var fr = new System.Globalization.CultureInfo("fr-FR");
+    string Pct(double? v) => v is null ? "—" : v.Value.ToString("0.0", fr) + " %";
+}
+
+<h1 class="titre-page">Statistiques</h1>
+<p class="chapo">Combien de textes votés, et qui est présent au vote ? La <strong>participation</strong> est la part des élus en exercice qui ont voté (pour, contre ou abstention) lors d'un scrutin public ; les autres sont absents ou n'ont pas pris part au vote. Le site n'en donne aucune raison. <a href="/methodologie">Comment c'est calculé</a>.</p>
+
+<form class="filtres filtres-liste" method="get" action="/statistiques">
+    <select name="chambre" aria-label="Chambre">
+        <option value="an" selected="@(Model.ChambreCle == "an")">Assemblée nationale</option>
+        <option value="senat" selected="@(Model.ChambreCle == "senat")">Sénat</option>
+        <option value="ue" selected="@(Model.ChambreCle == "ue")">Parlement européen</option>
+    </select>
+    <select name="periode" aria-label="Période">
+        <option value="12m" selected="@(Model.PeriodeCle == "12m")">12 derniers mois</option>
+        <option value="annee" selected="@(Model.PeriodeCle == "annee")">Année en cours</option>
+        <option value="tout" selected="@(Model.PeriodeCle == "tout")">Depuis le début des données</option>
+        @if (Model.PeriodeCle == "perso") { <option value="12m" selected>Dates choisies</option> }
+    </select>
+    <span class="periode" title="Dates précises : elles remplacent la période ci-contre">
+        <label class="champ-date">Du <input type="date" name="du" value="@Model.Du" aria-label="Du (date de début)" /></label>
+        <label class="champ-date">au <input type="date" name="au" value="@Model.Au" aria-label="Au (date de fin)" /></label>
+    </span>
+    <label class="case"><input type="checkbox" name="ensemble" value="1" checked="@Model.EnsembleSeul" /> votes sur l'ensemble d'un texte seulement</label>
+    <button type="submit">Afficher</button>
+    @if (Model.FiltreActif) { <a class="effacer" href="/statistiques">Effacer le filtre</a> }
+</form>
+
+<p class="periode-rappel">@Chambres.Nom(Model.ChambreCode) · <strong>@Model.PeriodeLibelle</strong>@(Model.EnsembleSeul ? " · votes sur l'ensemble seulement" : "")</p>
+
+<section class="cartes-stats" aria-label="Chiffres clés">
+    <div class="carte-stat"><b>@Model.Chiffres.Scrutins.ToString("N0", fr)</b><span>scrutins publics</span></div>
+    <div class="carte-stat"><b>@Model.Chiffres.VotesEnsemble.ToString("N0", fr)</b><span>votes sur l'ensemble d'un texte</span>
+        <small>@Model.Chiffres.Adoptes.ToString("N0", fr) adoptés · @Model.Chiffres.Rejetes.ToString("N0", fr) rejetés</small></div>
+    @if (Model.ChambreCode != Chambres.UE)
+    {
+        <div class="carte-stat"><b>@Model.Chiffres.LoisPromulguees.ToString("N0", fr)</b><span>lois promulguées</span><small>sur la période (lois françaises, Parlement et Sénat)</small></div>
+    }
+    <div class="carte-stat"><b>@Pct(Model.Chiffres.ParticipationPct)</b><span>participation moyenne</span>
+        <small>@Doute.Html(NiveauDoute.Calcule, "calculé", "Calculé par le site à partir des mandats et des votes ; pas un chiffre officiel.")</small></div>
+</section>
+
+<h2>Participation par groupe</h2>
+@if (Model.Groupes.Count == 0)
+{
+    <p class="vide">Aucune donnée pour ce filtre@(Model.Chiffres.Scrutins > 0 ? " : les statistiques de participation sont en cours de calcul (après chaque import)." : ".")</p>
+}
+else
+{
+    <div class="barre-liste">
+        <p class="compte">@Model.Groupes.Count groupe@(Model.Groupes.Count > 1 ? "s" : "")</p>
+        <p class="export">Exporter ce tableau :
+            @foreach (var f in Exporteur.Formats) { <a href="@Model.Lien(f)" download>@f.ToUpperInvariant()</a> }
+        </p>
+    </div>
+    <div class="table-wrap">
+        <table class="liste-textes">
+            <thead>
+                <tr><th scope="col">Groupe</th><th scope="col" class="num">Effectif moyen</th><th scope="col">Participation</th>
+                    <th scope="col" class="num">Pour</th><th scope="col" class="num">Contre</th><th scope="col" class="num">Abst.</th>
+                    <th scope="col" class="num" title="Part des présents du groupe qui votent comme la majorité de leur groupe">Cohésion</th></tr>
+            </thead>
+            <tbody>
+            @foreach (var g in Model.Groupes)
+            {
+                <tr>
+                    <td data-label="Groupe" title="@g.Libelle"><span class="pastille" style="background:@(g.Couleur ?? "#8d949a")"></span> <strong>@g.Sigle</strong></td>
+                    <td data-label="Effectif moyen" class="num">@g.EffectifMoyen.ToString("0.#", fr)</td>
+                    <td data-label="Participation">
+                        <span class="jauge" role="img" aria-label="Participation @Pct(g.ParticipationPct)"><span style="width:@((g.ParticipationPct ?? 0).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%"></span></span>
+                        <span class="jauge-val">@Pct(g.ParticipationPct)</span>
+                    </td>
+                    <td data-label="Pour" class="num c-pour">@Pct(g.PourPct)</td>
+                    <td data-label="Contre" class="num c-contre">@Pct(g.ContrePct)</td>
+                    <td data-label="Abstention" class="num c-abstention">@Pct(g.AbstentionPct)</td>
+                    <td data-label="Cohésion" class="num">@Pct(g.CohesionPct)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <p class="note-source">Pour, contre et abstention : part des élus <em>présents au vote</em> du groupe. La <strong>cohésion</strong> mesure, à chaque scrutin, la part des présents du groupe qui votent comme la majorité du groupe (100 % : le groupe vote d'une seule voix). Les scrutins au décompte nominatif incomplet sont exclus du calcul (leurs absents ne sont pas fiables). Les groupes qui portent le même sigle sur plusieurs législatures sont regroupés.</p>
+}
+
+<h2>Présence des élus</h2>
+<p class="note-source">Part des scrutins publics de la période où l'élu a voté (pour, contre ou abstention), parmi ceux qui avaient lieu pendant son mandat. Les élus que l'assemblée déclare « non votants » (par exemple le président de séance) sont retirés du calcul. Pour les autres, le site ne donne <strong>aucune raison</strong> d'une absence : chacun juge. Attention : un membre du gouvernement, qui ne siège pas, peut apparaître avec une participation très basse. Seuls les élus ayant eu au moins @StatistiquesModel.MinScrutinsClassement scrutins sur la période sont classés. @Doute.Html(NiveauDoute.Calcule, "calculé", "Calculé par le site à partir des mandats et des votes ; pas un chiffre officiel.")</p>
+@if (Model.PlusPresents.Count == 0)
+{
+    <p class="vide">Pas assez de scrutins sur cette période pour classer les élus.</p>
+}
+else
+{
+    <div class="deux-colonnes">
+    @foreach (var (titre, liste) in new[] { ("Les plus présents", Model.PlusPresents), ("Les moins présents", Model.MoinsPresents) })
+    {
+        <div>
+            <h3 class="sous-titre-stats">@titre</h3>
+            <div class="table-wrap">
+                <table class="liste-textes">
+                    <thead><tr><th scope="col">Élu</th><th scope="col">Groupe</th><th scope="col" class="num">Scrutins</th><th scope="col" class="num">Participation</th></tr></thead>
+                    <tbody>
+                    @foreach (var e in liste)
+                    {
+                        <tr>
+                            <td data-label="Élu"><a href="/@Chambres.Fiche(e.Chambre)/@e.Slug">@Noms.Html(e.Prenom, e.Nom)</a></td>
+                            <td data-label="Groupe"><span class="pastille" style="background:@(e.GroupeCouleur ?? "#8d949a")"></span> @(e.GroupeSigle ?? "—")</td>
+                            <td data-label="Scrutins" class="num">@e.Scrutins.ToString("N0", fr)</td>
+                            <td data-label="Participation" class="num">@Pct(e.ParticipationPct)</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    </div>
+}
+
+<h2>Activité par année</h2>
+@if (Model.Annees.Count == 0)
+{
+    <p class="vide">Aucun scrutin pour cette chambre.</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table class="liste-textes">
+            <thead>
+                <tr><th scope="col">Année</th><th scope="col" class="num">Scrutins publics</th><th scope="col" class="num">Votes sur l'ensemble</th>
+                    <th scope="col" class="num">Adoptés</th><th scope="col" class="num">Rejetés</th><th scope="col" class="num">Participation</th></tr>
+            </thead>
+            <tbody>
+            @foreach (var a in Model.Annees)
+            {
+                <tr>
+                    <td data-label="Année"><strong>@a.Annee</strong></td>
+                    <td data-label="Scrutins publics" class="num">@a.Scrutins.ToString("N0", fr)</td>
+                    <td data-label="Votes sur l'ensemble" class="num">@a.VotesEnsemble.ToString("N0", fr)</td>
+                    <td data-label="Adoptés" class="num">@a.Adoptes.ToString("N0", fr)</td>
+                    <td data-label="Rejetés" class="num">@a.Rejetes.ToString("N0", fr)</td>
+                    <td data-label="Participation" class="num">@Pct(a.ParticipationPct)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
