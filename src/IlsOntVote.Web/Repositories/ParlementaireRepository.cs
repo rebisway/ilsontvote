@@ -146,7 +146,7 @@ public sealed class ParlementaireRepository(DapperContext db) : IParlementaireRe
         var total = await conn.ExecuteScalarAsync<int>($"SELECT count(*) {from}", p);
         var lignes = (await conn.QueryAsync<LigneVote>(
             $"""
-             SELECT s.id AS scrutin_id, s.date_scrutin, s.titre, s.titre_en, s.titre_en_auto, s.sort,
+             SELECT s.id AS scrutin_id, s.date_scrutin, s.titre, s.titre_en, s.titre_en_auto, s.titre_fr_auto, s.sort,
                     COALESCE(v.position, 'absent') AS position,
                     COALESCE(v.par_delegation, false) AS par_delegation,
                     COALESCE(v.rectifie, false) AS rectifie,

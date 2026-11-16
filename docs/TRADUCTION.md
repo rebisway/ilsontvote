@@ -22,6 +22,18 @@ sans traduction s'affiche en français : le site n'invente rien.
 
 L'étape est **facultative** : sans le modèle ou sans Python, elle est ignorée et l'import n'échoue pas.
 
+## Sens inverse : titres européens en français (en -> fr)
+
+Les votes du Parlement européen ont un titre français **officiel** (portail du Parlement) quand ils sont rattachés à une procédure. Les
+autres (objections, certaines résolutions) n'en ont pas et restaient en anglais dans l'interface française. L'étape `traductions` les traduit
+aussi, avec le modèle `opus-mt-en-fr` :
+
+- **Incrémental** : mémoire `traductions_titres_fr` (clé : titre anglais) ; seuls les NOUVEAUX titres passent par le modèle.
+- Le ré-import quotidien d'un vote remet le titre anglais de la source : l'étape (placée **après** `ue` dans `import-all.sh`) le retraduit
+  aussitôt depuis la mémoire, sans relancer le modèle.
+- Signalé : `scrutins.titre_fr_auto`, étiquette « traduction automatique » et titre anglais d'origine (infobulle et note sous le titre).
+- Variable : `ILSONVOTE_MODELE_TRADUCTION_EN_FR` (défaut `/opt/ilsontvote-traduction/opus-mt-en-fr` en production).
+
 ## Installation sur la VM (une fois)
 
 ```bash

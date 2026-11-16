@@ -34,7 +34,14 @@
 </header>
 @if (s.TitreTraduitAuto(L.Anglais))
 {
-    <p class="note-source">@Doute.Html(NiveauDoute.Calcule, "automatic translation", "Machine-translated title (not official). The official title is the French one.") Official title: <span lang="fr">@s.TitreAffiche</span></p>
+    @if (L.Anglais)
+    {
+        <p class="note-source">@Doute.Html(NiveauDoute.Calcule, "automatic translation", "Machine-translated title (not official). The official title is the French one.") Official title: <span lang="fr">@s.TitreAffiche</span></p>
+    }
+    else
+    {
+        <p class="note-source">@Doute.Html(NiveauDoute.Calcule, "traduction automatique", "Titre traduit automatiquement de l'anglais (non officiel) : le Parlement européen n'en publie pas de version française pour ce vote. Le titre officiel est l'original anglais.") Titre original : <span lang="en">@s.TitreEn</span></p>
+    }
 }
 
 @{

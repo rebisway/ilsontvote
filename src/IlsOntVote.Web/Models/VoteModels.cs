@@ -88,12 +88,14 @@ public sealed class Scrutin
     // Interface anglaise : titre anglais (HowTheyVote pour l'UE) ou TRADUCTION AUTOMATIQUE du titre français (titre_en_auto).
     public string? TitreEn { get; set; }
     public bool TitreEnAuto { get; set; }
+    /// <summary>Vrai quand le titre (français) est une TRADUCTION AUTOMATIQUE de l'original anglais (votes du Parlement européen sans titre officiel français).</summary>
+    public bool TitreFrAuto { get; set; }
     /// <summary>Titre dans la langue demandée ; sans titre anglais, le titre français (rien n'est inventé).</summary>
     public string TitreLangue(bool en) => en && !string.IsNullOrWhiteSpace(TitreEn) ? Majuscule(TitreEn.Trim()) : TitreAffiche;
     /// <summary>Vrai quand le titre affiché est une traduction automatique (à signaler au lecteur).</summary>
-    public bool TitreTraduitAuto(bool en) => en && TitreEnAuto && !string.IsNullOrWhiteSpace(TitreEn);
+    public bool TitreTraduitAuto(bool en) => !string.IsNullOrWhiteSpace(TitreEn) && (en ? TitreEnAuto : TitreFrAuto);
     /// <summary>Infobulle d'un titre traduit automatiquement : le titre officiel français ; null sinon (attribut omis).</summary>
-    public string? InfobulleTitre(bool en) => TitreTraduitAuto(en) ? "Official title (French): " + TitreAffiche : null;
+    public string? InfobulleTitre(bool en) => !TitreTraduitAuto(en) ? null : en ? "Official title (French): " + TitreAffiche : "Titre original (anglais) : " + TitreEn;
     private static string Majuscule(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
 
     public bool Adopte => Sort is not null && Sort.StartsWith("adopt", StringComparison.OrdinalIgnoreCase);
@@ -202,12 +204,14 @@ public sealed class LigneVote
     // Interface anglaise : titre anglais (HowTheyVote pour l'UE) ou TRADUCTION AUTOMATIQUE du titre français (titre_en_auto).
     public string? TitreEn { get; set; }
     public bool TitreEnAuto { get; set; }
+    /// <summary>Vrai quand le titre (français) est une TRADUCTION AUTOMATIQUE de l'original anglais (votes du Parlement européen sans titre officiel français).</summary>
+    public bool TitreFrAuto { get; set; }
     /// <summary>Titre dans la langue demandée ; sans titre anglais, le titre français (rien n'est inventé).</summary>
     public string TitreLangue(bool en) => en && !string.IsNullOrWhiteSpace(TitreEn) ? Majuscule(TitreEn.Trim()) : TitreAffiche;
     /// <summary>Vrai quand le titre affiché est une traduction automatique (à signaler au lecteur).</summary>
-    public bool TitreTraduitAuto(bool en) => en && TitreEnAuto && !string.IsNullOrWhiteSpace(TitreEn);
+    public bool TitreTraduitAuto(bool en) => !string.IsNullOrWhiteSpace(TitreEn) && (en ? TitreEnAuto : TitreFrAuto);
     /// <summary>Infobulle d'un titre traduit automatiquement : le titre officiel français ; null sinon (attribut omis).</summary>
-    public string? InfobulleTitre(bool en) => TitreTraduitAuto(en) ? "Official title (French): " + TitreAffiche : null;
+    public string? InfobulleTitre(bool en) => !TitreTraduitAuto(en) ? null : en ? "Official title (French): " + TitreAffiche : "Titre original (anglais) : " + TitreEn;
     private static string Majuscule(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
 
 }

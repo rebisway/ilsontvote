@@ -38,16 +38,18 @@ if [ -f "$DOSLEG" ]; then $DOTNET "$IMP" textes --dosleg-sql "$DOSLEG" || rc=1; 
 echo "=== Dossiers législatifs (étapes sans scrutin public) ==="
 if [ "$1" = "historique" ]; then $DOTNET "$IMP" dossiers --legislature all || rc=1; else $DOTNET "$IMP" dossiers || rc=1; fi
 
-# Titres anglais (interface /en) : traduction automatique des NOUVEAUX titres français. Facultatif : sans le modèle (voir
-# deploy/setup-traduction.sh), l'étape est ignorée sans erreur.
-export ILSONVOTE_PYTHON="${ILSONVOTE_PYTHON:-/opt/ilsontvote-traduction/venv/bin/python}"
-export ILSONVOTE_MODELE_TRADUCTION="${ILSONVOTE_MODELE_TRADUCTION:-/opt/ilsontvote-traduction/opus-mt-fr-en}"
-echo "=== Traduction des titres ==="
-$DOTNET "$IMP" traductions || rc=1
-
 # Parlement européen (HowTheyVote) : incrémental, seuls les nouveaux votes sont lus (le tout premier passage est long : un appel par vote).
 echo "=== Parlement européen ==="
 $DOTNET "$IMP" ue || rc=1
+
+# Traduction automatique des NOUVEAUX titres seulement (mémoire en base) : fr -> en (interface /en) et en -> fr (votes européens sans titre
+# français officiel). APRÈS le Parlement européen : le ré-import d'un vote remet son titre anglais d'origine, que la mémoire retraduit aussitôt.
+# Facultatif : sans les modèles (voir deploy/setup-traduction.sh), l'étape est ignorée sans erreur.
+export ILSONVOTE_PYTHON="${ILSONVOTE_PYTHON:-/opt/ilsontvote-traduction/venv/bin/python}"
+export ILSONVOTE_MODELE_TRADUCTION="${ILSONVOTE_MODELE_TRADUCTION:-/opt/ilsontvote-traduction/opus-mt-fr-en}"
+export ILSONVOTE_MODELE_TRADUCTION_EN_FR="${ILSONVOTE_MODELE_TRADUCTION_EN_FR:-/opt/ilsontvote-traduction/opus-mt-en-fr}"
+echo "=== Traduction des titres ==="
+$DOTNET "$IMP" traductions || rc=1
 
 # Statistiques de participation (vue matérialisée) : à recalculer APRÈS les imports, qui en changent les données. Plusieurs minutes.
 echo "=== Statistiques ==="

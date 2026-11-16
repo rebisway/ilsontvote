@@ -248,66 +248,65 @@ async Task<int> ImporterDossiersAsync()
 }
 
 /// <summary>
-/// Traduction automatique fr -> en des titres de lois et de votes (interface /en), avec OPUS-MT via le script <c>tools/traduire_titres.py</c>.
-/// ÉTAPE OPTIONNELLE : sans modèle ou sans Python, elle est ignorée (code de sortie 0) : l'import nocturne ne doit jamais échouer pour ça.
-/// Variables : ILSONVOTE_PYTHON (défaut « python3 »), ILSONVOTE_MODELE_TRADUCTION (défaut ./models/opus-mt-fr-en). <c>--limit N</c> pour tester.
+/// Traduction automatique des titres avec OPUS-MT, via le script <c>tools/traduire_titres.py</c>, dans les DEUX sens :
+///  - fr -> en : titres de lois et de votes français (interface /en) ;
+///  - en -> fr : votes du Parlement européen sans titre français officiel (interface française).
+/// Incrémental : une mémoire en base (traductions_titres / traductions_titres_fr) évite de retraduire ; chaque nuit, seuls les NOUVEAUX titres
+/// passent par le modèle. ÉTAPE OPTIONNELLE : sans modèle ou sans Python, chaque sens est ignoré (code de sortie 0) : l'import nocturne ne doit
+/// jamais échouer pour ça. Variables : ILSONVOTE_PYTHON (défaut « python3 »), ILSONVOTE_MODELE_TRADUCTION (fr-en, défaut ./models/opus-mt-fr-en),
+/// ILSONVOTE_MODELE_TRADUCTION_EN_FR (défaut ./models/opus-mt-en-fr). <c>--limit N</c> pour tester.
 /// </summary>
 async Task<int> TraduireTitresAsync()
 {
-    Console.WriteLine("=== Traduction des titres (fr -> en) ===");
-    var modele = Environment.GetEnvironmentVariable("ILSONVOTE_MODELE_TRADUCTION") ?? Path.Combine(Directory.GetCurrentDirectory(), "models", "opus-mt-fr-en");
+    Console.WriteLine("=== Traduction des titres (fr -> en, et en -> fr pour le Parlement européen) ===");
+    var racine = Path.Combine(Directory.GetCurrentDirectory(), "models");
+    var modeleFrEn = Environment.GetEnvironmentVariable("ILSONVOTE_MODELE_TRADUCTION") ?? Path.Combine(racine, "opus-mt-fr-en");
+    var modeleEnFr = Environment.GetEnvironmentVariable("ILSONVOTE_MODELE_TRADUCTION_EN_FR") ?? Path.Combine(racine, "opus-mt-en-fr");
     var script = Path.Combine(AppContext.BaseDirectory, "tools", "traduire_titres.py");
-    if (!File.Exists(Path.Combine(modele, "model.bin")) || !File.Exists(script))
-    {
-        Console.WriteLine($"  Traduction non configurée (modèle absent : {modele}) : étape ignorée. Voir docs/TRADUCTION.md.");
-        return 0;
-    }
+    bool Disponible(string modele) => File.Exists(Path.Combine(modele, "model.bin")) && File.Exists(script);
+
+    // Réapplique d'abord la mémoire en->fr : le ré-import du jour a remis les titres anglais de la source, même sans modèle installé.
+    var reappliques = await repo.AppliquerTraductionsFrAsync();
+    if (reappliques > 0) Console.WriteLine($"  {reappliques} titres européens retraduits depuis la mémoire.");
+
+    var frEn = Disponible(modeleFrEn);
+    var enFr = Disponible(modeleEnFr);
+    if (!frEn) Console.WriteLine($"  fr -> en non configuré (modèle absent : {modeleFrEn}) : ignoré. Voir docs/TRADUCTION.md.");
+    if (!enFr) Console.WriteLine($"  en -> fr non configuré (modèle absent : {modeleEnFr}) : ignoré. Voir docs/TRADUCTION.md.");
+    if (!frEn && !enFr) return 0;
 
     var runId = await repo.DemarrerAsync("TRADUCTIONS");
     try
     {
         var limite = int.TryParse(Option("--limit"), out var l) ? l : 20000;
-        var titres = await repo.LireTitresATraduireAsync(limite);
-        Console.WriteLine($"  {titres.Count} titres à traduire.");
-        if (titres.Count == 0) { await repo.TerminerAsync(runId, true, 0, 0, "rien à traduire"); return 0; }
+        var messages = new List<string>();
+        var total = 0;
 
-        var dossier = Path.Combine(Path.GetTempPath(), "ilsontvote-trad-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dossier);
-        var entree = Path.Combine(dossier, "entree.jsonl");
-        var sortie = Path.Combine(dossier, "sortie.jsonl");
-        try
+        if (frEn)
         {
-            // L'identifiant est l'indice dans la liste : le titre français sert de clé en base, le script n'a pas à le connaître.
-            // Première lettre en majuscule (comme à l'affichage) : le modèle traduit mieux une phrase qui commence par une majuscule.
-            await File.WriteAllLinesAsync(entree, titres.Select((t, i) => System.Text.Json.JsonSerializer.Serialize(new
+            var titres = await repo.LireTitresATraduireAsync(limite);
+            Console.WriteLine($"  fr -> en : {titres.Count} titres à traduire.");
+            if (titres.Count > 0)
             {
-                id = i.ToString(),
-                fr = t.Length == 0 ? t : char.ToUpperInvariant(t[0]) + t[1..],
-            })));
-
-            var psi = new System.Diagnostics.ProcessStartInfo(Environment.GetEnvironmentVariable("ILSONVOTE_PYTHON") ?? "python3")
-            {
-                RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false,
-            };
-            psi.ArgumentList.Add(script); psi.ArgumentList.Add(modele); psi.ArgumentList.Add(entree); psi.ArgumentList.Add(sortie);
-            using var proc = System.Diagnostics.Process.Start(psi)!;
-            proc.OutputDataReceived += (_, e) => { if (e.Data is not null) Console.WriteLine(e.Data); };
-            proc.ErrorDataReceived += (_, e) => { if (e.Data is not null) Console.Error.WriteLine(e.Data); };
-            proc.BeginOutputReadLine(); proc.BeginErrorReadLine();
-            await proc.WaitForExitAsync();
-            if (proc.ExitCode != 0) throw new InvalidOperationException($"Le script de traduction a échoué (code {proc.ExitCode}).");
-
-            var traductions = (await File.ReadAllLinesAsync(sortie))
-                .Where(x => x.Length > 0)
-                .Select(x => System.Text.Json.JsonDocument.Parse(x).RootElement)
-                .Select(e => (Fr: titres[int.Parse(e.GetProperty("id").GetString()!)], En: e.GetProperty("en").GetString()!))
-                .Where(t => t.En.Length > 0)
-                .ToList();
-            var n = await repo.EcrireTraductionsAsync(traductions, "opus-mt-fr-en");
-            Console.WriteLine($"  {traductions.Count} titres traduits, {n} textes et scrutins mis à jour.");
-            await repo.TerminerAsync(runId, true, n, 0, $"{traductions.Count} titres traduits (opus-mt-fr-en)");
+                var resultats = await LancerScriptTraductionAsync(modeleFrEn, "fr-en", titres);
+                var n = await repo.EcrireTraductionsAsync(resultats, "opus-mt-fr-en");
+                Console.WriteLine($"  {resultats.Count} titres traduits (fr -> en), {n} textes et scrutins mis à jour.");
+                messages.Add($"{resultats.Count} fr->en"); total += n;
+            }
         }
-        finally { try { Directory.Delete(dossier, true); } catch (IOException) { } }
+        if (enFr)
+        {
+            var titres = await repo.LireTitresATraduireFrAsync(limite);
+            Console.WriteLine($"  en -> fr : {titres.Count} titres européens à traduire.");
+            if (titres.Count > 0)
+            {
+                var resultats = await LancerScriptTraductionAsync(modeleEnFr, "en-fr", titres);
+                var n = await repo.EcrireTraductionsFrAsync(resultats, "opus-mt-en-fr");
+                Console.WriteLine($"  {resultats.Count} titres traduits (en -> fr), {n} votes mis à jour.");
+                messages.Add($"{resultats.Count} en->fr"); total += n;
+            }
+        }
+        await repo.TerminerAsync(runId, true, total, 0, messages.Count == 0 ? "rien à traduire" : string.Join(", ", messages));
         return 0;
     }
     catch (Exception ex)
@@ -316,6 +315,49 @@ async Task<int> TraduireTitresAsync()
         await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
         return 1;
     }
+}
+
+/// <summary>
+/// Passe une liste de titres au script Python (fichier JSON Lines en entrée, un autre en sortie) et renvoie les couples (source, traduction).
+/// <paramref name="sens"/> : « fr-en » ou « en-fr ». L'identifiant échangé est l'indice dans la liste : le titre source sert de clé en base.
+/// </summary>
+async Task<IReadOnlyList<(string Source, string Cible)>> LancerScriptTraductionAsync(string modele, string sens, IReadOnlyList<string> titres)
+{
+    var script = Path.Combine(AppContext.BaseDirectory, "tools", "traduire_titres.py");
+    var (langueSource, langueCible) = (sens[..2], sens[3..]);
+    var dossier = Path.Combine(Path.GetTempPath(), "ilsontvote-trad-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(dossier);
+    var entree = Path.Combine(dossier, "entree.jsonl");
+    var sortie = Path.Combine(dossier, "sortie.jsonl");
+    try
+    {
+        // Première lettre en majuscule (comme à l'affichage) : le modèle traduit mieux une phrase qui commence par une majuscule.
+        await File.WriteAllLinesAsync(entree, titres.Select((t, i) => System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, string>
+        {
+            ["id"] = i.ToString(),
+            [langueSource] = t.Length == 0 ? t : char.ToUpperInvariant(t[0]) + t[1..],
+        })));
+
+        var psi = new System.Diagnostics.ProcessStartInfo(Environment.GetEnvironmentVariable("ILSONVOTE_PYTHON") ?? "python3")
+        {
+            RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false,
+        };
+        psi.ArgumentList.Add(script); psi.ArgumentList.Add(modele); psi.ArgumentList.Add(entree); psi.ArgumentList.Add(sortie); psi.ArgumentList.Add(sens);
+        using var proc = System.Diagnostics.Process.Start(psi)!;
+        proc.OutputDataReceived += (_, e) => { if (e.Data is not null) Console.WriteLine(e.Data); };
+        proc.ErrorDataReceived += (_, e) => { if (e.Data is not null) Console.Error.WriteLine(e.Data); };
+        proc.BeginOutputReadLine(); proc.BeginErrorReadLine();
+        await proc.WaitForExitAsync();
+        if (proc.ExitCode != 0) throw new InvalidOperationException($"Le script de traduction ({sens}) a échoué (code {proc.ExitCode}).");
+
+        return (await File.ReadAllLinesAsync(sortie))
+            .Where(x => x.Length > 0)
+            .Select(x => System.Text.Json.JsonDocument.Parse(x).RootElement)
+            .Select(e => (Source: titres[int.Parse(e.GetProperty("id").GetString()!)], Cible: e.GetProperty(langueCible).GetString()!))
+            .Where(t => t.Cible.Length > 0)
+            .ToList();
+    }
+    finally { try { Directory.Delete(dossier, true); } catch (IOException) { } }
 }
 
 /// <summary>Recalcule les statistiques de participation (à lancer après les imports ; plusieurs minutes).</summary>

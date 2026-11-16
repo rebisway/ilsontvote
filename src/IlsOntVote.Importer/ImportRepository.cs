@@ -282,6 +282,48 @@ public sealed class ImportRepository(string connectionString)
         return n;
     }
 
+    /// <summary>
+    /// Titres ANGLAIS des votes du Parlement européen sans titre français officiel (le titre affiché est resté celui de la source, en anglais)
+    /// et pas déjà dans la mémoire des traductions : à traduire en français. Distincts, pour ne traduire un titre qu'une fois.
+    /// </summary>
+    public async Task<IReadOnlyList<string>> LireTitresATraduireFrAsync(int limite)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        return (await conn.QueryAsync<string>(
+            """
+            SELECT DISTINCT s.titre_en FROM scrutins s
+             WHERE s.chambre = 'UE' AND s.titre_en IS NOT NULL AND s.titre = s.titre_en   -- titre non traduit : identique à l'original anglais
+               AND NOT EXISTS (SELECT 1 FROM traductions_titres_fr tr WHERE tr.en = s.titre_en)
+             ORDER BY s.titre_en LIMIT @limite
+            """, new { limite })).ToList();
+    }
+
+    /// <summary>Enregistre les traductions en->fr (clé : titre anglais) puis les applique.</summary>
+    public async Task<int> EcrireTraductionsFrAsync(IEnumerable<(string En, string Fr)> traductions, string modele)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO traductions_titres_fr (en, fr, modele) VALUES (@En, @Fr, @modele)
+            ON CONFLICT (en) DO UPDATE SET fr = EXCLUDED.fr, modele = EXCLUDED.modele, traduit_le = now()
+            """, traductions.Select(t => new { t.En, t.Fr, modele }));
+        return await AppliquerTraductionsFrAsync();
+    }
+
+    /// <summary>
+    /// Applique la mémoire des traductions en->fr aux votes UE dont le titre est encore l'original anglais. À rejouer à CHAQUE import : le
+    /// ré-import d'un vote remet le titre anglais de la source (et `titre_fr_auto` à faux) ; la mémoire le retraduit sans relancer le modèle.
+    /// </summary>
+    public async Task<int> AppliquerTraductionsFrAsync()
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        return await conn.ExecuteAsync(
+            """
+            UPDATE scrutins s SET titre = tr.fr, titre_fr_auto = true FROM traductions_titres_fr tr
+             WHERE s.chambre = 'UE' AND s.titre_en IS NOT NULL AND s.titre = s.titre_en AND tr.en = s.titre_en
+            """);
+    }
+
     /// <summary>Titres anglais d'origine (HowTheyVote) des votes UE déjà importés : rattrapage de la colonne titre_en.</summary>
     public async Task<int> MettreTitresEnUeAsync(IEnumerable<(string Id, string Titre)> titres)
     {
@@ -491,7 +533,7 @@ public sealed class ImportRepository(string connectionString)
                         @SurEnsemble, @NbVotants, @NbPour, @NbContre, @NbAbstentions, @NbNonVotants, @ModePublication,
                         @NbVotesManquants, @NbVotesManquants > 0, @Note,
                         @TypeVoteLibelle, @TypeMajorite, @SuffragesExprimes, @SuffragesRequis, @TitreEn)
-                ON CONFLICT (id) DO UPDATE SET titre = EXCLUDED.titre, type_vote = EXCLUDED.type_vote, sort = EXCLUDED.sort,
+                ON CONFLICT (id) DO UPDATE SET titre = EXCLUDED.titre, titre_fr_auto = false, type_vote = EXCLUDED.type_vote, sort = EXCLUDED.sort,
                     dossier_ref = EXCLUDED.dossier_ref, sur_ensemble = EXCLUDED.sur_ensemble,
                     nb_votants = EXCLUDED.nb_votants, nb_pour = EXCLUDED.nb_pour, nb_contre = EXCLUDED.nb_contre,
                     nb_abstentions = EXCLUDED.nb_abstentions, nb_non_votants = EXCLUDED.nb_non_votants,

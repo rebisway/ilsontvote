@@ -128,7 +128,7 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
         using var conn = db.CreateConnection();
         return (await conn.QueryAsync<ScrutinDuTexte>(
             """
-            SELECT id, chambre, date_scrutin, titre, titre_en, titre_en_auto, sort, nb_pour, nb_contre, nb_abstentions
+            SELECT id, chambre, date_scrutin, titre, titre_en, titre_en_auto, titre_fr_auto, sort, nb_pour, nb_contre, nb_abstentions
               FROM scrutins WHERE texte_id = @texteId ORDER BY date_scrutin, chambre, numero
             """, new { texteId })).ToList();
     }
@@ -140,7 +140,7 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
         var total = await conn.ExecuteScalarAsync<int>("SELECT count(*) FROM scrutins WHERE texte_lie_id = @texteId", new { texteId });
         var recents = (await conn.QueryAsync<ScrutinDuTexte>(
             """
-            SELECT id, chambre, date_scrutin, titre, titre_en, titre_en_auto, sort, nb_pour, nb_contre, nb_abstentions
+            SELECT id, chambre, date_scrutin, titre, titre_en, titre_en_auto, titre_fr_auto, sort, nb_pour, nb_contre, nb_abstentions
               FROM scrutins WHERE texte_lie_id = @texteId ORDER BY date_scrutin DESC, numero DESC LIMIT @limite
             """, new { texteId, limite })).ToList();
         return (total, recents);
