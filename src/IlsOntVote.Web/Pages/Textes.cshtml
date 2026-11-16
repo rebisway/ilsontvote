@@ -3,46 +3,46 @@
 @using IlsOntVote.Web.Models
 @using IlsOntVote.Web.Services
 @{
-    ViewData["Title"] = "Scrutins";
-    ViewData["Description"] = "Tous les scrutins publics de l'Assemblée nationale et du Sénat : cherchez un texte, triez, exportez, et voyez qui a voté quoi.";
-    var fr = new System.Globalization.CultureInfo("fr-FR");
+    ViewData["Title"] = L.T("Scrutins", "Votes");
+    ViewData["Description"] = L.T("Tous les scrutins publics de l'Assemblée nationale et du Sénat : cherchez un texte, triez, exportez, et voyez qui a voté quoi.", "All roll-call votes of the French National Assembly and Senate: search a text, sort, export, and see who voted what.");
+    var fr = L.Culture;
 }
 
-<h1 class="titre-page">Scrutins</h1>
-<p class="chapo">Les votes sur l'ensemble d'un texte, du plus récent au plus ancien. Cochez « amendements et articles » pour voir aussi les votes intermédiaires. Cliquez sur un titre de colonne pour trier. Pour suivre le parcours complet d'une loi (promulgation, Journal officiel, Conseil constitutionnel), voir <a href="/lois">les lois</a>.</p>
+<h1 class="titre-page">@L.T("Scrutins", "Votes")</h1>
+<p class="chapo">@L.TH("Les votes sur l'ensemble d'un texte, du plus récent au plus ancien. Cochez « amendements et articles » pour voir aussi les votes intermédiaires. Cliquez sur un titre de colonne pour trier. Pour suivre le parcours complet d'une loi (promulgation, Journal officiel, Conseil constitutionnel), voir <a href=\"/lois\">les lois</a>.", "Votes on the whole text, most recent first. Tick “amendments and articles” to also see intermediate votes. Click a column title to sort. To follow a law's full journey (promulgation, Official Journal, Constitutional Council), see <a href=\"/en/lois\">the laws</a>.")</p>
 
-<form class="filtres filtres-liste" method="get" action="/textes">
-    <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="Chercher un texte (ex. retraites, finances, immigration…)" aria-label="Chercher un texte" />
-    <select name="chambre" aria-label="Chambre">
-        <option value="" selected="@string.IsNullOrEmpty(Model.Chambre)">Assemblée et Sénat</option>
-        <option value="an" selected="@(Model.Chambre == "an")">Assemblée nationale</option>
-        <option value="senat" selected="@(Model.Chambre == "senat")">Sénat</option>
-        <option value="ue" selected="@(Model.Chambre == "ue")">Parlement européen</option>
+<form class="filtres filtres-liste" method="get" action="@L.Lien("/textes")">
+    <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("Chercher un texte (ex. retraites, finances, immigration…)", "Search a text (e.g. pensions, finance, immigration…)")" aria-label="@L.T("Chercher un texte", "Search a text")" />
+    <select name="chambre" aria-label="@L.T("Chambre", "Chamber")">
+        <option value="" selected="@string.IsNullOrEmpty(Model.Chambre)">@L.T("Assemblée et Sénat", "National Assembly and Senate")</option>
+        <option value="an" selected="@(Model.Chambre == "an")">@L.T("Assemblée nationale", "National Assembly")</option>
+        <option value="senat" selected="@(Model.Chambre == "senat")">@L.T("Sénat", "Senate")</option>
+        <option value="ue" selected="@(Model.Chambre == "ue")">@L.T("Parlement européen", "European Parliament")</option>
     </select>
-    <span class="periode"><label class="champ-date">Du <input type="date" name="du" value="@Model.Du" aria-label="Du (date de début)" /></label>
-        <label class="champ-date">au <input type="date" name="au" value="@Model.Au" aria-label="Au (date de fin)" /></label></span>
-    <label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" /> amendements et articles</label>
+    <span class="periode"><label class="champ-date">@L.T("Du", "From") <input type="date" name="du" value="@Model.Du" aria-label="@L.T("Du (date de début)", "From (start date)")" /></label>
+        <label class="champ-date">@L.T("au", "to") <input type="date" name="au" value="@Model.Au" aria-label="@L.T("Au (date de fin)", "To (end date)")" /></label></span>
+    <label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" /> @L.T("amendements et articles", "amendments and articles")</label>
     @* Tri : en-têtes de colonne (écran large) ou ces listes (téléphone). *@
-    <select name="tri" class="tri-mobile" aria-label="Trier par">
-        <option value="date" selected="@(Model.TriEffectif == "date")">Trier : date</option>
-        <option value="chambre" selected="@(Model.TriEffectif == "chambre")">Trier : chambre</option>
-        <option value="titre" selected="@(Model.TriEffectif == "titre")">Trier : texte</option>
-        <option value="resultat" selected="@(Model.TriEffectif == "resultat")">Trier : résultat</option>
-        <option value="pour" selected="@(Model.TriEffectif == "pour")">Trier : pour</option>
-        <option value="contre" selected="@(Model.TriEffectif == "contre")">Trier : contre</option>
-        <option value="abst" selected="@(Model.TriEffectif == "abst")">Trier : abstentions</option>
+    <select name="tri" class="tri-mobile" aria-label="@L.T("Trier par", "Sort by")">
+        <option value="date" selected="@(Model.TriEffectif == "date")">@L.T("Trier : date", "Sort: date")</option>
+        <option value="chambre" selected="@(Model.TriEffectif == "chambre")">@L.T("Trier : chambre", "Sort: chamber")</option>
+        <option value="titre" selected="@(Model.TriEffectif == "titre")">@L.T("Trier : texte", "Sort: text")</option>
+        <option value="resultat" selected="@(Model.TriEffectif == "resultat")">@L.T("Trier : résultat", "Sort: result")</option>
+        <option value="pour" selected="@(Model.TriEffectif == "pour")">@L.T("Trier : pour", "Sort: for")</option>
+        <option value="contre" selected="@(Model.TriEffectif == "contre")">@L.T("Trier : contre", "Sort: against")</option>
+        <option value="abst" selected="@(Model.TriEffectif == "abst")">@L.T("Trier : abstentions", "Sort: abstentions")</option>
     </select>
-    <select name="sens" class="tri-mobile" aria-label="Sens du tri">
-        <option value="desc" selected="@Model.Decroissant">Décroissant</option>
-        <option value="asc" selected="@(!Model.Decroissant)">Croissant</option>
+    <select name="sens" class="tri-mobile" aria-label="@L.T("Sens du tri", "Sort order")">
+        <option value="desc" selected="@Model.Decroissant">@L.T("Décroissant", "Descending")</option>
+        <option value="asc" selected="@(!Model.Decroissant)">@L.T("Croissant", "Ascending")</option>
     </select>
-    <button type="submit">Filtrer</button>
-    @if (Model.FiltreActif) { <a class="effacer" href="@Model.LienSansFiltre">Effacer le filtre</a> }
+    <button type="submit">@L.T("Filtrer", "Filter")</button>
+    @if (Model.FiltreActif) { <a class="effacer" href="@Model.LienSansFiltre">@L.T("Effacer le filtre", "Clear filter")</a> }
 </form>
 
 <div class="barre-liste">
-    <p class="compte">@Model.Resultats.Total.ToString("N0", fr) scrutin@(Model.Resultats.Total > 1 ? "s" : "")</p>
-    <p class="export">Exporter ce tableau :
+    <p class="compte">@Model.Resultats.Total.ToString("N0", fr) @L.T(Model.Resultats.Total > 1 ? " scrutins" : " scrutin", Model.Resultats.Total > 1 ? " votes" : " vote")</p>
+    <p class="export">@L.T("Exporter ce tableau :", "Export this table:")
         @foreach (var f in Exporteur.Formats)
         {
             <a href="@Model.Lien(format: f)" download>@f.ToUpperInvariant()</a>
@@ -52,7 +52,7 @@
 
 @if (Model.Resultats.Lignes.Count == 0)
 {
-    <p class="vide">Aucun résultat.</p>
+    <p class="vide">@L.T("Aucun résultat.", "No results.")</p>
 }
 else
 {
@@ -60,24 +60,24 @@ else
         <table class="liste-textes">
             <thead>
                 <tr>
-                    @Model.Th("date", "Date")
-                    @Model.Th("chambre", "Chambre")
-                    @Model.Th("titre", "Texte")
-                    @Model.Th("resultat", "Résultat")
-                    @Model.Th("pour", "Pour", "num")
-                    @Model.Th("contre", "Contre", "num")
-                    @Model.Th("abst", "Abst.", "num")
+                    @Model.Th("date", L.T("Date", "Date"))
+                    @Model.Th("chambre", L.T("Chambre", "Chamber"))
+                    @Model.Th("titre", L.T("Texte", "Text"))
+                    @Model.Th("resultat", L.T("Résultat", "Result"))
+                    @Model.Th("pour", L.T("Pour", "For"), "num")
+                    @Model.Th("contre", L.T("Contre", "Against"), "num")
+                    @Model.Th("abst", L.T("Abst.", "Abst."), "num")
                 </tr>
             </thead>
             <tbody>
             @foreach (var s in Model.Resultats.Lignes)
             {
                 <tr>
-                    <td class="nowrap" data-label="Date"><time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMM yyyy", fr)</time></td>
-                    <td data-label="Chambre"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@Chambres.Court(s.Chambre)</span></td>
-                    <td><a href="/scrutin/@s.Id">@s.TitreAffiche</a></td>
-                    <td data-label="Résultat"><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? "✓ Adopté" : "✗ Rejeté")</span></td>
-                    <td class="num" data-label="Pour">@s.NbPour</td><td class="num" data-label="Contre">@s.NbContre</td><td class="num" data-label="Abstentions">@s.NbAbstentions</td>
+                    <td class="nowrap" data-label="@L.T("Date", "Date")"><time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMM yyyy", fr)</time></td>
+                    <td data-label="@L.T("Chambre", "Chamber")"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@Chambres.Court(s.Chambre, L.Anglais)</span></td>
+                    <td><a href="@L.Lien("/scrutin/" + s.Id)">@s.TitreAffiche</a></td>
+                    <td data-label="@L.T("Résultat", "Result")"><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span></td>
+                    <td class="num" data-label="@L.T("Pour", "For")">@s.NbPour</td><td class="num" data-label="@L.T("Contre", "Against")">@s.NbContre</td><td class="num" data-label="@L.T("Abstentions", "Abstentions")">@s.NbAbstentions</td>
                 </tr>
             }
             </tbody>
@@ -86,10 +86,10 @@ else
 
     @if (Model.Resultats.NbPages > 1)
     {
-        <nav class="pagination" aria-label="Pagination">
-            @if (Model.Resultats.Page > 1) { <a href="@Model.Lien(page: Model.Resultats.Page - 1)" rel="prev">← Précédent</a> }
-            <span>Page @Model.Resultats.Page / @Model.Resultats.NbPages</span>
-            @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">Suivant →</a> }
+        <nav class="pagination" aria-label="@L.T("Pagination", "Pagination")">
+            @if (Model.Resultats.Page > 1) { <a href="@Model.Lien(page: Model.Resultats.Page - 1)" rel="prev">@L.T("← Précédent", "← Previous")</a> }
+            <span>@L.T("Page", "Page") @Model.Resultats.Page / @Model.Resultats.NbPages</span>
+            @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">@L.T("Suivant →", "Next →")</a> }
         </nav>
     }
     <partial name="_LignesParPage" model="Model" />

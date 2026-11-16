@@ -9,11 +9,19 @@ public static class Chambres
     public const string Senat = "SENAT";
     public const string UE = "UE";
 
-    public static string Nom(string chambre) => chambre switch { Senat => "Sénat", UE => "Parlement européen", _ => "Assemblée nationale" };
-    public static string Membre(string chambre) => chambre switch { Senat => "sénateur", UE => "eurodéputé", _ => "député" };
-    public static string Membres(string chambre) => chambre switch { Senat => "sénateurs", UE => "eurodéputés", _ => "députés" };
+    public static string Nom(string chambre, bool en = false) => en
+        ? chambre switch { Senat => "Senate", UE => "European Parliament", _ => "National Assembly" }
+        : chambre switch { Senat => "Sénat", UE => "Parlement européen", _ => "Assemblée nationale" };
+    public static string Membre(string chambre, bool en = false) => en
+        ? chambre switch { Senat => "senator", UE => "MEP", _ => "deputy" }
+        : chambre switch { Senat => "sénateur", UE => "eurodéputé", _ => "député" };
+    public static string Membres(string chambre, bool en = false) => en
+        ? chambre switch { Senat => "senators", UE => "MEPs", _ => "deputies" }
+        : chambre switch { Senat => "sénateurs", UE => "eurodéputés", _ => "députés" };
     /// <summary>Sigle court pour les étiquettes de tableau.</summary>
-    public static string Court(string chambre) => chambre switch { Senat => "Sénat", UE => "UE", _ => "AN" };
+    public static string Court(string chambre, bool en = false) => en
+        ? chambre switch { Senat => "Senate", UE => "EU", _ => "NA" }
+        : chambre switch { Senat => "Sénat", UE => "UE", _ => "AN" };
     /// <summary>Classe CSS de l'étiquette de chambre (couleur propre à chaque assemblée).</summary>
     public static string ClasseTag(string chambre) => chambre switch { Senat => "ch-senat", UE => "ch-ue", _ => "ch-an" };
     /// <summary>Valeur du filtre d'URL (?chambre=) pour cette chambre.</summary>
@@ -38,7 +46,9 @@ public static class Pos
     public const string NonVotant = "non_votant";
     public const string Absent = "absent";
 
-    public static string Libelle(string p) => p switch
+    public static string Libelle(string p, bool en = false) => en
+        ? p switch { Pour => "For", Contre => "Against", Abstention => "Abstention", NonVotant => "Non-voting", _ => "Absent" }
+        : p switch
     {
         Pour => "Pour",
         Contre => "Contre",

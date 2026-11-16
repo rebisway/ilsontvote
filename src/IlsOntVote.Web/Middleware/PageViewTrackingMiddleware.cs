@@ -27,7 +27,8 @@ public sealed class PageViewTrackingMiddleware(RequestDelegate next)
         // Choix du visiteur respecté : DNT: 1 ou Sec-GPC: 1 = visite non comptée (ni page, ni pays, ni empreinte).
         if (context.Request.Headers["DNT"] == "1" || context.Request.Headers["Sec-GPC"] == "1") return;
 
-        var path = context.Request.Path.Value ?? "/";
+        // Chemin complet avec le préfixe /en : les statistiques distinguent les visites des deux langues.
+        var path = context.Request.PathBase.Add(context.Request.Path).Value ?? "/";
         var userAgent = context.Request.Headers.UserAgent.ToString();
         var estBot = string.IsNullOrWhiteSpace(userAgent) || BotUserAgent.IsMatch(userAgent);
 

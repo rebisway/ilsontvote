@@ -3,12 +3,13 @@
 @model IndexModel
 @{
     ViewData["Title"] = "";
-    var fr = new System.Globalization.CultureInfo("fr-FR");
+    var fr = L.Culture;
 }
 
 <section class="intro">
-    <h1>Qui a voté quoi ?</h1>
-    <p>Chaque point est un élu. Pour chaque texte, voyez en un coup d'œil qui a voté <strong class="c-pour">pour</strong>, <strong class="c-contre">contre</strong>, s'est <strong class="c-abstention">abstenu</strong>, ou n'a pas pris part au vote (<strong class="c-absent">absent</strong>).</p>
+    <h1>@L.T("Qui a voté quoi ?", "Who voted what?")</h1>
+    <p>@L.TH("Chaque point est un élu. Pour chaque texte, voyez en un coup d'œil qui a voté <strong class=\"c-pour\">pour</strong>, <strong class=\"c-contre\">contre</strong>, s'est <strong class=\"c-abstention\">abstenu</strong>, ou n'a pas pris part au vote (<strong class=\"c-absent\">absent</strong>).",
+        "Each dot is an elected official. For each text, see at a glance who voted <strong class=\"c-pour\">for</strong>, <strong class=\"c-contre\">against</strong>, <strong class=\"c-abstention\">abstained</strong>, or did not take part in the vote (<strong class=\"c-absent\">absent</strong>).")</p>
 </section>
 
 <div class="colonnes">
@@ -16,16 +17,16 @@
 {
     <section class="chambre">
         <div class="chambre-tete">
-            <h2>@Chambres.Nom(section.Chambre)</h2>
+            <h2>@Chambres.Nom(section.Chambre, L.Anglais)</h2>
             <p>
-                <a href="/textes?chambre=@Chambres.Filtre(section.Chambre)">Tous les textes</a>
-                · <a href="/@Chambres.Liste(section.Chambre)">Tous les @Chambres.Membres(section.Chambre)</a>
+                <a href="@L.Lien("/textes")?chambre=@Chambres.Filtre(section.Chambre)">@L.T("Tous les textes", "All votes")</a>
+                · <a href="@L.Lien("/" + Chambres.Liste(section.Chambre))">@L.T("Tous les ", "All ")@Chambres.Membres(section.Chambre, L.Anglais)</a>
             </p>
         </div>
 
         @if (section.Cartes.Count == 0)
         {
-            <p class="vide">Aucun scrutin importé pour le moment.</p>
+            <p class="vide">@L.T("Aucun scrutin importé pour le moment.", "No votes imported yet.")</p>
         }
 
         <div class="cartes">
@@ -34,19 +35,19 @@
                 <article class="carte">
                     <header>
                         <time datetime="@c.Scrutin.DateScrutin.ToString("yyyy-MM-dd")">@c.Scrutin.DateScrutin.ToString("d MMMM yyyy", fr)</time>
-                        <span class="sort @(c.Scrutin.Adopte ? "adopte" : "rejete")">@(c.Scrutin.Adopte ? "✓ Adopté" : "✗ Rejeté")</span>
+                        <span class="sort @(c.Scrutin.Adopte ? "adopte" : "rejete")">@(c.Scrutin.Adopte ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span>
                     </header>
-                    <h3><a href="/scrutin/@c.Scrutin.Id">@c.Scrutin.TitreAffiche</a></h3>
+                    <h3><a href="@L.Lien("/scrutin/" + c.Scrutin.Id)">@c.Scrutin.TitreAffiche</a></h3>
 
-                    <a class="carte-hemicycle" href="/scrutin/@c.Scrutin.Id" tabindex="-1" aria-hidden="true">
+                    <a class="carte-hemicycle" href="@L.Lien("/scrutin/" + c.Scrutin.Id)" tabindex="-1" aria-hidden="true">
                         <partial name="_Hemicycle" model="(c.Vue, false)" />
                     </a>
 
                     <ul class="decompte">
-                        <li class="d-pour"><b>@c.Pour</b> pour</li>
-                        <li class="d-contre"><b>@c.Contre</b> contre</li>
-                        <li class="d-abstention"><b>@c.Abstention</b> abst.</li>
-                        <li class="d-absent"><b>@c.Absent</b> absents</li>
+                        <li class="d-pour"><b>@c.Pour</b> @L.T("pour", "for")</li>
+                        <li class="d-contre"><b>@c.Contre</b> @L.T("contre", "against")</li>
+                        <li class="d-abstention"><b>@c.Abstention</b> @L.T("abst.", "abst.")</li>
+                        <li class="d-absent"><b>@c.Absent</b> @L.T("absents", "absent")</li>
                     </ul>
                 </article>
             }
@@ -59,12 +60,12 @@
 <hr class="separateur" />
 <aside class="encart-don" aria-labelledby="t-don">
     <div>
-        <h2 id="t-don">Ce site est gratuit, sans publicité ni pistage</h2>
-        <p>Il vit de vos dons : ils financent l'hébergement, la maintenance et la suite du développement (nouvelles sources, meilleure qualité des données, historique plus ancien).</p>
+        <h2 id="t-don">@L.T("Ce site est gratuit, sans publicité ni pistage", "This site is free, with no ads and no tracking")</h2>
+        <p>@L.T("Il vit de vos dons : ils financent l'hébergement, la maintenance et la suite du développement (nouvelles sources, meilleure qualité des données, historique plus ancien).", "It runs on your donations: they pay for hosting, maintenance and further development (new sources, better data quality, older history).")</p>
     </div>
     <div class="dons">
-        <a class="bouton-don bouton-don-principal" href="https://liberapay.com/Rebisway" rel="noopener">Don régulier</a>
-        <a class="bouton-don" href="https://buy.stripe.com/28E28r5NraZv6dH3rvg3602" rel="noopener">Don unique</a>
-        <a class="lien-don" href="/soutenir">En savoir plus</a>
+        <a class="bouton-don bouton-don-principal" href="https://liberapay.com/Rebisway" rel="noopener">@L.T("Don régulier", "Monthly donation")</a>
+        <a class="bouton-don" href="https://buy.stripe.com/28E28r5NraZv6dH3rvg3602" rel="noopener">@L.T("Don unique", "One-time donation")</a>
+        <a class="lien-don" href="@L.Lien("/soutenir")">@L.T("En savoir plus", "Learn more")</a>
     </div>
 </aside>

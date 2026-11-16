@@ -1,7 +1,7 @@
 @model IlsOntVote.Web.Pages.ListePageModel
 @* Choix du nombre de lignes par page : de simples liens (fonctionnent sans JavaScript), filtres et tri conservés, retour page 1. *@
-<p class="lignes-page" aria-label="Nombre de lignes par page">
-    Lignes par page :
+<p class="lignes-page" aria-label="@L.T("Nombre de lignes par page", "Number of rows per page")">
+    @L.T("Lignes par page :", "Rows per page:")
     @foreach (var n in IlsOntVote.Web.Pages.ListePageModel.ChoixLignes)
     {
         if (n == Model.ParPage) { <strong aria-current="true">@n</strong> }

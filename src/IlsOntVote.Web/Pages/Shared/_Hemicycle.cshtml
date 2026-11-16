@@ -31,7 +31,7 @@
     }
 }
 <svg id="@id" class="hemicycle" viewBox="0 0 @HemicycleLayout.Largeur.ToString(inv) @HemicycleLayout.Hauteur.ToString(inv)"
-     role="img" aria-label="Hémicycle : un point par élu, coloré selon son vote, entouré de la couleur de son groupe">
+     role="img" aria-label="@L.T("Hémicycle : un point par élu, coloré selon son vote, entouré de la couleur de son groupe", "Hemicycle: one dot per elected official, coloured by vote, ringed with the colour of their group")">
 
     @* Couleurs des groupes, propres à ce dessin. <style> est valide dans un SVG en ligne. *@
     @Html.Raw("<style>" + css + "</style>")
@@ -72,7 +72,7 @@
         if (Model.Detaille)
         {
             <circle class="p-@s.Position@(s.Rectifie ? " rectifie" : "")@g" cx="@s.X.ToString(inv)" cy="@s.Y.ToString(inv)" r="@vue.Rayon.ToString(inv)">
-                <title>@s.NomComplet (@s.GroupeSigle) — @Pos.Libelle(s.Position)@(s.Rectifie ? " (mise au point)" : "")@(s.ParDelegation ? " — par délégation" : "")</title>
+                <title>@s.NomComplet (@s.GroupeSigle) — @Pos.Libelle(s.Position, L.Anglais)@(s.Rectifie ? L.T(" (mise au point)", " (vote correction)") : "")@(s.ParDelegation ? L.T(" — par délégation", " — by proxy") : "")</title>
             </circle>
         }
         else

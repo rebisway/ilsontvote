@@ -63,7 +63,7 @@ public abstract class ListePageModel : PageModel
         if (page is > 1) q.Add($"page={page}");
         if (format is not null) q.Add($"format={format}");
 
-        var chemin = Request.Path.Value ?? "/";
+        var chemin = Request.PathBase.Add(Request.Path).Value ?? "/";   // PathBase = « /en » en anglais : les liens gardent la langue
         return q.Count == 0 ? chemin : chemin + "?" + string.Join("&", q);
     }
 

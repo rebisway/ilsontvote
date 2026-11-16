@@ -1,9 +1,51 @@
 @page "/mentions-legales"
 @{
-    ViewData["Title"] = "Mentions légales et confidentialité";
-    ViewData["Description"] = "Éditeur, hébergeur, propriété intellectuelle, comptage des visites et cookies du site Ils ont voté.";
+    ViewData["Title"] = L.T("Mentions légales et confidentialité", "Legal notice and privacy");
+    ViewData["Description"] = L.T("Éditeur, hébergeur, propriété intellectuelle, comptage des visites et cookies du site Ils ont voté.", "Publisher, host, intellectual property, visit counting and cookies of the Ils ont voté site.");
 }
 
+@if (L.Anglais)
+{
+<h1 class="titre-page">Legal notice and privacy</h1>
+
+<section class="bloc-texte">
+    <h2>Publisher</h2>
+    <p>This site is published by Thomas Gourgnier, in a personal capacity.<br />
+    Contact: <a href="mailto:contact@rebisway.com">contact@rebisway.com</a></p>
+</section>
+
+<section class="bloc-texte">
+    <h2>Hosting</h2>
+    <p>OVH SAS, 2 rue Kellermann, 59100 Roubaix, France · <a href="https://www.ovhcloud.com/">www.ovhcloud.com</a></p>
+</section>
+
+<section class="bloc-texte">
+    <h2>Intellectual property and data</h2>
+    <p>The site's source code is published under the GNU GPL v3.0 licence. The voting data comes from public sources: the
+    <a href="https://data.assemblee-nationale.fr/">National Assembly</a> and the <a href="https://data.senat.fr/">Senate</a> (open data), and
+    <a href="https://howtheyvote.eu/">HowTheyVote.eu</a> for the European Parliament (data under the <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License</a>: the European data used here and its exports remain under that licence).
+    It is reproduced as published, with the calculations described in the <a href="/en/methodologie">methodology</a>. Other content (texts, layout) is protected by copyright.</p>
+    <p>The names and votes of elected officials are public data relating to the exercise of a mandate. To report an error, write to the contact above.</p>
+</section>
+
+<section class="bloc-texte" id="confidentialite">
+    <h2>Privacy</h2>
+    <p><strong>Visit counting.</strong> To know how many people visit the site, each page view is recorded in our own database, hosted on our own server,
+    with no third-party analytics service or external script. We record only: the date, the page viewed, the country (deduced from your IP address with a file stored on our own server, without calling any external service),
+    whether the visitor is a robot, and a fingerprint of your IP address.</p>
+    <p><strong>Your IP address is never stored.</strong> It is turned into a one-way code, calculated with a secret key known only to our server: this code lets us count the same person only once,
+    but the address cannot be recovered from it. This code changes at the start of each month: it cannot be used to follow you beyond a month. Visits are automatically deleted after 400 days.
+    If your browser sends the “Do Not Track” (DNT) or “Global Privacy Control” (GPC) signal, your visit is not counted.</p>
+    <p><strong>Cookies and storage.</strong> No advertising or audience-measurement cookies, no third-party trackers. Your choice of name display
+    (“First Last” / “Last First”) is remembered only in your browser (local storage); it is never sent to the server.
+    A login cookie exists only for the site's administration.</p>
+    <p>Like any server, this one may note operating errors in its technical logs, for operation and security. Links to official sites take you away from this site: their own rules then apply.</p>
+    <p><strong>Your rights.</strong> For any question or request about your data (access, deletion), write to <a href="mailto:contact@rebisway.com">contact@rebisway.com</a>.
+    As we keep no accounts or user lists, we generally hold no data about you beyond this anonymised counting.</p>
+</section>
+}
+else
+{
 <h1 class="titre-page">Mentions légales et confidentialité</h1>
 
 <section class="bloc-texte">
@@ -20,8 +62,9 @@
 <section class="bloc-texte">
     <h2>Propriété intellectuelle et données</h2>
     <p>Le code source du site est publié sous licence GNU GPL v3.0. Les données de vote proviennent de sources publiques :
-    <a href="https://data.assemblee-nationale.fr/">Assemblée nationale</a> et <a href="https://data.senat.fr/">Sénat</a>, <a href="https://howtheyvote.eu/">HowTheyVote.eu</a> (Parlement européen, données sous <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License</a> : les données européennes reprises ici et leurs exports restent sous cette licence)
-    (données ouvertes). Elles sont reprises telles que publiées, avec les calculs décrits dans la
+    <a href="https://data.assemblee-nationale.fr/">Assemblée nationale</a> et <a href="https://data.senat.fr/">Sénat</a> (données ouvertes), et
+    <a href="https://howtheyvote.eu/">HowTheyVote.eu</a> pour le Parlement européen (données sous <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License</a> : les données européennes reprises ici et leurs exports restent sous cette licence).
+    Elles sont reprises telles que publiées, avec les calculs décrits dans la
     <a href="/methodologie">méthodologie</a>. Les autres contenus (textes, mise en page) sont protégés par le droit d'auteur.</p>
     <p>Les noms et votes des élus sont des données publiques relatives à l'exercice d'un mandat. Pour signaler une erreur, écrivez au contact ci-dessus.</p>
 </section>
@@ -46,3 +89,4 @@
     <a href="mailto:contact@rebisway.com">contact@rebisway.com</a>. Comme nous ne gardons ni compte ni liste d'utilisateurs,
     nous ne détenons en général aucune donnée vous concernant au-delà de ce comptage anonymisé.</p>
 </section>
+}

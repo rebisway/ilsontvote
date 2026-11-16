@@ -22,16 +22,16 @@ public class LoisModel(ITexteRepository textes) : ListePageModel
     /// <c>TexteRepository.FiltreStatut</c>. « Adoptés par les deux assemblées, non promulgués » est la
     /// formulation neutre de « voté mais pas (encore) promulgué » : on ne présume pas de la cause.
     /// </summary>
-    public static readonly (string Cle, string Libelle)[] Statuts =
+    public static readonly (string Cle, string Libelle, string Anglais)[] Statuts =
     [
-        ("", "Tous les statuts"),
-        ("promulgue", "Promulgués"),
-        ("deux-assemblees", "Adoptés par les deux assemblées, non promulgués"),
-        ("non-promulgue", "Adoptés par une assemblée, non promulgués"),
-        ("discussion", "En discussion"),
-        ("rejete", "Rejetés, caducs ou retirés"),
-        ("cc", "Passés devant le Conseil constitutionnel"),
-        ("censure", "Censurés (en tout ou partie)"),
+        ("", "Tous les statuts", "All statuses"),
+        ("promulgue", "Promulgués", "Promulgated"),
+        ("deux-assemblees", "Adoptés par les deux assemblées, non promulgués", "Adopted by both chambers, not promulgated"),
+        ("non-promulgue", "Adoptés par une assemblée, non promulgués", "Adopted by one chamber, not promulgated"),
+        ("discussion", "En discussion", "In progress"),
+        ("rejete", "Rejetés, caducs ou retirés", "Rejected, lapsed or withdrawn"),
+        ("cc", "Passés devant le Conseil constitutionnel", "Referred to the Constitutional Council"),
+        ("censure", "Censurés (en tout ou partie)", "Struck down (in whole or in part)"),
     ];
 
     public Resultats<Texte> Resultats { get; private set; } = new([], 0, 1, 30);

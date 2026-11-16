@@ -11,7 +11,7 @@ namespace IlsOntVote.Web.Pages;
 /// (bornes incluses), « votes sur l'ensemble seulement ». La participation est calculée à l'import (cf. migration 013) : on la présente
 /// toujours comme une donnée calculée, jamais comme un chiffre officiel.
 /// </summary>
-public class StatistiquesModel(IStatistiquesRepository stats) : PageModel
+public class StatistiquesModel(IStatistiquesRepository stats, Langue langue) : PageModel
 {
     [BindProperty(SupportsGet = true)] public string? Chambre { get; set; }
     /// <summary>Période prédéfinie : « 12m » (défaut), « annee » (année en cours) ou « tout » ; ignorée si des dates sont saisies.</summary>
@@ -40,37 +40,44 @@ public class StatistiquesModel(IStatistiquesRepository stats) : PageModel
     /// <summary>Seuil du classement : un élu doit avoir eu au moins ce nombre de scrutins à sa charge sur la période.</summary>
     public const int MinScrutinsClassement = 20;
 
-    private static readonly IReadOnlyList<Colonne<StatGroupe>> ColonnesExport =
-    [
-        new("Groupe", g => g.Sigle),
-        new("Nom du groupe", g => g.Libelle),
-        new("Effectif moyen", g => g.EffectifMoyen),
-        new("Participation (%)", g => g.ParticipationPct),
-        new("Pour (% des votants)", g => g.PourPct),
-        new("Contre (% des votants)", g => g.ContrePct),
-        new("Abstention (% des votants)", g => g.AbstentionPct),
-        new("Cohésion (%)", g => g.CohesionPct),
-    ];
+    /// <summary>En-têtes des colonnes de l'export dans la langue de la page.</summary>
+    private IReadOnlyList<Colonne<StatGroupe>> ColonnesExport()
+    {
+        var en = langue.Anglais;
+        return new List<Colonne<StatGroupe>>
+        {
+            new(en ? "Group" : "Groupe", g => g.Sigle),
+            new(en ? "Group name" : "Nom du groupe", g => g.Libelle),
+            new(en ? "Average size" : "Effectif moyen", g => g.EffectifMoyen),
+            new("Participation (%)", g => g.ParticipationPct),
+            new(en ? "For (% of voters)" : "Pour (% des votants)", g => g.PourPct),
+            new(en ? "Against (% of voters)" : "Contre (% des votants)", g => g.ContrePct),
+            new(en ? "Abstention (% of voters)" : "Abstention (% des votants)", g => g.AbstentionPct),
+            new(en ? "Cohesion (%)" : "Cohésion (%)", g => g.CohesionPct),
+        };
+    }
 
     public async Task<IActionResult> OnGetAsync()
     {
-        var fr = new System.Globalization.CultureInfo("fr-FR");
+        var fr = langue.Culture;
         DateTime? du, au;
         var aujourdhui = DateTime.UtcNow.Date;
         switch (PeriodeCle)
         {
             case "perso":
                 (du, au) = Services.Periode.Lire(Du, Au);
-                PeriodeLibelle = $"du {du?.ToString("d MMMM yyyy", fr) ?? "début"} au {au?.ToString("d MMMM yyyy", fr) ?? "aujourd'hui"}";
+                PeriodeLibelle = langue.Anglais
+                    ? $"from {du?.ToString("d MMMM yyyy", fr) ?? "the start"} to {au?.ToString("d MMMM yyyy", fr) ?? "today"}"
+                    : $"du {du?.ToString("d MMMM yyyy", fr) ?? "début"} au {au?.ToString("d MMMM yyyy", fr) ?? "aujourd'hui"}";
                 break;
-            case "annee": du = new DateTime(aujourdhui.Year, 1, 1); au = null; PeriodeLibelle = $"année {aujourdhui.Year}"; break;
-            case "tout": du = null; au = null; PeriodeLibelle = "depuis le début des données"; break;
-            default: du = aujourdhui.AddMonths(-12); au = null; PeriodeLibelle = "12 derniers mois"; break;
+            case "annee": du = new DateTime(aujourdhui.Year, 1, 1); au = null; PeriodeLibelle = langue.Anglais ? $"year {aujourdhui.Year}" : $"année {aujourdhui.Year}"; break;
+            case "tout": du = null; au = null; PeriodeLibelle = langue.Anglais ? "since the start of the data" : "depuis le début des données"; break;
+            default: du = aujourdhui.AddMonths(-12); au = null; PeriodeLibelle = langue.Anglais ? "last 12 months" : "12 derniers mois"; break;
         }
         Groupes = await stats.GetGroupesAsync(ChambreCode, du, au, EnsembleSeul);
 
         if (Exporteur.EstFormat(Format))
-            return Exporteur.Ecrire(Format!, "participation-par-groupe", ColonnesExport, Groupes);
+            return Exporteur.Ecrire(Format!, langue.Anglais ? "participation-by-group" : "participation-par-groupe", ColonnesExport(), Groupes);
 
         Chiffres = await stats.GetChiffresAsync(ChambreCode, du, au, EnsembleSeul);
         Annees = await stats.GetAnneesAsync(ChambreCode);
@@ -88,6 +95,6 @@ public class StatistiquesModel(IStatistiquesRepository stats) : PageModel
         if (!string.IsNullOrEmpty(Au)) q.Add("au=" + Uri.EscapeDataString(Au));
         if (EnsembleSeul) q.Add("ensemble=1");
         if (format is not null) q.Add("format=" + format);
-        return "/statistiques?" + string.Join("&", q);
+        return Request.PathBase + "/statistiques?" + string.Join("&", q);
     }
 }

@@ -69,6 +69,8 @@ builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddSingleton<IIpHasher, IpHasher>();
 builder.Services.AddSingleton<PaysResolver>();
 builder.Services.AddSingleton<ApercuImage>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<Langue>();
 builder.Services.AddScoped<IStatistiquesRepository, StatistiquesRepository>();
 builder.Services.AddHostedService<PurgeVuesService>();
 
@@ -114,7 +116,8 @@ builder.Services.AddOutputCache(options =>
         .With(c => !(c.HttpContext.Request.Path.StartsWithSegments("/Admin", StringComparison.OrdinalIgnoreCase)
                   || c.HttpContext.Request.Path.StartsWithSegments("/Identity", StringComparison.OrdinalIgnoreCase)))
         .Expire(builder.Environment.IsDevelopment() ? TimeSpan.FromSeconds(1) : TimeSpan.FromMinutes(5))
-        .SetVaryByQuery("*"));
+        .SetVaryByQuery("*")
+        .VaryByValue(c => new KeyValuePair<string, string>("lang", c.Items["lang"] as string ?? "fr")));
 });
 
 var app = builder.Build();
@@ -156,6 +159,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseForwardedHeaders();
+// Version anglaise : /en/… -> mêmes pages, PathBase /en (avant fichiers statiques, routage et cache de sortie).
+app.Use((ctx, next) => Langue.Middleware(ctx, next));
 app.UseHttpsRedirection();
 // Fichiers statiques : CSS référencée avec asp-append-version (?v=empreinte) => cache d'un an sans risque ; le reste (favicon…)
 // un jour seulement. Les pages HTML, elles, ne sont jamais concernées.
@@ -179,20 +184,58 @@ app.UseOutputCache();
 // --- SEO : robots.txt et sitemap.xml (adresse canonique fixe : les alias .com / www redirigent déjà vers .org via nginx) ---
 const string SiteUrl = "https://www.ilsontvote.org";
 app.MapGet("/robots.txt", () => Results.Text(
-    $"User-agent: *{Environment.NewLine}Disallow: /Admin{Environment.NewLine}Disallow: /Identity{Environment.NewLine}{Environment.NewLine}Sitemap: {SiteUrl}/sitemap.xml{Environment.NewLine}", "text/plain"));
+    string.Join('\n',
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /Admin",
+        "Disallow: /Identity",
+        "# Variantes d'une même liste (tri, taille de page, export) : pas d'intérêt à les explorer, la page de base suffit.",
+        "Disallow: /*?*tri=",
+        "Disallow: /*?*sens=",
+        "Disallow: /*?*lignes=",
+        "Disallow: /*?*format=",
+        "",
+        $"Sitemap: {SiteUrl}/sitemap.xml",
+        "") , "text/plain"));
 // Toutes les pages publiques stables (accueil, listes, scrutins, textes, élus) : ~30 000 URL, sous la limite de 50 000 par fichier.
-app.MapGet("/sitemap.xml", async (DapperContext db) =>
+// Plan du site en TROIS fichiers : un index et un fichier par langue (la limite est de 50 000 adresses par fichier ; le français seul
+// en compte ~30 000). Chaque adresse annonce sa version dans l'autre langue (xhtml:link hreflang), comme les balises de chaque page.
+async Task<List<(string Url, string? Date)>> PagesPubliques(DapperContext db)
 {
     using var cx = db.CreateConnection();
-    var urls = new List<string> { "/", "/lois", "/textes", "/deputes", "/senateurs", "/methodologie", "/mentions-legales", "/soutenir", "/statistiques" };
-    urls.AddRange(await cx.QueryAsync<string>("SELECT '/scrutin/' || id FROM scrutins"));
-    urls.AddRange(await cx.QueryAsync<string>("SELECT '/texte/' || id FROM textes"));
-    urls.AddRange(await cx.QueryAsync<string>(
-        "SELECT CASE chambre WHEN 'SENAT' THEN '/senateur/' ELSE '/depute/' END || slug FROM parlementaires"));
-    var sb = new System.Text.StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
-    foreach (var u in urls) sb.Append("<url><loc>").Append(System.Security.SecurityElement.Escape(SiteUrl + u)).Append("</loc></url>");
-    return Results.Text(sb.Append("</urlset>").ToString(), "application/xml");
-}).CacheOutput(p => p.Expire(TimeSpan.FromHours(6)));
+    var aujourdhui = DateTime.UtcNow.ToString("yyyy-MM-dd");
+    var urls = new List<(string, string?)>();
+    foreach (var u in new[] { "/", "/lois", "/textes", "/deputes", "/senateurs", "/eurodeputes", "/statistiques" }) urls.Add((u, aujourdhui));
+    foreach (var u in new[] { "/methodologie", "/mentions-legales", "/soutenir" }) urls.Add((u, null));
+    // Un scrutin ne change plus après son vote : sa date sert de « dernière modification ».
+    urls.AddRange((await cx.QueryAsync<(string, DateTime)>("SELECT '/scrutin/' || id, date_scrutin FROM scrutins")).Select(r => (r.Item1, (string?)r.Item2.ToString("yyyy-MM-dd"))));
+    urls.AddRange((await cx.QueryAsync<string>("SELECT '/texte/' || id FROM textes")).Select(u => (u, (string?)null)));
+    urls.AddRange((await cx.QueryAsync<string>(
+        "SELECT CASE chambre WHEN 'SENAT' THEN '/senateur/' WHEN 'UE' THEN '/eurodepute/' ELSE '/depute/' END || slug FROM parlementaires")).Select(u => (u, (string?)null)));
+    return urls;
+}
+string Absolue(string chemin, bool en) => SiteUrl + (en ? "/en" + (chemin == "/" ? "" : chemin) : chemin);
+string Plan(List<(string Url, string? Date)> urls, bool en)
+{
+    var sb = new System.Text.StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" xmlns:xhtml=\"http://www.w3.org/1999/xhtml\">");
+    foreach (var (u, date) in urls)
+    {
+        string E(string x) => System.Security.SecurityElement.Escape(x);
+        sb.Append("<url><loc>").Append(E(Absolue(u, en))).Append("</loc>")
+          .Append(date is null ? "" : $"<lastmod>{date}</lastmod>")
+          .Append("<xhtml:link rel=\"alternate\" hreflang=\"fr\" href=\"").Append(E(Absolue(u, false))).Append("\"/>")
+          .Append("<xhtml:link rel=\"alternate\" hreflang=\"en\" href=\"").Append(E(Absolue(u, true))).Append("\"/></url>");
+    }
+    return sb.Append("</urlset>").ToString();
+}
+app.MapGet("/sitemap.xml", () => Results.Text(
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?><sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">" +
+    $"<sitemap><loc>{SiteUrl}/sitemap-fr.xml</loc></sitemap><sitemap><loc>{SiteUrl}/sitemap-en.xml</loc></sitemap></sitemapindex>", "application/xml"))
+    .CacheOutput(p => p.Expire(TimeSpan.FromHours(6)));
+app.MapGet("/sitemap-fr.xml", async (DapperContext db) => Results.Text(Plan(await PagesPubliques(db), false), "application/xml"))
+    .CacheOutput(p => p.Expire(TimeSpan.FromHours(6)));
+app.MapGet("/sitemap-en.xml", async (DapperContext db) => Results.Text(Plan(await PagesPubliques(db), true), "application/xml"))
+    .CacheOutput(p => p.Expire(TimeSpan.FromHours(6)));
 
 // Images d'aperçu de partage (og:image). Mises en cache : un scrutin ne change pas, et chaque image coûte une requête + un dessin.
 app.MapGet("/apercu/scrutin/{id}.png", async (string id, IScrutinRepository scrutins, ApercuImage image) =>

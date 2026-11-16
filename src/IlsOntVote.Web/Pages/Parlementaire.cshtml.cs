@@ -51,6 +51,6 @@ public class ParlementaireModel(IParlementaireRepository parlementaires) : PageM
         if (!string.IsNullOrEmpty(Du)) q.Add("du=" + Uri.EscapeDataString(Du));
         if (!string.IsNullOrEmpty(Au)) q.Add("au=" + Uri.EscapeDataString(Au));
         if (n > 1) q.Add("page=" + n);
-        return Elu.Lien + (q.Count > 0 ? "?" + string.Join("&", q) : "");
+        return Request.PathBase + Elu.Lien + (q.Count > 0 ? "?" + string.Join("&", q) : "");
     }
 }

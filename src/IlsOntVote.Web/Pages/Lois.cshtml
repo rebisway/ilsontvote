@@ -3,53 +3,53 @@
 @using IlsOntVote.Web.Models
 @using IlsOntVote.Web.Services
 @{
-    ViewData["Title"] = "Lois";
-    ViewData["Description"] = "Le parcours de chaque loi : votes de l'Assemblée et du Sénat, promulgation, parution au Journal officiel, décision du Conseil constitutionnel.";
-    var fr = new System.Globalization.CultureInfo("fr-FR");
+    ViewData["Title"] = L.T("Lois", "Laws");
+    ViewData["Description"] = L.T("Le parcours de chaque loi : votes de l'Assemblée et du Sénat, promulgation, parution au Journal officiel, décision du Conseil constitutionnel.", "The journey of each law: votes in the National Assembly and the Senate, promulgation, publication in the Official Journal, Constitutional Council decision.");
+    var fr = L.Culture;
 }
 
-<h1 class="titre-page">Lois</h1>
-<p class="chapo">Le parcours de chaque texte voté : adoption par les assemblées, saisine et décision du Conseil constitutionnel, promulgation et parution au Journal officiel. Le statut est déduit des données officielles, il ne porte aucun jugement.</p>
+<h1 class="titre-page">@L.T("Lois", "Laws")</h1>
+<p class="chapo">@L.T("Le parcours de chaque texte voté : adoption par les assemblées, saisine et décision du Conseil constitutionnel, promulgation et parution au Journal officiel. Le statut est déduit des données officielles, il ne porte aucun jugement.", "The journey of each text voted: adoption by the chambers, referral to and decision of the Constitutional Council, promulgation and publication in the Official Journal. The status is deduced from official data and carries no judgement.")</p>
 
-<form class="filtres filtres-liste filtres-lois" method="get" action="/lois">
-    <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="Chercher une loi (ex. retraites, immigration, finances…)" aria-label="Chercher une loi" />
-    <select name="statut" aria-label="Statut">
-        @foreach (var (cle, libelle) in LoisModel.Statuts)
+<form class="filtres filtres-liste filtres-lois" method="get" action="@L.Lien("/lois")">
+    <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("Chercher une loi (ex. retraites, immigration, finances…)", "Search a law (e.g. pensions, immigration, finance…)")" aria-label="@L.T("Chercher une loi", "Search a law")" />
+    <select name="statut" aria-label="@L.T("Statut", "Status")">
+        @foreach (var (cle, libelle, anglais) in LoisModel.Statuts)
         {
-            <option value="@cle" selected="@((Model.Statut ?? "") == cle)">@libelle</option>
+            <option value="@cle" selected="@((Model.Statut ?? "") == cle)">@L.T(libelle, anglais)</option>
         }
     </select>
-    <select name="chambre" aria-label="Chambre">
-        <option value="" selected="@string.IsNullOrEmpty(Model.Chambre)">Assemblée et Sénat</option>
-        <option value="an" selected="@(Model.Chambre == "an")">Votée à l'Assemblée</option>
-        <option value="senat" selected="@(Model.Chambre == "senat")">Votée au Sénat</option>
+    <select name="chambre" aria-label="@L.T("Chambre", "Chamber")">
+        <option value="" selected="@string.IsNullOrEmpty(Model.Chambre)">@L.T("Assemblée et Sénat", "National Assembly and Senate")</option>
+        <option value="an" selected="@(Model.Chambre == "an")">@L.T("Votée à l'Assemblée", "Voted in the National Assembly")</option>
+        <option value="senat" selected="@(Model.Chambre == "senat")">@L.T("Votée au Sénat", "Voted in the Senate")</option>
     </select>
-    <span class="periode"><label class="champ-date" title="Affiche les lois dont une date (vote, promulgation, Journal officiel, Conseil constitutionnel) est dans la période">Du <input type="date" name="du" value="@Model.Du" aria-label="Du (date de début)" /></label>
-        <label class="champ-date">au <input type="date" name="au" value="@Model.Au" aria-label="Au (date de fin)" /></label></span>
+    <span class="periode"><label class="champ-date" title="@L.T("Affiche les lois dont une date (vote, promulgation, Journal officiel, Conseil constitutionnel) est dans la période", "Shows the laws with a date (vote, promulgation, Official Journal, Constitutional Council) within the period")">@L.T("Du", "From") <input type="date" name="du" value="@Model.Du" aria-label="@L.T("Du (date de début)", "From (start date)")" /></label>
+        <label class="champ-date">@L.T("au", "to") <input type="date" name="au" value="@Model.Au" aria-label="@L.T("Au (date de fin)", "To (end date)")" /></label></span>
     @* Le tri se choisit par les en-têtes de colonne (écran large) ou par ces deux listes (téléphone, où les en-têtes disparaissent). *@
-    <select name="tri" class="tri-mobile" aria-label="Trier par">
-        <option value="vote" selected="@(Model.TriEffectif == "vote")">Trier : dernier vote</option>
-        <option value="titre" selected="@(Model.TriEffectif == "titre")">Trier : titre</option>
-        <option value="statut" selected="@(Model.TriEffectif == "statut")">Trier : statut</option>
-        <option value="promulgation" selected="@(Model.TriEffectif == "promulgation")">Trier : promulgation</option>
-        <option value="jo" selected="@(Model.TriEffectif == "jo")">Trier : parution au JO</option>
-        <option value="scrutins" selected="@(Model.TriEffectif == "scrutins")">Trier : nombre de votes</option>
+    <select name="tri" class="tri-mobile" aria-label="@L.T("Trier par", "Sort by")">
+        <option value="vote" selected="@(Model.TriEffectif == "vote")">@L.T("Trier : dernier vote", "Sort: last vote")</option>
+        <option value="titre" selected="@(Model.TriEffectif == "titre")">@L.T("Trier : titre", "Sort: title")</option>
+        <option value="statut" selected="@(Model.TriEffectif == "statut")">@L.T("Trier : statut", "Sort: status")</option>
+        <option value="promulgation" selected="@(Model.TriEffectif == "promulgation")">@L.T("Trier : promulgation", "Sort: promulgation")</option>
+        <option value="jo" selected="@(Model.TriEffectif == "jo")">@L.T("Trier : parution au JO", "Sort: Official Journal")</option>
+        <option value="scrutins" selected="@(Model.TriEffectif == "scrutins")">@L.T("Trier : nombre de votes", "Sort: number of votes")</option>
     </select>
-    <select name="sens" class="tri-mobile" aria-label="Sens du tri">
-        <option value="desc" selected="@Model.Decroissant">Décroissant</option>
-        <option value="asc" selected="@(!Model.Decroissant)">Croissant</option>
+    <select name="sens" class="tri-mobile" aria-label="@L.T("Sens du tri", "Sort order")">
+        <option value="desc" selected="@Model.Decroissant">@L.T("Décroissant", "Descending")</option>
+        <option value="asc" selected="@(!Model.Decroissant)">@L.T("Croissant", "Ascending")</option>
     </select>
-    <button type="submit">Filtrer</button>
-    @if (Model.FiltreActif) { <a class="effacer" href="@Model.LienSansFiltre">Effacer le filtre</a> }
+    <button type="submit">@L.T("Filtrer", "Filter")</button>
+    @if (Model.FiltreActif) { <a class="effacer" href="@Model.LienSansFiltre">@L.T("Effacer le filtre", "Clear filter")</a> }
 </form>
 @if (!string.IsNullOrEmpty(Model.Du) || !string.IsNullOrEmpty(Model.Au))
 {
-    <p class="note-source">Période : lois dont au moins une date (un des votes, la promulgation, la parution au Journal officiel, la saisine ou la décision du Conseil constitutionnel) tombe dans l'intervalle. Le parcours complet de chaque loi est dans sa fiche.</p>
+    <p class="note-source">@L.T("Période : lois dont au moins une date (un des votes, la promulgation, la parution au Journal officiel, la saisine ou la décision du Conseil constitutionnel) tombe dans l'intervalle. Le parcours complet de chaque loi est dans sa fiche.", "Period: laws with at least one date (one of the votes, promulgation, publication in the Official Journal, referral to or decision of the Constitutional Council) within the interval. Each law's full journey is on its page.")</p>
 }
 
 <div class="barre-liste">
-    <p class="compte">@Model.Resultats.Total.ToString("N0", fr) loi@(Model.Resultats.Total > 1 ? "s" : "")</p>
-    <p class="export">Exporter ce tableau :
+    <p class="compte">@Model.Resultats.Total.ToString("N0", fr) @L.T(Model.Resultats.Total > 1 ? " lois" : " loi", Model.Resultats.Total > 1 ? " laws" : " law")</p>
+    <p class="export">@L.T("Exporter ce tableau :", "Export this table:")
         @foreach (var f in Exporteur.Formats)
         {
             <a href="@Model.Lien(format: f)" download>@f.ToUpperInvariant()</a>
@@ -59,7 +59,7 @@
 
 @if (Model.Resultats.Lignes.Count == 0)
 {
-    <p class="vide">Aucun résultat.</p>
+    <p class="vide">@L.T("Aucun résultat.", "No results.")</p>
 }
 else
 {
@@ -67,33 +67,33 @@ else
         <table class="liste-textes">
             <thead>
                 <tr>
-                    @Model.Th("vote", "Dernier vote", "col-date")
-                    @Model.Th("titre", "Loi", "col-titre")
-                    @Model.Th("statut", "Statut", "col-statut")
-                    @Model.Th("promulgation", "Promulgation", "col-date")
-                    @Model.Th("jo", "Parution JO", "col-date")
-                    <th scope="col" class="col-liens">Liens</th>
+                    @Model.Th("vote", L.T("Dernier vote", "Last vote"), "col-date")
+                    @Model.Th("titre", L.T("Loi", "Law"), "col-titre")
+                    @Model.Th("statut", L.T("Statut", "Status"), "col-statut")
+                    @Model.Th("promulgation", L.T("Promulgation", "Promulgation"), "col-date")
+                    @Model.Th("jo", L.T("Parution JO", "Official Journal"), "col-date")
+                    <th scope="col" class="col-liens">@L.T("Liens", "Links")</th>
                 </tr>
             </thead>
             <tbody>
             @foreach (var t in Model.Resultats.Lignes)
             {
-                var st = t.Statut;
+                var st = t.Statut.Traduit(L.Anglais);
                 <tr>
-                    <td class="nowrap col-date" data-label="Dernier vote">@(t.DernierVote?.ToString("d MMM yy", fr))</td>
-                    <td class="col-titre"><a href="/texte/@t.Id">@t.TitreAffiche</a></td>
-                    <td class="col-statut" data-label="Statut">
+                    <td class="nowrap col-date" data-label="@L.T("Dernier vote", "Last vote")">@(t.DernierVote?.ToString("d MMM yy", fr))</td>
+                    <td class="col-titre"><a href="@L.Lien("/texte/" + t.Id)">@t.TitreAffiche</a></td>
+                    <td class="col-statut" data-label="@L.T("Statut", "Status")">
                         <span class="statut @st.Classe" title="@st.Libelle">@st.Court</span>
-                        @foreach (var c in new[] { t.EtatAn, t.EtatSenat })
+                        @foreach (var c in new[] { t.EtatAnEn(L.Anglais), t.EtatSenatEn(L.Anglais) })
                         {
                             <span class="tag-ch @c.Classe" title="@c.Infobulle" tabindex="0">@c.Etiquette @c.Symbole</span>
                         }
                     </td>
-                    <td class="nowrap col-date" data-label="Promulgation" title="@(string.IsNullOrEmpty(t.NumeroLoi) ? "" : "Loi n° " + t.NumeroLoi)">@(t.DatePromulgation?.ToString("d MMM yy", fr))</td>
-                    <td class="nowrap col-date" data-label="Parution au JO">@(t.DateJo?.ToString("d MMM yy", fr))</td>
-                    <td class="col-liens liens" data-label="Liens">
-                        @if (!string.IsNullOrEmpty(t.UrlLegifrance)) { <a href="@t.UrlLegifrance" rel="noopener" target="_blank" title="Texte sur Légifrance">Légifrance ↗</a> }
-                        @if (!string.IsNullOrEmpty(t.UrlDossierSenat)) { <a href="@t.UrlDossierSenat" rel="noopener" target="_blank" title="Dossier législatif du Sénat">Dossier ↗</a> }
+                    <td class="nowrap col-date" data-label="Promulgation" title="@(string.IsNullOrEmpty(t.NumeroLoi) ? "" : L.T("Loi n° ", "Law no. ") + t.NumeroLoi)">@(t.DatePromulgation?.ToString("d MMM yy", fr))</td>
+                    <td class="nowrap col-date" data-label="@L.T("Parution au JO", "Official Journal")">@(t.DateJo?.ToString("d MMM yy", fr))</td>
+                    <td class="col-liens liens" data-label="@L.T("Liens", "Links")">
+                        @if (!string.IsNullOrEmpty(t.UrlLegifrance)) { <a href="@t.UrlLegifrance" rel="noopener" target="_blank" title="@L.T("Texte sur Légifrance", "Text on Légifrance")">Légifrance ↗</a> }
+                        @if (!string.IsNullOrEmpty(t.UrlDossierSenat)) { <a href="@t.UrlDossierSenat" rel="noopener" target="_blank" title="@L.T("Dossier législatif du Sénat", "Senate legislative file")">@L.T("Dossier", "File") ↗</a> }
                     </td>
                 </tr>
             }
@@ -103,13 +103,13 @@ else
 
     @if (Model.Resultats.NbPages > 1)
     {
-        <nav class="pagination" aria-label="Pagination">
-            @if (Model.Resultats.Page > 1) { <a href="@Model.Lien(page: Model.Resultats.Page - 1)" rel="prev">← Précédent</a> }
-            <span>Page @Model.Resultats.Page / @Model.Resultats.NbPages</span>
-            @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">Suivant →</a> }
+        <nav class="pagination" aria-label="@L.T("Pagination", "Pagination")">
+            @if (Model.Resultats.Page > 1) { <a href="@Model.Lien(page: Model.Resultats.Page - 1)" rel="prev">@L.T("← Précédent", "← Previous")</a> }
+            <span>@L.T("Page", "Page") @Model.Resultats.Page / @Model.Resultats.NbPages</span>
+            @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">@L.T("Suivant →", "Next →")</a> }
         </nav>
     }
     <partial name="_LignesParPage" model="Model" />
 }
 
-<p class="note-source">Le rattachement d'un vote à sa loi se fait par comparaison des intitulés : quand plusieurs textes portent le même, le vote reste sans loi plutôt que d'être attribué au hasard. Les décisions du Conseil constitutionnel et les dates de parution proviennent de la base du Sénat.</p>
+<p class="note-source">@L.T("Le rattachement d'un vote à sa loi se fait par comparaison des intitulés : quand plusieurs textes portent le même, le vote reste sans loi plutôt que d'être attribué au hasard. Les décisions du Conseil constitutionnel et les dates de parution proviennent de la base du Sénat.", "A vote is linked to its law by comparing titles: when several texts share the same title, the vote is left unlinked rather than attributed at random. Constitutional Council decisions and publication dates come from the Senate's database. Law titles are shown in French, as published.")</p>

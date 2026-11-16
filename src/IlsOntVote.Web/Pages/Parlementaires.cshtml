@@ -3,16 +3,16 @@
 @using IlsOntVote.Web.Services
 @model ParlementairesModel
 @{
-    var membres = Chambres.Membres(Model.Chambre);
+    var membres = Chambres.Membres(Model.Chambre, L.Anglais);
     ViewData["Title"] = char.ToUpperInvariant(membres[0]) + membres[1..];
-    ViewData["Description"] = $"Les {Model.Elus.Count} {membres} en exercice : groupe, circonscription et historique de vote.";
+    ViewData["Description"] = L.T($"Les {Model.Elus.Count} {membres} en exercice : groupe, circonscription et historique de vote.", $"The {Model.Elus.Count} {membres} currently in office: group, constituency and voting history.");
 }
 
 <h1 class="titre-page">@ViewData["Title"]</h1>
-<p class="chapo">@Model.Elus.Count @membres en exercice (@Chambres.Nom(Model.Chambre)). Cliquez sur un nom pour voir ses votes et sa participation.</p>
+<p class="chapo">@Model.Elus.Count @membres @L.T("en exercice", "in office") (@Chambres.Nom(Model.Chambre, L.Anglais)). @L.T("Cliquez sur un nom pour voir ses votes et sa participation.", "Click a name to see their votes and participation.")</p>
 
-<div class="barre-groupes" id="barre-groupes" role="group" aria-label="Filtrer par groupe">
-    <button type="button" class="puce actif" data-groupe="">Tous <b>@Model.Elus.Count</b></button>
+<div class="barre-groupes" id="barre-groupes" role="group" aria-label="@L.T("Filtrer par groupe", "Filter by group")">
+    <button type="button" class="puce actif" data-groupe="">@L.T("Tous", "All") <b>@Model.Elus.Count</b></button>
     @foreach (var g in Model.Groupes)
     {
         <button type="button" class="puce" data-groupe="@g.Sigle" data-libelle="@g.Libelle" title="@g.Libelle">
@@ -23,7 +23,7 @@
 <p class="nom-groupe" id="nom-groupe" aria-live="polite" hidden></p>
 
 <div class="filtres">
-    <input id="filtre" class="filtre" type="search" placeholder="@(Model.Chambre == Chambres.UE ? "Chercher un nom, un pays…" : "Chercher un nom, un département…")" aria-label="Chercher un @Chambres.Membre(Model.Chambre)" autocomplete="off" />
+    <input id="filtre" class="filtre" type="search" placeholder="@(Model.Chambre == Chambres.UE ? L.T("Chercher un nom, un pays…", "Search a name, a country…") : L.T("Chercher un nom, un département…", "Search a name, a département…"))" aria-label="@L.T("Chercher un ", "Search a ")@Chambres.Membre(Model.Chambre, L.Anglais)" autocomplete="off" />
     <partial name="_OrdreNom" />
 </div>
 
@@ -31,10 +31,10 @@
     @foreach (var e in Model.Elus)
     {
         <li data-groupe="@(e.GroupeSigle ?? "NI")" data-q="@((e.NomComplet + " " + e.Departement + " " + e.GroupeSigle).ToLowerInvariant())">
-            <a href="@e.Lien" title="@e.NomComplet — @(e.GroupeLibelle ?? e.GroupeSigle)@(string.IsNullOrEmpty(e.Departement) ? "" : " — " + Drapeaux.Avec(e.Chambre, e.Departement))">
+            <a href="@L.Lien(e.Lien)" title="@e.NomComplet — @(e.GroupeLibelle ?? e.GroupeSigle)@(string.IsNullOrEmpty(e.Departement) ? "" : " — " + Drapeaux.Avec(e.Chambre, e.Departement, L.Anglais))">
                 <span class="pastille" style="background:@(e.GroupeCouleur ?? "#8d949a")"></span>
                 <span class="nom">@Noms.Html(e.Prenom, e.Nom)</span>
-                <span class="sous">@e.GroupeSigle@(string.IsNullOrEmpty(e.Departement) ? "" : " · " + Drapeaux.Avec(e.Chambre, e.Departement))</span>
+                <span class="sous">@e.GroupeSigle@(string.IsNullOrEmpty(e.Departement) ? "" : " · " + Drapeaux.Avec(e.Chambre, e.Departement, L.Anglais))</span>
             </a>
         </li>
     }

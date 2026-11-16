@@ -22,6 +22,28 @@ public sealed record Statut(FamilleStatut Famille, string Court, string Libelle)
 public sealed record EtatChambre(string Etiquette, string Symbole, string Classe, string Infobulle);
 
 /// <summary>Un texte de loi (dossier législatif) et son parcours.</summary>
+/// <summary>Traduction anglaise du statut d'un texte (la clé est le libellé court français produit par <see cref="Texte.Statut"/>).</summary>
+public static class StatutTraduction
+{
+    private static readonly Dictionary<string, (string Court, string Libelle)> En = new()
+    {
+        ["Censuré"] = ("Struck down", "Struck down by the Constitutional Council"),
+        ["Censure partielle"] = ("Partly struck down", "Promulgated after partial censure by the Constitutional Council"),
+        ["Promulgué"] = ("Promulgated", "Promulgated"),
+        ["Rejeté"] = ("Rejected", "Rejected"),
+        ["Caduc"] = ("Lapsed", "Lapsed"),
+        ["Retiré"] = ("Withdrawn", "Withdrawn"),
+        ["Fusionné"] = ("Merged", "Merged with another text"),
+        ["Non promulgué"] = ("Not promulgated", "Adopted by both chambers — not promulgated"),
+        ["En discussion"] = ("In progress", "In progress"),
+        ["Adopté"] = ("Adopted", "Adopted"),
+    };
+
+    /// <summary>Le statut dans la langue demandée ; un statut inconnu garde son libellé français (jamais de texte inventé).</summary>
+    public static Statut Traduit(this Statut st, bool en) =>
+        en && En.TryGetValue(st.Court, out var t) ? st with { Court = t.Court, Libelle = t.Libelle } : st;
+}
+
 public class Texte
 {
     public string Id { get; set; } = "";
@@ -90,27 +112,44 @@ public class Texte
         }
     }
 
-    public EtatChambre EtatAn => NbScrutinsAn == 0 && NbEtapesAn > 0
-        // Aucun scrutin public sur l'ensemble, mais une ou plusieurs lectures décidées sans scrutin public : on le dit au lieu d'un « ? ».
-        ? new("AN", AdopteAn ? "✓" : "✗", (AdopteAn ? "ch-ok" : "ch-ko") + " ch-sans-scrutin",
-              $"{(AdopteAn ? "Adopté" : "Pas adopté")} par l'Assemblée nationale{(DateAdoptionAn is null ? "" : " le " + DateAdoptionAn.Value.ToString("d MMMM yyyy", new System.Globalization.CultureInfo("fr-FR")))} " +
-              "lors d'un vote sans scrutin public (main levée) : le détail « qui a voté quoi » n'est pas disponible.")
-        : Etat("AN", "l'Assemblée nationale", NbScrutinsAn, AdopteAn, DateAdoptionAn);
-    public EtatChambre EtatSenat => Etat("Sénat", "le Sénat", NbScrutinsSenat, AdopteSenat, DateAdoptionSenat);
+    public EtatChambre EtatAn => EtatAnEn(false);
+    public EtatChambre EtatSenat => EtatSenatEn(false);
 
-    private static EtatChambre Etat(string etiquette, string devant, int nb, bool adopte, DateTime? dateAdoption)
+    /// <summary>Étiquette « AN » (adopté, pas adopté, ou vote sans scrutin public) dans la langue demandée.</summary>
+    public EtatChambre EtatAnEn(bool en)
     {
-        var fr = new System.Globalization.CultureInfo("fr-FR");
-        var votes = nb > 1 ? $"{nb} scrutins sur l'ensemble" : "1 scrutin sur l'ensemble";
+        // Aucun scrutin public sur l'ensemble, mais une ou plusieurs lectures décidées sans scrutin public : on le dit au lieu d'un « ? ».
+        if (NbScrutinsAn == 0 && NbEtapesAn > 0)
+        {
+            var culture = new System.Globalization.CultureInfo(en ? "en-GB" : "fr-FR");
+            var date = DateAdoptionAn is null ? "" : (en ? " on " : " le ") + DateAdoptionAn.Value.ToString("d MMMM yyyy", culture);
+            var infobulle = en
+                ? $"{(AdopteAn ? "Adopted" : "Not adopted")} by the National Assembly{date} in a vote without roll call (show of hands): the detail of who voted what is not available."
+                : $"{(AdopteAn ? "Adopté" : "Pas adopté")} par l'Assemblée nationale{date} lors d'un vote sans scrutin public (main levée) : le détail « qui a voté quoi » n'est pas disponible.";
+            return new(en ? "NA" : "AN", AdopteAn ? "✓" : "✗", (AdopteAn ? "ch-ok" : "ch-ko") + " ch-sans-scrutin", infobulle);
+        }
+        return Etat(en ? "NA" : "AN", en ? "the National Assembly" : "l'Assemblée nationale", NbScrutinsAn, AdopteAn, DateAdoptionAn, en);
+    }
+
+    public EtatChambre EtatSenatEn(bool en) =>
+        Etat(en ? "Senate" : "Sénat", en ? "the Senate" : "le Sénat", NbScrutinsSenat, AdopteSenat, DateAdoptionSenat, en);
+
+    private static EtatChambre Etat(string etiquette, string devant, int nb, bool adopte, DateTime? dateAdoption, bool en)
+    {
+        var culture = new System.Globalization.CultureInfo(en ? "en-GB" : "fr-FR");
+        var votes = en
+            ? (nb > 1 ? $"{nb} votes on the whole text" : "1 vote on the whole text")
+            : (nb > 1 ? $"{nb} scrutins sur l'ensemble" : "1 scrutin sur l'ensemble");
 
         if (nb == 0)
-            return new(etiquette, "?", "ch-inconnu",
-                $"Aucun scrutin public sur l'ensemble devant {devant} dans nos données : vote à main levée, ou texte pas encore examiné. " +
-                "Le détail « qui a voté quoi » n'est pas disponible.");
+            return new(etiquette, "?", "ch-inconnu", en
+                ? $"No roll-call vote on the whole text in {devant} in our data: show-of-hands vote, or text not yet examined. The detail of who voted what is not available."
+                : $"Aucun scrutin public sur l'ensemble devant {devant} dans nos données : vote à main levée, ou texte pas encore examiné. Le détail « qui a voté quoi » n'est pas disponible.");
 
+        var date = dateAdoption is null ? "" : (en ? " on " : " le ") + dateAdoption.Value.ToString("d MMMM yyyy", culture);
         return adopte
-            ? new(etiquette, "✓", "ch-ok", $"Adopté par {devant}{(dateAdoption is null ? "" : " le " + dateAdoption.Value.ToString("d MMMM yyyy", fr))} ({votes})")
-            : new(etiquette, "✗", "ch-ko", $"Pas adopté par {devant} lors des votes sur l'ensemble ({votes})");
+            ? new(etiquette, "✓", "ch-ok", en ? $"Adopted by {devant}{date} ({votes})" : $"Adopté par {devant}{date} ({votes})")
+            : new(etiquette, "✗", "ch-ko", en ? $"Not adopted by {devant} in the votes on the whole text ({votes})" : $"Pas adopté par {devant} lors des votes sur l'ensemble ({votes})");
     }
 }
 
@@ -130,7 +169,18 @@ public sealed class EtapeTexte
     public bool SansScrutinPublic { get; set; }
 
     /// <summary>Nom de la lecture d'après le code de l'acte (AN1 = première lecture, AN2 = deuxième, etc.).</summary>
-    public string Lecture => CodeActe.Split('-')[0] switch
+    public string Lecture => LectureEn(false);
+
+    /// <summary>Nom de la lecture dans la langue demandée.</summary>
+    public string LectureEn(bool en) => en ? CodeActe.Split('-')[0] switch
+    {
+        "AN1" => "1st reading",
+        "AN2" => "2nd reading",
+        "ANLUNI" => "Single reading",
+        "ANNLEC" => "New reading",
+        "ANLDEF" => "Final reading",
+        _ => "Reading",
+    } : CodeActe.Split('-')[0] switch
     {
         "AN1" => "1re lecture",
         "AN2" => "2e lecture",

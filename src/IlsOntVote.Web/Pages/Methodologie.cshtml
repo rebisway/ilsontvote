@@ -1,10 +1,86 @@
 @page "/methodologie"
 @using IlsOntVote.Web.Services
 @{
-    ViewData["Title"] = "Méthodologie et limites";
-    ViewData["Description"] = "D'où viennent les données d'Ils ont voté, comment elles sont lues, ce qui est calculé par le site et ce qui reste incertain ou manquant.";
+    ViewData["Title"] = L.T("Méthodologie et limites", "Methodology and limits");
+    ViewData["Description"] = L.T("D'où viennent les données d'Ils ont voté, comment elles sont lues, ce qui est calculé par le site et ce qui reste incertain ou manquant.", "Where the data of Ils ont voté comes from, how it is read, what the site calculates and what remains uncertain or missing.");
 }
 
+@if (L.Anglais)
+{
+<h1 class="titre-page">Methodology and limits</h1>
+<p class="chapo">The site judges no one: it displays what the official sources publish. When a piece of data is calculated, doubtful or missing, it says so.</p>
+
+<section class="bloc-texte">
+    <h2>Where the data comes from</h2>
+    <ul>
+        <li><strong>National Assembly</strong>: <a href="https://data.assemblee-nationale.fr/">open data</a> (votes, deputies, mandates, groups), legislatures 15 to 17 (since 2017).</li>
+        <li><strong>Senate</strong>: <a href="https://data.senat.fr/">open data</a> (votes database and senators database), from 2006 to today.</li>
+        <li><strong>European Parliament</strong>: <a href="https://howtheyvote.eu/">HowTheyVote.eu</a>, an independent project that reprocesses the Parliament's official roll-call votes (the official portal blocks robots). Data under the <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License</a> (ODbL): the European data shown here and its exports remain under that licence. Third-party source, flagged on each vote; the title of main votes comes from the Parliament's Legislative Observatory (in French); amendment votes keep the HowTheyVote title, in English.</li>
+        <li><strong>Laws</strong>: the Senate's legislative files database, linked to the votes (see “Calculated by the site”).</li>
+        <li>Automatic update every night. The <a href="https://github.com/rebisway/ilsontvote">code is free software</a> (GPL-3.0).</li>
+    </ul>
+</section>
+
+<section class="bloc-texte">
+    <h2>How a vote is read</h2>
+    <ul>
+        <li><strong>For, against, abstention</strong>: as published at the vote.</li>
+        <li><strong>Non-voting</strong>: declared as such by the assembly (for example the presiding officer).</li>
+        <li><strong>Absent</strong>: the official was in office on the date of the vote but does not appear in the votes. The site gives <em>no reason</em>.</li>
+        <li><strong>Proxy</strong>: an absent member may have voted through a colleague; the vote counts and this is indicated.</li>
+        <li><strong>Vote correction</strong>: a member can correct their vote afterwards; both the vote published at the ballot and the corrected vote are shown.</li>
+    </ul>
+</section>
+
+<section class="bloc-texte" id="statistiques">
+    <h2>How the statistics are calculated</h2>
+    <ul>
+        <li><strong>Participation</strong>: among the officials who held a mandate on the date of a roll-call vote, the share who voted (for, against or abstention). The others are “absent”: the site gives no reason.</li>
+        <li><strong>Declared non-voting members</strong>: officials that the assembly declares “non-voting” for a vote (for example the presiding officer, who does not vote by virtue of the role) are removed from the calculation for that vote.</li>
+        <li><strong>Group cohesion</strong>: at each vote, the share of the group's members present who vote like the majority of their group (100%: the group votes with one voice); weighted average over the period.</li>
+        <li><strong>Groups</strong>: a group is attached to officials according to their membership on the date of the vote; groups that share the same acronym across several legislatures are merged.</li>
+        <li><strong>Ranking of officials</strong>: only those with at least 20 votes over the period are ranked. A member of the government, who does not sit, may appear with a very low participation.</li>
+        <li><strong>Excluded</strong>: votes whose roll-call count is incomplete are not counted (their absentees are not reliable).</li>
+        <li>These figures are <strong>calculated by the site</strong> (≈ label), not published by the assemblies. They are recalculated every night.</li>
+    </ul>
+</section>
+
+<section class="bloc-texte">
+    <h2>Calculated by the site (not published as is)</h2>
+    <ul>
+        <li><strong>Absentees</strong>: deduced from the mandates in force on the date of the vote.</li>
+        <li><strong>Linking a vote to a text</strong>: done by comparing titles. When several texts match, the site does not choose: the vote stays without a text.</li>
+        <li><strong>Status of a text</strong> (adopted, promulgated, struck down…): deduced from official dates and decisions.</li>
+        <li><strong>Adopted / rejected in the Senate</strong>: recalculated when the source does not state it (majority of votes cast).</li>
+    </ul>
+</section>
+
+<section class="bloc-texte">
+    <h2>Legend of doubt</h2>
+    <p>When a piece of data is not published as is, a label says so, with a tooltip explaining why:</p>
+    <ul>
+        <li>@Doute.Html(NiveauDoute.Calcule, "calculated", "Deduced by the site, not published as is."): calculated or deduced by the site (absentees, status of a text, link to a text).</li>
+        <li>@Doute.Html(NiveauDoute.Incertain, "uncertain", "Source incomplete or contradictory."): the source is incomplete or contradictory; only the official totals are authoritative.</li>
+        <li>@Doute.Html(NiveauDoute.Manquant, "missing", "Absent from the source."): the data does not exist in the source (it is neither an absence nor a zero).</li>
+    </ul>
+</section>
+
+<section class="bloc-texte">
+    <h2>Known limits</h2>
+    <ul>
+        <li><strong>Show-of-hands votes</strong>: they do not record each member's vote, so the detail “who voted what” does not exist in the data. The site does not leave them out: on a text's page, each reading in the National Assembly is listed, including those decided without a roll-call vote, with the label “detail not available” (a greyed “?” in the lists). For the Senate and the European Parliament, only roll-call votes are known.</li>
+        <li><strong>Incomplete votes</strong>: a few roll-call votes have a nominal count shorter than the official total. They are flagged and excluded from the front page, so as not to manufacture false absentees.</li>
+        <li><strong>Senate vote corrections</strong>: the original position is not always published; it is then marked unknown.</li>
+        <li><strong>Before 2017 (Assembly) and 2006 (Senate)</strong>: no usable data in this source.</li>
+        <li><strong>Language</strong>: the interface is available in English, but law titles and official labels are shown in French, as published. Titles of European Parliament votes are shown in French when the Parliament's Observatory provides them, otherwise in English.</li>
+    </ul>
+    <p>An error or a doubt? Always compare with the official source, whose link appears on each page.</p>
+</section>
+
+<p>Privacy, publisher and host: see the <a href="/en/mentions-legales">legal notice</a>.</p>
+}
+else
+{
 <h1 class="titre-page">Méthodologie et limites</h1>
 <p class="chapo">Le site ne juge personne : il affiche ce que les sources officielles publient. Quand une donnée est calculée, douteuse ou absente, il le dit.</p>
 
@@ -75,3 +151,4 @@
 </section>
 
 <p>Confidentialité, éditeur et hébergeur : voir les <a href="/mentions-legales">mentions légales</a>.</p>
+}

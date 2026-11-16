@@ -1,28 +1,41 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="@L.Code">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script>try{if(localStorage.getItem("ordreNom")==="nom-prenom")document.documentElement.setAttribute("data-ordre","nom-prenom");}catch(e){}</script>
-    <title>@(ViewData["Title"] is string t && t.Length > 0 ? $"{t} — Ils ont voté" : "Ils ont voté — qui a voté quoi à l'Assemblée nationale et au Sénat")</title>
-    <meta name="description" content="@(ViewData["Description"] ?? "Pour chaque grand texte de loi, voyez d'un coup d'œil le vote de chaque député et de chaque sénateur : pour, contre, abstention, absent.")" />
+    <title>@(ViewData["Title"] is string t && t.Length > 0 ? $"{t} — Ils ont voté" : L.T("Ils ont voté — qui a voté quoi à l'Assemblée nationale et au Sénat", "Ils ont voté (They voted) — who voted what in the French National Assembly, Senate and European Parliament"))</title>
+    <meta name="description" content="@(ViewData["Description"] ?? L.T("Pour chaque grand texte de loi, voyez d'un coup d'œil le vote de chaque député et de chaque sénateur : pour, contre, abstention, absent.", "For each major law, see at a glance how every French deputy, senator and MEP voted: for, against, abstention, absent."))" />
     @if (ViewData["NoIndex"] is true)
     {
         <meta name="robots" content="noindex, nofollow" />
     }
     @{
         // Adresse canonique : toujours www.ilsontvote.org, sans paramètres (tri, pages, filtres) -> pas de contenu dupliqué.
-        var canon = "https://www.ilsontvote.org" + (Context.Request.Path.Value ?? "/");
+        // Chaque langue a sa propre adresse canonique ; les balises hreflang relient les deux versions.
+        var site = "https://www.ilsontvote.org";
+        var cheminSeul = Context.Request.Path.Value ?? "/";
+        string Absolu(bool en) => site + (en ? "/en" + (cheminSeul == "/" ? "" : cheminSeul) : cheminSeul);
+        var canon = Absolu(L.Anglais);
         var titrePage = ViewData["Title"] is string tp && tp.Length > 0 ? tp : "Ils ont voté";
-        var descPage = ViewData["Description"] ?? "Pour chaque grand texte de loi, voyez d'un coup d'œil le vote de chaque député et de chaque sénateur : pour, contre, abstention, absent.";
+        var descPage = ViewData["Description"] ?? L.T("Pour chaque grand texte de loi, voyez d'un coup d'œil le vote de chaque député et de chaque sénateur : pour, contre, abstention, absent.", "For each major law, see at a glance how every French deputy, senator and MEP voted: for, against, abstention, absent.");
     }
     <link rel="canonical" href="@canon" />
+    @if (ViewData["NoIndex"] is not true)
+    {
+        <link rel="alternate" hreflang="fr" href="@Absolu(false)" />
+        <link rel="alternate" hreflang="en" href="@Absolu(true)" />
+        <link rel="alternate" hreflang="x-default" href="@Absolu(false)" />
+    }
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" sizes="any" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Ils ont voté" />
-    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:locale" content="@(L.Anglais ? "en_GB" : "fr_FR")" />
+    <meta property="og:locale:alternate" content="@(L.Anglais ? "fr_FR" : "en_GB")" />
+    <meta name="theme-color" content="#14171a" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#fafaf7" media="(prefers-color-scheme: light)" />
     <meta property="og:title" content="@titrePage" />
     <meta property="og:description" content="@descPage" />
     <meta property="og:url" content="@canon" />
@@ -30,7 +43,40 @@
     <meta property="og:image" content="https://www.ilsontvote.org@(image)" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="@titrePage" />
     <meta name="twitter:card" content="summary_large_image" />
+    @{
+        // Données structurées (schema.org, JSON-LD) : celles de la page (ViewData["JsonLd"]) et, sur l'accueil, celles du site avec sa
+        // recherche. Sérialisées par System.Text.Json (échappe < > & : impossible de fermer la balise script depuis une donnée).
+        var jsonLd = new List<object>();
+        if (ViewData["JsonLd"] is object pageLd) jsonLd.Add(pageLd);
+        if (cheminSeul == "/")
+        {
+            jsonLd.Add(new Dictionary<string, object>
+            {
+                ["@context"] = "https://schema.org",
+                ["@type"] = "WebSite",
+                ["name"] = "Ils ont voté",
+                ["alternateName"] = "They voted",
+                ["url"] = Absolu(L.Anglais),
+                ["inLanguage"] = L.Code,
+                ["publisher"] = new Dictionary<string, object>
+                {
+                    ["@type"] = "Person", ["name"] = "Thomas Gourgnier", ["url"] = "https://www.rebisway.com/fr/",
+                },
+                ["potentialAction"] = new Dictionary<string, object>
+                {
+                    ["@type"] = "SearchAction",
+                    ["target"] = site + (L.Anglais ? "/en" : "") + "/textes?q={search_term_string}",
+                    ["query-input"] = "required name=search_term_string",
+                },
+            });
+        }
+    }
+    @foreach (var ld in jsonLd)
+    {
+        @Html.Raw("<script type=\"application/ld+json\">" + System.Text.Json.JsonSerializer.Serialize(ld) + "</script>")
+    }
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
@@ -40,14 +86,18 @@
     }
     <header class="site-header">
         <div class="wrap">
-            <a class="brand" href="/">Ils ont <em>voté</em></a>
-            <nav class="menu" aria-label="Navigation principale">
-                <a href="/lois" @Html.Raw(Actif("/lois")) @Html.Raw(Actif("/texte/"))>Lois</a>
-                <a href="/textes" @Html.Raw(Actif("/textes")) @Html.Raw(Actif("/scrutin"))>Scrutins</a>
-                <a href="/deputes" @Html.Raw(Actif("/depute"))>Députés</a>
-                <a href="/senateurs" @Html.Raw(Actif("/senateur"))>Sénateurs</a>
-                <a href="/eurodeputes" @Html.Raw(Actif("/eurodepute"))>Eurodéputés</a>
-                <a href="/statistiques" @Html.Raw(Actif("/statistiques"))>Statistiques</a>
+            <a class="brand" href="@L.Lien("/")">Ils ont <em>voté</em></a>
+            <nav class="menu" aria-label="@L.T("Navigation principale", "Main navigation")">
+                <a href="@L.Lien("/lois")" @Html.Raw(Actif("/lois")) @Html.Raw(Actif("/texte/"))>@L.T("Lois", "Laws")</a>
+                <a href="@L.Lien("/textes")" @Html.Raw(Actif("/textes")) @Html.Raw(Actif("/scrutin"))>@L.T("Scrutins", "Votes")</a>
+                <a href="@L.Lien("/deputes")" @Html.Raw(Actif("/depute"))>@L.T("Députés", "Deputies")</a>
+                <a href="@L.Lien("/senateurs")" @Html.Raw(Actif("/senateur"))>@L.T("Sénateurs", "Senators")</a>
+                <a href="@L.Lien("/eurodeputes")" @Html.Raw(Actif("/eurodepute"))>@L.T("Eurodéputés", "MEPs")</a>
+                <a href="@L.Lien("/statistiques")" @Html.Raw(Actif("/statistiques"))>@L.T("Statistiques", "Statistics")</a>
+            </nav>
+            <nav class="langue" aria-label="@L.T("Langue", "Language")">
+                <a href="@L.Variante(false)" lang="fr" hreflang="fr" @Html.Raw(L.Anglais ? "" : "aria-current=\"true\"")>FR</a>
+                <a href="@L.Variante(true)" lang="en" hreflang="en" @Html.Raw(L.Anglais ? "aria-current=\"true\"" : "")>EN</a>
             </nav>
         </div>
     </header>
@@ -59,18 +109,15 @@
     <footer class="site-footer">
         <div class="wrap">
             <p>
-                Données officielles de l'Assemblée nationale
-                (<a href="https://data.assemblee-nationale.fr/">data.assemblee-nationale.fr</a>) et du Sénat
-                (<a href="https://data.senat.fr/">data.senat.fr</a>) ; votes du Parlement européen via
-                <a href="https://howtheyvote.eu/">HowTheyVote.eu</a> (projet indépendant, d'après les données officielles du Parlement ; <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License</a>).
-                Seuls les <strong>scrutins publics</strong> enregistrent le vote de chaque élu ; les votes à main levée n'apparaissent pas ici.
+                @L.TH("Données officielles de l'Assemblée nationale (<a href=\"https://data.assemblee-nationale.fr/\">data.assemblee-nationale.fr</a>) et du Sénat (<a href=\"https://data.senat.fr/\">data.senat.fr</a>) ; votes du Parlement européen via <a href=\"https://howtheyvote.eu/\">HowTheyVote.eu</a> (projet indépendant, d'après les données officielles du Parlement ; <a href=\"https://opendatacommons.org/licenses/odbl/1-0/\">Open Database License</a>). Seuls les <strong>scrutins publics</strong> enregistrent le vote de chaque élu ; les votes à main levée n'apparaissent pas ici.",
+                      "Official data from the National Assembly (<a href=\"https://data.assemblee-nationale.fr/\">data.assemblee-nationale.fr</a>) and the Senate (<a href=\"https://data.senat.fr/\">data.senat.fr</a>); European Parliament votes via <a href=\"https://howtheyvote.eu/\">HowTheyVote.eu</a> (independent project, based on the Parliament's official data; <a href=\"https://opendatacommons.org/licenses/odbl/1-0/\">Open Database License</a>). Only <strong>roll-call votes</strong> record each member's vote; show-of-hands votes show no individual detail. Law titles are shown in French, as published.")
             </p>
             <p>
                 © 2026 Thomas Gourgnier ·
-                <a href="/soutenir">Soutenir</a> ·
-                <a href="/methodologie">Méthodologie et limites</a> ·
-                <a href="/mentions-legales">Mentions légales et confidentialité</a> ·
-                <a href="https://github.com/rebisway/ilsontvote">Code source</a> libre (GPL-3.0) ·
+                <a href="@L.Lien("/soutenir")">@L.T("Soutenir", "Support us")</a> ·
+                <a href="@L.Lien("/methodologie")">@L.T("Méthodologie et limites", "Methodology and limits")</a> ·
+                <a href="@L.Lien("/mentions-legales")">@L.T("Mentions légales et confidentialité", "Legal notice and privacy")</a> ·
+                <a href="https://github.com/rebisway/ilsontvote">@L.T("Code source", "Source code")</a> @L.T("libre", "free software") (GPL-3.0) ·
                 <a href="https://www.rebisway.com/fr/">La Voie du Rébis</a> ·
                 <a href="mailto:contact@rebisway.com">contact@rebisway.com</a> ·
                 <a href="/Admin">Administration</a>
