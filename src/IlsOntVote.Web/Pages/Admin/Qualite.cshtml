@@ -1,34 +1,121 @@
 @page
 @model IlsOntVote.Web.Pages.Admin.QualiteModel
+@using IlsOntVote.Web.Services
 @{
     ViewData["Title"] = "Qualité des données";
     ViewData["NoIndex"] = true;
+    var fr = new System.Globalization.CultureInfo("fr-FR");
+    string Age(double h) => h == double.MaxValue ? "jamais" : h < 48 ? $"{(int)h} h" : $"{(int)(h / 24)} j";
 }
 <partial name="_AdminNav" />
 <h1 class="titre-page">Qualité des données</h1>
-<p class="chapo">Ce que le site sait ne pas savoir : chaque ligne est un doute ou un manque affiché au public.</p>
+<p class="chapo">Ce que le site sait ne pas savoir : chaque ligne est un doute ou un manque affiché au public, ou l'état des imports qui alimentent le site.</p>
 
+<h2>État des imports</h2>
+@if (Model.Imports.Count == 0)
+{
+    <p class="vide">Aucun import réussi n'est enregistré.</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Source</th><th>Dernier succès</th><th>Âge</th><th>Résultat</th></tr></thead>
+            <tbody>
+            @foreach (var i in Model.Imports)
+            {
+                var vieux = i.AgeHeures > QualiteModel.SeuilHeures;
+                <tr>
+                    <td>@i.Source</td>
+                    <td class="nowrap">@(i.FinishedAt?.ToLocalTime().ToString("g", fr) ?? "—")</td>
+                    <td>@if (vieux) { @Doute.Html(NiveauDoute.Incertain, Age(i.AgeHeures), "Cette source n'a pas réussi depuis plus de 3 jours : l'import nocturne a peut-être échoué.") } else { @Age(i.AgeHeures) }</td>
+                    <td><span class="note">@i.Message</span></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+<h2>Contrôles</h2>
 <div class="table-wrap">
     <table>
         <thead><tr><th>Contrôle</th><th class="num">Nombre</th><th>Pourquoi c'est important</th></tr></thead>
         <tbody>
-            <tr><td>Scrutins au décompte incomplet</td><td class="num">@Model.ScrutinsIncomplets</td><td>Des « absents » peuvent avoir voté ; exclus de la une.</td></tr>
+            <tr><td>Statistiques de participation calculées</td><td class="num">@(Model.StatsRemplies switch { true => "oui", false => "non", _ => "absentes" })</td>
+                <td>@(Model.StatsRemplies == true ? "Recalculées à la fin de chaque import." : "La page publique « Statistiques » est vide : lancer « import-all.sh » (commande stats).")</td></tr>
+            <tr><td>Scrutins au décompte incomplet</td><td class="num">@Model.ScrutinsIncomplets</td><td>Des « absents » peuvent avoir voté ; exclus de la une et des statistiques.</td></tr>
             <tr><td>Votes sur l'ensemble sans texte rattaché</td><td class="num">@Model.EnsemblesSansTexte</td><td>Rapprochement par titre ambigu ou introuvable.</td></tr>
+            <tr><td>Décisions de séance à l'Assemblée (étapes)</td><td class="num">@Model.Etapes</td><td>Dont @Model.EtapesSansScrutin sans scrutin public (main levée) : affichées « détail non disponible ».</td></tr>
+            <tr><td>Décisions non rattachées à un texte</td><td class="num">@Model.EtapesOrphelines</td><td>Non affichées sur le site : aucun texte correspondant dans nos données.</td></tr>
             <tr><td>Mises au point sans position d'origine (Sénat)</td><td class="num">@Model.MisesAuPointSansOrigine</td><td>Étiquette « origine inconnue » affichée.</td></tr>
             <tr><td>Députés en exercice (doit rester ≤ 577)</td><td class="num">@Model.Sieges</td><td>Au-delà : mandats de suppléants mal datés.</td></tr>
         </tbody>
     </table>
 </div>
 
+<h2>Votes sur l'ensemble sans texte (50 plus récents)</h2>
+@if (Model.SansTexte.Count == 0)
+{
+    <p class="vide">Aucun.</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Date</th><th>Chambre</th><th>Scrutin</th></tr></thead>
+            <tbody>
+            @foreach (var s in Model.SansTexte)
+            {
+                <tr><td class="nowrap">@s.DateScrutin.ToString("dd/MM/yyyy")</td><td>@s.Chambre</td><td><a href="/scrutin/@s.Id">@s.Titre</a></td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+<h2>Décisions de séance non rattachées (50 plus récentes)</h2>
+@if (Model.Orphelines.Count == 0)
+{
+    <p class="vide">Aucune.</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Date</th><th>Dossier de l'Assemblée</th><th>Étape</th><th>Décision</th><th>Vote</th></tr></thead>
+            <tbody>
+            @foreach (var e in Model.Orphelines)
+            {
+                <tr>
+                    <td class="nowrap">@e.DateActe.ToString("dd/MM/yyyy")</td>
+                    <td><a href="@e.LienAn" rel="noopener">@e.DossierAn</a></td>
+                    <td>@e.CodeActe</td>
+                    <td>@(e.Resultat ?? "—")</td>
+                    <td>@(e.SansScrutinPublic ? "sans scrutin public" : "scrutin public")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
 <h2>Scrutins incomplets (50 plus récents)</h2>
-<div class="table-wrap">
-    <table>
-        <thead><tr><th>Date</th><th>Chambre</th><th>Scrutin</th><th class="num">Votes manquants</th></tr></thead>
-        <tbody>
-        @foreach (var s in Model.Incomplets)
-        {
-            <tr><td class="nowrap">@s.DateScrutin.ToString("dd/MM/yyyy")</td><td>@s.Chambre</td><td><a href="/scrutin/@s.Id">@s.Titre</a></td><td class="num">@s.Manquants</td></tr>
-        }
-        </tbody>
-    </table>
-</div>
+@if (Model.Incomplets.Count == 0)
+{
+    <p class="vide">Aucun.</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Date</th><th>Chambre</th><th>Scrutin</th><th class="num">Votes manquants</th></tr></thead>
+            <tbody>
+            @foreach (var s in Model.Incomplets)
+            {
+                <tr><td class="nowrap">@s.DateScrutin.ToString("dd/MM/yyyy")</td><td>@s.Chambre</td><td><a href="/scrutin/@s.Id">@s.Titre</a></td><td class="num">@s.Manquants</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
