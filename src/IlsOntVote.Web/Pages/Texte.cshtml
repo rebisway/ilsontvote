@@ -1,6 +1,7 @@
 @page "/texte/{id}"
 @model TexteModel
 @using IlsOntVote.Web.Models
+@using IlsOntVote.Web.Services
 @{
     var t = Model.Loi;
     var st = t.Statut;
@@ -58,6 +59,41 @@
             }
         </dl>
     </section>
+}
+
+@if (Model.Etapes.Count > 0)
+{
+    <h2>Étapes à l'Assemblée nationale</h2>
+    <p class="note-source">Chaque lecture en séance publique. Quand la décision a été prise <strong>sans scrutin public</strong> (à main levée), le site ne peut pas dire qui a voté quoi : cette information n'existe pas dans les données, mais l'étape n'est pas omise.</p>
+    <div class="table-wrap">
+        <table class="liste-textes">
+            <thead><tr><th scope="col">Date</th><th scope="col">Lecture</th><th scope="col">Décision</th><th scope="col">Vote des élus</th></tr></thead>
+            <tbody>
+            @foreach (var e in Model.Etapes)
+            {
+                <tr>
+                    <td data-label="Date" class="col-date">@e.DateActe.ToString("d MMM yyyy", new System.Globalization.CultureInfo("fr-FR"))</td>
+                    <td data-label="Lecture">@e.Lecture</td>
+                    <td data-label="Décision">@(string.IsNullOrWhiteSpace(e.Resultat) ? "—" : char.ToUpper(e.Resultat[0]) + e.Resultat[1..])</td>
+                    <td data-label="Vote des élus">
+                        @if (e.ScrutinId is not null)
+                        {
+                            <a href="/scrutin/@e.ScrutinId">Voir qui a voté quoi</a>
+                        }
+                        else if (e.SansScrutinPublic)
+                        {
+                            @Doute.Html(NiveauDoute.Manquant, "détail non disponible", "Décision prise sans scrutin public (à main levée) : les assemblées ne publient pas qui a voté quoi.")
+                        }
+                        else
+                        {
+                            @Doute.Html(NiveauDoute.Incertain, "scrutin non retrouvé", "Un scrutin public est cité par la source, mais il n'est pas dans nos données.")
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
 }
 
 <h2>Les votes sur ce texte</h2>

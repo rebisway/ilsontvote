@@ -105,6 +105,33 @@ public class Texte
     }
 }
 
+/// <summary>
+/// Décision prise en séance publique à l'Assemblée sur un texte (une lecture), avec ou sans scrutin public (table texte_etapes).
+/// Classe à propriétés (et non record) : Dapper lie un constructeur positionnel par nom ET type exact.
+/// </summary>
+public sealed class EtapeTexte
+{
+    public string CodeActe { get; set; } = "";
+    public DateTime DateActe { get; set; }
+    /// <summary>Libellé de la source : « adopté », « rejetée », « adoptée sans modification »…</summary>
+    public string? Resultat { get; set; }
+    /// <summary>Scrutin public lié (détail des votes disponible) ; null = aucun scrutin lié.</summary>
+    public string? ScrutinId { get; set; }
+    /// <summary>Vrai = décision prise sans scrutin public (main levée ou adoption sans vote nominatif) : détail des votes non disponible.</summary>
+    public bool SansScrutinPublic { get; set; }
+
+    /// <summary>Nom de la lecture d'après le code de l'acte (AN1 = première lecture, AN2 = deuxième, etc.).</summary>
+    public string Lecture => CodeActe.Split('-')[0] switch
+    {
+        "AN1" => "1re lecture",
+        "AN2" => "2e lecture",
+        "ANLUNI" => "Lecture unique",
+        "ANNLEC" => "Nouvelle lecture",
+        "ANLDEF" => "Lecture définitive",
+        _ => "Lecture",
+    };
+}
+
 public sealed class ScrutinDuTexte
 {
     public string Id { get; set; } = "";

@@ -12,6 +12,8 @@ public class TexteModel(ITexteRepository textes) : PageModel
     public Texte Loi { get; private set; } = null!;
     /// <summary>Tous les votes sur l'ensemble rattachés à ce texte (Assemblée, Sénat, CMP, nouvelles lectures…), du plus ancien au plus récent.</summary>
     public IReadOnlyList<ScrutinDuTexte> Scrutins { get; private set; } = [];
+    /// <summary>Décisions de séance à l'Assemblée sur ce texte, y compris celles sans scrutin public (votes à main levée).</summary>
+    public IReadOnlyList<EtapeTexte> Etapes { get; private set; } = [];
 
     public async Task<IActionResult> OnGetAsync(string id)
     {
@@ -20,6 +22,7 @@ public class TexteModel(ITexteRepository textes) : PageModel
 
         Loi = loi;
         Scrutins = await textes.GetScrutinsAsync(id);
+        Etapes = await textes.GetEtapesAsync(id);
         return Page();
     }
 }

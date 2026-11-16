@@ -90,7 +90,7 @@ else
 }
 
 <h2>Présence des élus</h2>
-<p class="note-source">Part des scrutins publics de la période où l'élu a voté (pour, contre ou abstention), parmi ceux qui avaient lieu pendant son mandat. Les élus que l'assemblée déclare « non votants » (par exemple le président de séance) sont retirés du calcul. Pour les autres, le site ne donne <strong>aucune raison</strong> d'une absence : chacun juge. Attention : un membre du gouvernement, qui ne siège pas, peut apparaître avec une participation très basse. Seuls les élus ayant eu au moins @StatistiquesModel.MinScrutinsClassement scrutins sur la période sont classés. @Doute.Html(NiveauDoute.Calcule, "calculé", "Calculé par le site à partir des mandats et des votes ; pas un chiffre officiel.")</p>
+<p class="note-source">Part des scrutins publics de la période où l'élu a voté (pour, contre ou abstention), parmi ceux qui avaient lieu pendant son mandat. Les élus que l'assemblée déclare « non votants » (par exemple le président de séance) sont retirés du calcul. Pour les autres, le site ne donne <strong>aucune raison</strong> d'une absence. Attention : un membre du gouvernement, qui ne siège pas, peut apparaître avec une participation très basse. Seuls les élus ayant eu au moins @StatistiquesModel.MinScrutinsClassement scrutins sur la période sont classés. @Doute.Html(NiveauDoute.Calcule, "calculé", "Calculé par le site à partir des mandats et des votes ; pas un chiffre officiel.")</p>
 @if (Model.PlusPresents.Count == 0)
 {
     <p class="vide">Pas assez de scrutins sur cette période pour classer les élus.</p>

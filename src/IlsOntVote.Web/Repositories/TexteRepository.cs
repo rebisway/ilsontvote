@@ -13,6 +13,8 @@ public interface ITexteRepository
     Task<Texte?> GetAsync(string id);
     Task<Texte?> GetParScrutinAsync(string scrutinId);
     Task<IReadOnlyList<ScrutinDuTexte>> GetScrutinsAsync(string texteId);
+    /// <summary>Décisions de séance publique à l'Assemblée sur ce texte (avec ou sans scrutin public), de la plus ancienne à la plus récente.</summary>
+    Task<IReadOnlyList<EtapeTexte>> GetEtapesAsync(string texteId);
 
     /// <summary>Textes ayant au moins un vote sur l'ensemble, triés (liste blanche) et paginés. parPage = 0 : tout (export).</summary>
     Task<Resultats<Texte>> ListerAsync(FiltreTextes filtre, string tri, bool decroissant, int page, int parPage);
@@ -100,6 +102,16 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
         using var conn = db.CreateConnection();
         var texteId = await conn.ExecuteScalarAsync<string?>("SELECT texte_id FROM scrutins WHERE id = @scrutinId", new { scrutinId });
         return texteId is null ? null : await GetAsync(texteId);
+    }
+
+    public async Task<IReadOnlyList<EtapeTexte>> GetEtapesAsync(string texteId)
+    {
+        using var conn = db.CreateConnection();
+        return (await conn.QueryAsync<EtapeTexte>(
+            """
+            SELECT code_acte, date_acte, resultat, scrutin_id, sans_scrutin_public
+              FROM texte_etapes WHERE texte_id = @texteId ORDER BY date_acte, code_acte
+            """, new { texteId })).ToList();
     }
 
     public async Task<IReadOnlyList<ScrutinDuTexte>> GetScrutinsAsync(string texteId)

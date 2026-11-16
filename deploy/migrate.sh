@@ -23,14 +23,18 @@ sql -c "CREATE TABLE IF NOT EXISTS schema_migrations (nom text PRIMARY KEY, empr
 if [ "$(sql -tAc "SELECT count(*) FROM schema_migrations")" = "0" ] && [ "$(sql -tAc "SELECT to_regclass('public.groupes') IS NOT NULL")" = "t" ]; then
   echo "Base existante sans suivi : migrations présentes enregistrées comme déjà appliquées."
   for f in $(ls "$DIR"/[0-9][0-9][0-9]_*.sql | sort); do
-    sql -c "INSERT INTO schema_migrations (nom, empreinte) VALUES ('$(basename "$f")', '$(sha256sum "$f" | cut -d' ' -f1)') ON CONFLICT DO NOTHING;"
+    sql -c "INSERT INTO schema_migrations (nom, empreinte) VALUES ('$(basename "$f")', '$(tr -d '\015' < "$f" | sha256sum | cut -d' ' -f1)') ON CONFLICT DO NOTHING;"
   done
 fi
 
 appliquees=0
 for f in $(ls "$DIR"/[0-9][0-9][0-9]_*.sql | sort); do
   nom=$(basename "$f")
-  empreinte=$(sha256sum "$f" | cut -d' ' -f1)
+  # Empreinte calculée sur le contenu SANS retour chariot (fins de ligne Linux) : identique que le fichier ait été édité sous Windows ou non.
+  empreinte=$(tr -d '\015' < "$f" | sha256sum | cut -d' ' -f1)
+  # Anciennes empreintes enregistrées avant cette règle : fichier tel quel (CRLF éventuel) : on les accepte aussi.
+  empreinte_brute=$(sha256sum "$f" | cut -d' ' -f1)
+  empreinte_crlf=$(tr -d '\015' < "$f" | sed 's/$/\r/' | sha256sum | cut -d' ' -f1)
   connue=$(sql -tAc "SELECT empreinte FROM schema_migrations WHERE nom = '$nom'")
 
   if [ -z "$connue" ]; then
@@ -39,7 +43,7 @@ for f in $(ls "$DIR"/[0-9][0-9][0-9]_*.sql | sort); do
     sql < "$f"
     sql -c "INSERT INTO schema_migrations (nom, empreinte) VALUES ('$nom', '$empreinte');"
     appliquees=$((appliquees + 1))
-  elif [ "$connue" != "$empreinte" ]; then
+  elif [ "$connue" != "$empreinte" ] && [ "$connue" != "$empreinte_brute" ] && [ "$connue" != "$empreinte_crlf" ]; then
     echo "!! ATTENTION : $nom a été modifiée depuis son application (empreinte différente). Non rejouée : créer une NOUVELLE migration."
   fi
 done

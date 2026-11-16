@@ -19,7 +19,7 @@ const int LegislatureEnCours = 17;
 int[] LegislaturesCompletes = [15, 16, 17];
 
 var argv = args.ToList();
-if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats"))
+if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers"))
 {
     Console.Error.WriteLine("Usage : IlsOntVote.Importer an [--legislature 17|15,16,17|all] [--scrutins-dir D --amo-dir D]");
     Console.Error.WriteLine("        IlsOntVote.Importer senat [--senateurs-dir D --dosleg-sql F]");
@@ -59,6 +59,7 @@ return argv[0] switch
     "senat" => await ImporterSenatAsync(),
     "ue" => await ImporterUeAsync(),
     "stats" => await RafraichirStatsAsync(),
+    "dossiers" => await ImporterDossiersAsync(),
     _ => await ImporterTextesAsync(),
 };
 
@@ -208,6 +209,39 @@ static string? CouleurUe(string sigle) => sigle.ToUpperInvariant() switch
     "THE LEFT" => "#a4123f", "GREENS/EFA" => "#5aa02c", "S&D" => "#e75480", "RENEW" => "#f2b705",
     "EPP" => "#3399cc", "ECR" => "#1f5f8b", "PFE" => "#6b3fa0", "ESN" => "#4a4a8a", "NI" => "#8d949a", _ => null,
 };
+
+/// <summary>
+/// Étapes de lecture des textes à l'Assemblée, avec ou sans scrutin public (Dossiers législatifs de l'AN). Par défaut la législature en
+/// cours ; <c>--legislature 15,16,17|all</c> pour l'historique. À lancer APRÈS « an » et « textes » (rattachement aux scrutins et aux textes).
+/// </summary>
+async Task<int> ImporterDossiersAsync()
+{
+    var option = Option("--legislature") ?? LegislatureEnCours.ToString();
+    int[] legislatures = option == "all" ? LegislaturesCompletes
+        : option.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(int.Parse).ToArray();
+    var codeRetour = 0;
+    foreach (var legislature in legislatures)
+    {
+        Console.WriteLine($"=== Dossiers législatifs — législature {legislature} ===");
+        var runId = await repo.DemarrerAsync($"DOSSIERS-L{legislature}");
+        try
+        {
+            var dossier = await Telechargement.TelechargerZipAsync(DossiersAnSource.Url(legislature),
+                Path.Combine(Directory.GetCurrentDirectory(), "data", "an", $"dossiers-L{legislature}"));
+            var etapes = DossiersAnSource.Lire(dossier).ToList();
+            var (total, sans, rattachees) = await repo.EcrireEtapesAsync(etapes, legislature);
+            Console.WriteLine($"  {total} décisions de séance, dont {sans} sans scrutin public ; {rattachees} rattachées à un texte.");
+            await repo.TerminerAsync(runId, true, total, 0, $"{sans} sans scrutin public, {rattachees} rattachées à un texte");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
+            codeRetour = 1;
+        }
+    }
+    return codeRetour;
+}
 
 /// <summary>Recalcule les statistiques de participation (à lancer après les imports ; plusieurs minutes).</summary>
 async Task<int> RafraichirStatsAsync()

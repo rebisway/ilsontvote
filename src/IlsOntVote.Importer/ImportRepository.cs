@@ -209,6 +209,65 @@ public sealed class ImportRepository(string connectionString)
         }
     }
 
+    // ------------------------------------------------------------------ Étapes de lecture (Dossiers législatifs de l'AN)
+
+    /// <summary>
+    /// Remplace les étapes d'une législature (suppression puis insertion : l'import se rejoue sans doublon) puis rattache chaque dossier à
+    /// un texte : (1) par l'adresse du dossier AN enregistrée sur le texte, (2) par un scrutin public cité par une décision du dossier,
+    /// (3) les autres décisions du même dossier suivent. Un dossier sans rattachement reste en base, sans texte (non affiché).
+    /// </summary>
+    public async Task<(int Etapes, int SansScrutin, int Rattachees)> EcrireEtapesAsync(IReadOnlyList<EtapeRow> etapes, int legislature)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+        await using var tx = await conn.BeginTransactionAsync();
+
+        await conn.ExecuteAsync("DELETE FROM texte_etapes WHERE dossier_an LIKE @prefixe", new { prefixe = $"DLR5L{legislature}N%" }, tx);
+
+        // Le scrutin cité n'est lié que s'il existe en base (clé étrangère) ; sinon l'étape reste « avec scrutin public » sans lien.
+        var connus = (await conn.QueryAsync<string>("SELECT id FROM scrutins WHERE chambre = 'AN' AND legislature = @l", new { l = (short)legislature }, tx)).ToHashSet();
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO texte_etapes (id, dossier_an, code_acte, date_acte, resultat, scrutin_id, sans_scrutin_public)
+            VALUES (@Id, @DossierAn, @CodeActe, @DateActe, @Resultat, @ScrutinId, @SansScrutinPublic)
+            ON CONFLICT (id) DO NOTHING
+            """,
+            etapes.Select(e => new
+            {
+                e.Id, e.DossierAn, e.CodeActe, DateActe = e.DateActe.ToDateTime(default), e.Resultat,
+                ScrutinId = e.ScrutinId is not null && connus.Contains(e.ScrutinId) ? e.ScrutinId : null, e.SansScrutinPublic,
+            }), tx);
+
+        // (1) adresse du dossier AN portée par le texte (…/DLR5L17N50450.asp) ; DISTINCT ON : un seul texte par dossier, toujours le même.
+        await conn.ExecuteAsync(
+            """
+            UPDATE texte_etapes e SET texte_id = x.texte_id
+              FROM (SELECT DISTINCT ON (e2.dossier_an) e2.dossier_an, t.id AS texte_id
+                      FROM texte_etapes e2 JOIN textes t ON t.url_dossier_an LIKE '%' || e2.dossier_an || '.%'
+                     WHERE e2.dossier_an LIKE @prefixe ORDER BY e2.dossier_an, t.id) x
+             WHERE e.dossier_an = x.dossier_an AND e.texte_id IS NULL
+            """, new { prefixe = $"DLR5L{legislature}N%" }, tx);
+        // (2) un scrutin public de la décision est déjà rattaché à un texte (rapprochement par titre à l'import des textes).
+        await conn.ExecuteAsync(
+            """
+            UPDATE texte_etapes e SET texte_id = s.texte_id
+              FROM scrutins s WHERE e.texte_id IS NULL AND e.scrutin_id = s.id AND s.texte_id IS NOT NULL
+            """, transaction: tx);
+        // (3) les autres décisions du même dossier suivent le texte trouvé.
+        await conn.ExecuteAsync(
+            """
+            UPDATE texte_etapes e SET texte_id = x.texte_id
+              FROM (SELECT dossier_an, min(texte_id) AS texte_id FROM texte_etapes WHERE texte_id IS NOT NULL GROUP BY dossier_an) x
+             WHERE e.dossier_an = x.dossier_an AND e.texte_id IS NULL
+            """, transaction: tx);
+
+        var stats = await conn.QuerySingleAsync<(int Total, int Sans, int Rattachees)>(
+            "SELECT count(*)::int, count(*) FILTER (WHERE sans_scrutin_public)::int, count(*) FILTER (WHERE texte_id IS NOT NULL)::int FROM texte_etapes WHERE dossier_an LIKE @prefixe",
+            new { prefixe = $"DLR5L{legislature}N%" }, tx);
+        await tx.CommitAsync();
+        return (stats.Total, stats.Sans, stats.Rattachees);
+    }
+
     // ------------------------------------------------------------------ Parlement européen (import incrémental)
 
     /// <summary>Identifiants des scrutins UE déjà en base (l'import UE ne relit que les votes nouveaux) et date du plus récent.</summary>

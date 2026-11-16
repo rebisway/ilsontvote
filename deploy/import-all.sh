@@ -33,6 +33,11 @@ DOSLEG=/var/lib/ilsontvote-import/data/senat/dosleg/dosleg.sql
 echo "=== Textes de loi ==="
 if [ -f "$DOSLEG" ]; then $DOTNET "$IMP" textes --dosleg-sql "$DOSLEG" || rc=1; else $DOTNET "$IMP" textes || rc=1; fi
 
+# Étapes de lecture à l'Assemblée, avec ou sans scrutin public (Dossiers législatifs) : APRÈS « an » et « textes » (rattachement aux
+# scrutins et aux textes). « historique » : législatures 15, 16 et 17 ; sinon la législature en cours.
+echo "=== Dossiers législatifs (étapes sans scrutin public) ==="
+if [ "$1" = "historique" ]; then $DOTNET "$IMP" dossiers --legislature all || rc=1; else $DOTNET "$IMP" dossiers || rc=1; fi
+
 # Parlement européen (HowTheyVote) : incrémental, seuls les nouveaux votes sont lus (le tout premier passage est long : un appel par vote).
 echo "=== Parlement européen ==="
 $DOTNET "$IMP" ue || rc=1
