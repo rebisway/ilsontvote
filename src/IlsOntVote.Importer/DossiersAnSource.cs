@@ -6,7 +6,8 @@ namespace IlsOntVote.Importer;
 /// <summary>Une décision prise en séance publique à l'Assemblée sur un texte (lecture), avec ou sans scrutin public (table texte_etapes).</summary>
 public sealed record EtapeRow(
     string Id, string DossierAn, string CodeActe, DateOnly DateActe, string? Resultat, string? ScrutinId, bool SansScrutinPublic,
-    string? SenatChemin = null);
+    string? SenatChemin = null,
+    bool Article493 = false);
 
 /// <summary>
 /// Jeu « Dossiers législatifs » de l'Assemblée nationale : pour chaque dossier, ses actes. On ne retient que les actes « Décision »
@@ -19,8 +20,13 @@ public sealed record EtapeRow(
 /// </summary>
 public static partial class DossiersAnSource
 {
-    [GeneratedRegex(@"^AN[A-Z0-9]*-DEBATS-DEC$")]
+    // Décisions de séance à l'Assemblée : lectures (AN1, AN2, ANLUNI, ANNLEC, ANLDEF) et texte de la CMP lu à l'Assemblée (CMP-DEBATS-AN-DEC).
+    [GeneratedRegex(@"^(AN[A-Z0-9]*-DEBATS-DEC|CMP-DEBATS-AN-DEC)$")]
     private static partial Regex CodeDecisionSeance();
+
+    // Motion de censure liée à un texte (article 49, alinéa 3) : l'acte « …-MOTION-VOTE » renvoie vers un SCRUTIN PUBLIC.
+    [GeneratedRegex(@"^[A-Z0-9]+-MOTION-VOTE$")]
+    private static partial Regex CodeMotion();
 
     /// <summary>Adresse du zip pour une législature (la 15e a un suffixe « _XV » dans le nom du fichier).</summary>
     public static string Url(int legislature) =>
@@ -60,7 +66,7 @@ public static partial class DossiersAnSource
         {
             case JsonValueKind.Object:
                 if (e.TryGetProperty("codeActe", out var code) && code.ValueKind == JsonValueKind.String
-                    && CodeDecisionSeance().IsMatch(code.GetString()!))
+                    && (CodeDecisionSeance().IsMatch(code.GetString()!) || CodeMotion().IsMatch(code.GetString()!)))
                 {
                     var etape = Lire(e, dossierId, code.GetString()!);
                     if (etape is not null) sortie.Add(etape);
@@ -99,6 +105,10 @@ public static partial class DossiersAnSource
                 _ => null,
             };
         }
-        return new EtapeRow(uid, dossierId, code, jour, resultat, scrutin, SansScrutinPublic: !avecScrutin);
+        // Article 49-3 : « considéré comme adopté (ou rejeté) par l'Assemblée nationale en application de l'article 49, alinéa 3 » -> pas de vote
+        // sur le texte (ce n'est pas une main levée). Une motion de censure a toujours un scrutin public : jamais « sans scrutin public ».
+        var motion = CodeMotion().IsMatch(code);
+        var article493 = resultat is not null && resultat.Contains("article 49", StringComparison.OrdinalIgnoreCase);
+        return new EtapeRow(uid, dossierId, code, jour, resultat, scrutin, SansScrutinPublic: !avecScrutin && !motion && !article493, Article493: article493);
     }
 }

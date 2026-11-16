@@ -11,16 +11,50 @@
 <h1 class="titre-page">@ViewData["Title"]</h1>
 <p class="chapo">@Model.Elus.Count @membres @L.T("en exercice", "in office") (@Chambres.Nom(Model.Chambre, L.Anglais)). @L.T("Cliquez sur un nom pour voir ses votes et sa participation.", "Click a name to see their votes and participation.")</p>
 
-<div class="barre-groupes" id="barre-groupes" role="group" aria-label="@L.T("Filtrer par groupe", "Filter by group")">
-    <button type="button" class="puce actif" data-groupe="">@L.T("Tous", "All") <b>@Model.Elus.Count</b></button>
-    @foreach (var g in Model.Groupes)
+@{
+    // Anneau de répartition par groupe (SVG) : un segment par groupe, couleur du groupe. Technique du cercle à tirets : chaque segment est
+    // un arc de ce cercle (stroke-dasharray = longueur du segment), décalé de la somme des précédents. Aucune bibliothèque.
+    const double rayon = 70, epaisseur = 30, circ = 2 * Math.PI * rayon;
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    string Sur(string? c) => c is not null && System.Text.RegularExpressions.Regex.IsMatch(c, "^#[0-9a-fA-F]{3,8}$") ? c : "#8d949a";
+    var total = Model.Groupes.Sum(g => g.Effectif);
+    double cumul = 0;
+}
+<div class="elus-tete">
+    @if (total > 0)
     {
-        <button type="button" class="puce" data-groupe="@g.Sigle" data-libelle="@g.Libelle" title="@g.Libelle">
-            <span class="pastille" style="background:@(g.Couleur ?? "#8d949a")"></span>@g.Sigle <b>@g.Effectif</b>
-        </button>
+        <figure class="donut">
+            <svg viewBox="0 0 200 200" role="img" aria-label="@L.T("Répartition des élus par groupe", "Breakdown of members by group")">
+                @foreach (var g in Model.Groupes)
+                {
+                    var part = g.Effectif / (double)total * circ;
+                    var decalage = -cumul;
+                    cumul += part;
+                    <circle class="donut-segment" cx="100" cy="100" r="@rayon.ToString(inv)" fill="none" stroke="@Sur(g.Couleur)" stroke-width="@epaisseur.ToString(inv)"
+                            stroke-dasharray="@part.ToString("0.###", inv) @((circ - part).ToString("0.###", inv))" stroke-dashoffset="@decalage.ToString("0.###", inv)"
+                            transform="rotate(-90 100 100)" data-groupe="@g.Sigle" tabindex="0">
+                        <title>@g.Sigle — @g.Effectif (@((100.0 * g.Effectif / total).ToString("0.#", inv)) %)</title>
+                    </circle>
+                }
+                <text class="donut-total" x="100" y="98" text-anchor="middle">@total</text>
+                <text class="donut-legende" x="100" y="118" text-anchor="middle">@Chambres.Membres(Model.Chambre, L.Anglais)</text>
+            </svg>
+        </figure>
     }
+    <div class="elus-tete-droite">
+        <div class="barre-groupes" id="barre-groupes" role="group" aria-label="@L.T("Filtrer par groupe", "Filter by group")">
+            <button type="button" class="puce actif" data-groupe="">@L.T("Tous", "All") <b>@Model.Elus.Count</b></button>
+            @foreach (var g in Model.Groupes)
+            {
+                <button type="button" class="puce" data-groupe="@g.Sigle" data-libelle="@g.Libelle" title="@g.Libelle">
+                    <span class="pastille" style="background:@(g.Couleur ?? "#8d949a")"></span>@g.Sigle <b>@g.Effectif</b>
+                </button>
+            }
+        </div>
+        <p class="nom-groupe" id="nom-groupe" aria-live="polite" hidden></p>
+    </div>
 </div>
-<p class="nom-groupe" id="nom-groupe" aria-live="polite" hidden></p>
+
 
 <div class="filtres">
     <input id="filtre" class="filtre" type="search" placeholder="@(Model.Chambre == Chambres.UE ? L.T("Chercher un nom, un pays…", "Search a name, a country…") : L.T("Chercher un nom, un département…", "Search a name, a département…"))" aria-label="@L.T("Chercher un ", "Search a ")@Chambres.Membre(Model.Chambre, L.Anglais)" autocomplete="off" />
@@ -54,6 +88,13 @@
             });
         }
         input.addEventListener('input', appliquer);
+        document.querySelectorAll('.donut-segment').forEach(function (seg) {
+            function choisir() {
+                puces.forEach(function (p) { if (p.dataset.groupe === seg.dataset.groupe) p.click(); });
+            }
+            seg.addEventListener('click', choisir);
+            seg.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choisir(); } });
+        });
         puces.forEach(function (p) {
             p.addEventListener('click', function () {
                 groupe = p.dataset.groupe;

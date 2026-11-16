@@ -285,14 +285,14 @@ public sealed class ImportRepository(string connectionString)
         var connus = (await conn.QueryAsync<string>("SELECT id FROM scrutins WHERE chambre = 'AN' AND legislature = @l", new { l = (short)legislature }, tx)).ToHashSet();
         await conn.ExecuteAsync(
             """
-            INSERT INTO texte_etapes (id, dossier_an, senat_chemin, code_acte, date_acte, resultat, scrutin_id, sans_scrutin_public)
-            VALUES (@Id, @DossierAn, @SenatChemin, @CodeActe, @DateActe, @Resultat, @ScrutinId, @SansScrutinPublic)
+            INSERT INTO texte_etapes (id, dossier_an, senat_chemin, code_acte, date_acte, resultat, scrutin_id, sans_scrutin_public, article_49_3)
+            VALUES (@Id, @DossierAn, @SenatChemin, @CodeActe, @DateActe, @Resultat, @ScrutinId, @SansScrutinPublic, @Article493)
             ON CONFLICT (id) DO NOTHING
             """,
             etapes.Select(e => new
             {
                 e.Id, e.DossierAn, e.SenatChemin, e.CodeActe, DateActe = e.DateActe.ToDateTime(default), e.Resultat,
-                ScrutinId = e.ScrutinId is not null && connus.Contains(e.ScrutinId) ? e.ScrutinId : null, e.SansScrutinPublic,
+                ScrutinId = e.ScrutinId is not null && connus.Contains(e.ScrutinId) ? e.ScrutinId : null, e.SansScrutinPublic, e.Article493,
             }), tx);
 
         // (1) adresse du dossier AN portée par le texte (…/DLR5L17N50450.asp) ; DISTINCT ON : un seul texte par dossier, toujours le même.

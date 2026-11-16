@@ -76,6 +76,8 @@ public class Texte
     public int NbEtapesAn { get; set; }
     /// <summary>Une décision de lecture à l'Assemblée a adopté le texte (peut être un vote à main levée).</summary>
     public bool AdopteAnEtape { get; set; }
+    /// <summary>Le texte a été adopté (au moins en partie) sans vote, par l'article 49, alinéa 3.</summary>
+    public bool Adopte493 { get; set; }
     public int NbScrutinsSenat { get; set; }
     public DateTime? DateAdoptionAn { get; set; }
     public DateTime? DateAdoptionSenat { get; set; }
@@ -134,6 +136,10 @@ public class Texte
         {
             var culture = new System.Globalization.CultureInfo(en ? "en-GB" : "fr-FR");
             var date = DateAdoptionAn is null ? "" : (en ? " on " : " le ") + DateAdoptionAn.Value.ToString("d MMMM yyyy", culture);
+            if (Adopte493 && AdopteAn)
+                return new(en ? "NA" : "AN", "✓", "ch-ok ch-sans-scrutin", en
+                    ? $"Adopted by the National Assembly{date} WITHOUT A VOTE (article 49, paragraph 3 of the Constitution): the text is deemed adopted unless a censure motion passes. There is no vote on the text itself."
+                    : $"Adopté par l'Assemblée nationale{date} SANS VOTE (article 49, alinéa 3 de la Constitution) : le texte est considéré comme adopté sauf si une motion de censure est votée. Il n'y a aucun vote sur le texte lui-même.");
             var infobulle = en
                 ? $"{(AdopteAn ? "Adopted" : "Not adopted")} by the National Assembly{date} in a vote without roll call (show of hands): the detail of who voted what is not available."
                 : $"{(AdopteAn ? "Adopté" : "Pas adopté")} par l'Assemblée nationale{date} lors d'un vote sans scrutin public (main levée) : le détail « qui a voté quoi » n'est pas disponible.";
@@ -178,18 +184,23 @@ public sealed class EtapeTexte
     public string? ScrutinId { get; set; }
     /// <summary>Vrai = décision prise sans scrutin public (main levée ou adoption sans vote nominatif) : détail des votes non disponible.</summary>
     public bool SansScrutinPublic { get; set; }
+    /// <summary>Décision « considérée comme adoptée » par l'article 49, alinéa 3 : AUCUN vote sur le texte (différent d'une main levée).</summary>
+    public bool Article493 { get; set; }
+    /// <summary>Motion de censure liée au texte (toujours votée par scrutin public).</summary>
+    public bool EstMotion => CodeActe.Contains("-MOTION-VOTE", StringComparison.Ordinal);
 
     /// <summary>Nom de la lecture d'après le code de l'acte (AN1 = première lecture, AN2 = deuxième, etc.).</summary>
     public string Lecture => LectureEn(false);
 
     /// <summary>Nom de la lecture dans la langue demandée.</summary>
-    public string LectureEn(bool en) => en ? CodeActe.Split('-')[0] switch
+    public string LectureEn(bool en) => EstMotion ? (en ? "Censure motion" : "Motion de censure") : en ? CodeActe.Split('-')[0] switch
     {
         "AN1" => "1st reading",
         "AN2" => "2nd reading",
         "ANLUNI" => "Single reading",
         "ANNLEC" => "New reading",
         "ANLDEF" => "Final reading",
+        "CMP" => "Joint committee text",
         _ => "Reading",
     } : CodeActe.Split('-')[0] switch
     {
@@ -198,6 +209,7 @@ public sealed class EtapeTexte
         "ANLUNI" => "Lecture unique",
         "ANNLEC" => "Nouvelle lecture",
         "ANLDEF" => "Lecture définitive",
+        "CMP" => "Texte de la CMP",
         _ => "Lecture",
     };
 }

@@ -39,6 +39,7 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
         GREATEST(max(s.date_scrutin), (SELECT max(e.date_acte) FROM texte_etapes e WHERE e.texte_id = t.id)) AS dernier_vote,
         count(s.id)::int AS nb_scrutins,
         (SELECT count(*) FROM texte_etapes e WHERE e.texte_id = t.id)::int AS nb_etapes_an,
+        EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id AND e.article_49_3) AS adopte_493,
         EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id AND e.resultat ILIKE ANY (ARRAY['adopt%', 'modifi%', 'consid%'])) AS adopte_an_etape,
         (COALESCE(bool_or(s.chambre = 'AN' AND s.sort LIKE 'adopt%'), false)
          OR EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id AND e.resultat ILIKE ANY (ARRAY['adopt%', 'modifi%', 'consid%']))) AS adopte_an,
@@ -115,7 +116,7 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
         using var conn = db.CreateConnection();
         return (await conn.QueryAsync<EtapeTexte>(
             """
-            SELECT code_acte, date_acte, resultat, scrutin_id, sans_scrutin_public
+            SELECT code_acte, date_acte, resultat, scrutin_id, sans_scrutin_public, article_49_3
               FROM texte_etapes WHERE texte_id = @texteId ORDER BY date_acte, code_acte
             """, new { texteId })).ToList();
     }
