@@ -1,3 +1,4 @@
+using IlsOntVote.Web.Models;
 using Dapper;
 using IlsOntVote.Web.Data;
 
@@ -24,8 +25,11 @@ public sealed class StatGroupe
     public double? CohesionPct { get; set; }
 }
 
-/// <summary>Un élu dans un classement de participation (période et chambre choisies).</summary>
-public sealed class StatElu
+/// <summary>
+/// Un élu dans la liste complète des taux (période et chambre choisies). Tous les taux ont pour dénominateur les scrutins à sa charge
+/// (mandat en cours, hors « non votant » déclaré) : ils sont donc comparables entre eux.
+/// </summary>
+public sealed class StatEluDetail
 {
     public string Slug { get; set; } = "";
     public string Chambre { get; set; } = "";
@@ -34,8 +38,20 @@ public sealed class StatElu
     public string? GroupeSigle { get; set; }
     public string? GroupeCouleur { get; set; }
     public int Scrutins { get; set; }
+    /// <summary>Votes exprimés (pour, contre, abstention), délégations comprises.</summary>
     public int Votants { get; set; }
-    public double? ParticipationPct { get; set; }
+    public int Delegations { get; set; }
+    public int MisesAuPoint { get; set; }
+
+    private double? Taux(int n) => Scrutins == 0 ? null : Math.Round(100.0 * n / Scrutins, 1);
+    /// <summary>Part des scrutins où un vote a été exprimé (par délégation ou non).</summary>
+    public double? ParticipationPct => Taux(Votants);
+    /// <summary>Présence effective : vote exprimé par l'élu lui-même (sans délégation).</summary>
+    public double? PresencePct => Taux(Votants - Delegations);
+    public double? DelegationPct => Taux(Delegations);
+    public double? MiseAuPointPct => Taux(MisesAuPoint);
+    /// <summary>Aucun vote exprimé (ni lui, ni par délégation). Le site n'en donne aucune raison.</summary>
+    public double? AbsencePct => Taux(Scrutins - Votants);
 }
 
 /// <summary>Activité d'une année : nombre de scrutins et issue des votes sur l'ensemble d'un texte.</summary>
@@ -55,7 +71,9 @@ public interface IStatistiquesRepository
     Task<IReadOnlyList<StatGroupe>> GetGroupesAsync(string chambre, DateTime? du, DateTime? au, bool ensembleSeulement);
     Task<IReadOnlyList<StatAnnee>> GetAnneesAsync(string chambre);
     /// <summary>Les élus les plus (ou les moins) présents ; seuls ceux ayant au moins <paramref name="minScrutins"/> scrutins sur la période comptent.</summary>
-    Task<IReadOnlyList<StatElu>> GetElusAsync(string chambre, DateTime? du, DateTime? au, bool ensembleSeulement, bool plusPresents, int limite, int minScrutins);
+    /// <summary>Liste complète des élus d'une chambre avec leurs taux sur la période : recherche, tri (liste blanche), pagination (parPage = 0 : tout).</summary>
+    Task<Resultats<StatEluDetail>> ListerElusAsync(string chambre, DateTime? du, DateTime? au, bool ensembleSeulement, string? recherche,
+        string tri, bool decroissant, int page, int parPage);
 }
 
 /// <summary>
@@ -134,38 +152,78 @@ public sealed class StatistiquesRepository(DapperContext db) : IStatistiquesRepo
         return rows.ToList();
     }
 
-    public async Task<IReadOnlyList<StatElu>> GetElusAsync(
-        string chambre, DateTime? du, DateTime? au, bool ensembleSeulement, bool plusPresents, int limite, int minScrutins)
+    // Tris autorisés : clé d'URL -> expression SQL. JAMAIS de SQL construit depuis l'URL. Les taux sont triés sur leur valeur exacte.
+    private static readonly Dictionary<string, string> TrisElus = new()
+    {
+        ["nom"] = "p.nom, p.prenom",
+        ["groupe"] = "g.sigle",
+        ["scrutins"] = "a.scrutins",
+        ["participation"] = "a.votants::float8 / NULLIF(a.scrutins, 0)",
+        ["presence"] = "(a.votants - a.delegations)::float8 / NULLIF(a.scrutins, 0)",
+        ["delegation"] = "a.delegations::float8 / NULLIF(a.scrutins, 0)",
+        ["mise_au_point"] = "a.mises_au_point::float8 / NULLIF(a.scrutins, 0)",
+        ["absence"] = "(a.scrutins - a.votants)::float8 / NULLIF(a.scrutins, 0)",
+    };
+
+    public static IEnumerable<string> ClesTriElus => TrisElus.Keys;
+
+    public async Task<Resultats<StatEluDetail>> ListerElusAsync(string chambre, DateTime? du, DateTime? au, bool ensembleSeulement, string? recherche,
+        string tri, bool decroissant, int page, int parPage)
     {
         using var cx = db.CreateConnection();
-        // Somme des jours de la période (vue par élu et par jour). Seuil de scrutins : un élu arrivé hier ne doit pas « gagner » avec 2 sur 2.
-        // L'ordre est une donnée interne (jamais de l'URL) : l'interpolation est sûre. Égalités départagées par le nombre de scrutins puis le nom.
-        var sens = plusPresents ? "DESC" : "ASC";
-        var rows = await cx.QueryAsync<StatElu>(
+        page = Math.Max(1, page);
+        // Une vue matérialisée créée « WITH NO DATA » (migration 019) fait ÉCHOUER toute lecture tant qu'elle n'a pas été calculée (import
+        // « stats ») : on répond « aucun résultat » (la page l'explique) plutôt qu'une erreur 500.
+        if (!await cx.ExecuteScalarAsync<bool>("SELECT COALESCE((SELECT ispopulated FROM pg_matviews WHERE matviewname = 'stats_participation_elu'), false)"))
+            return new Resultats<StatEluDetail>([], 0, 1, parPage == 0 ? 1 : parPage);
+        // Recherche : chaque mot dans « prénom nom » ou le sigle du groupe ; tirets et apostrophes comptent comme des espaces.
+        var mots = (recherche ?? "").Replace('-', ' ').Replace('\'', ' ').Replace('’', ' ')
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Take(6).Select(m => "%" + m.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%").ToArray();
+
+        // Somme des jours de la période (vue par élu et par jour, cf. migration 019). Aucun seuil : tout élu ayant eu au moins un scrutin
+        // à sa charge figure dans la liste ; le nombre de scrutins est affiché à côté de chaque taux pour que le lecteur juge de son poids.
+        const string avant =
+            """
+            WITH agg AS (
+                SELECT e.parlementaire_id,
+                       CASE WHEN @ensemble THEN sum(e.scrutins_ensemble) ELSE sum(e.scrutins) END AS scrutins,
+                       CASE WHEN @ensemble THEN sum(e.votants_ensemble) ELSE sum(e.votants) END AS votants,
+                       CASE WHEN @ensemble THEN sum(e.delegations_ensemble) ELSE sum(e.delegations) END AS delegations,
+                       CASE WHEN @ensemble THEN sum(e.mises_au_point_ensemble) ELSE sum(e.mises_au_point) END AS mises_au_point
+                  FROM stats_participation_elu e
+                 WHERE e.chambre = @chambre
+                   AND (@du::date IS NULL OR e.date_scrutin >= @du::date)
+                   AND (@au::date IS NULL OR e.date_scrutin <= @au::date)
+                 GROUP BY e.parlementaire_id
+            )
+            """;
+        const string depuis =
+            """
+              FROM agg a
+              JOIN parlementaires p ON p.id = a.parlementaire_id
+              LEFT JOIN LATERAL (
+                    SELECT gr.sigle, gr.couleur FROM groupe_appartenances ga JOIN groupes gr ON gr.id = ga.groupe_id
+                     WHERE ga.parlementaire_id = p.id ORDER BY ga.date_debut DESC LIMIT 1) g ON true
+             WHERE a.scrutins > 0
+               AND (cardinality(@mots) = 0 OR (translate(p.prenom || ' ' || p.nom, '-''’', '   ') || ' ' || COALESCE(g.sigle, '')) ILIKE ALL (@mots))
+            """;
+        var p = new { chambre, du, au, ensemble = ensembleSeulement, mots, limit = parPage, offset = (page - 1) * parPage };
+
+        var total = await cx.ExecuteScalarAsync<int>($"{avant} SELECT count(*) {depuis}", p);
+        var ordre = TrisElus.GetValueOrDefault(tri, TrisElus["participation"]);
+        var sens = decroissant ? "DESC" : "ASC";
+        var pagination = parPage > 0 ? "LIMIT @limit OFFSET @offset" : "";
+        var lignes = (await cx.QueryAsync<StatEluDetail>(
             $"""
-             WITH agg AS (
-                 SELECT e.parlementaire_id,
-                        CASE WHEN @ensemble THEN sum(e.scrutins_ensemble) ELSE sum(e.scrutins) END AS scrutins,
-                        CASE WHEN @ensemble THEN sum(e.votants_ensemble) ELSE sum(e.votants) END AS votants
-                   FROM stats_participation_elu e
-                  WHERE e.chambre = @chambre
-                    AND (@du::date IS NULL OR e.date_scrutin >= @du::date)
-                    AND (@au::date IS NULL OR e.date_scrutin <= @au::date)
-                  GROUP BY e.parlementaire_id
-             )
+             {avant}
              SELECT p.slug, p.chambre, p.prenom, p.nom, g.sigle AS groupe_sigle, g.couleur AS groupe_couleur,
-                    a.scrutins::int AS scrutins, a.votants::int AS votants,
-                    round(100.0 * a.votants / NULLIF(a.scrutins, 0), 1)::float8 AS participation_pct
-               FROM agg a
-               JOIN parlementaires p ON p.id = a.parlementaire_id
-               LEFT JOIN LATERAL (
-                     SELECT gr.sigle, gr.couleur FROM groupe_appartenances ga JOIN groupes gr ON gr.id = ga.groupe_id
-                      WHERE ga.parlementaire_id = p.id ORDER BY ga.date_debut DESC LIMIT 1) g ON true
-              WHERE a.scrutins >= @minScrutins
-              ORDER BY a.votants::float8 / NULLIF(a.scrutins, 0) {sens}, a.scrutins DESC, p.nom, p.prenom
-              LIMIT @limite
-             """, new { chambre, du, au, ensemble = ensembleSeulement, limite, minScrutins });
-        return rows.ToList();
+                    a.scrutins::int AS scrutins, a.votants::int AS votants, a.delegations::int AS delegations, a.mises_au_point::int AS mises_au_point
+               {depuis}
+              ORDER BY {ordre} {sens} NULLS LAST, a.scrutins DESC, p.nom, p.prenom
+              {pagination}
+             """, p)).ToList();
+        return new Resultats<StatEluDetail>(lignes, total, page, parPage == 0 ? Math.Max(1, total) : parPage);
     }
 
     public async Task<IReadOnlyList<StatAnnee>> GetAnneesAsync(string chambre)

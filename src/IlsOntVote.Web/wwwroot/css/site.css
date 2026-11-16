@@ -594,3 +594,17 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
 /* En-tête et menu toujours visibles au défilement (sur mobile, le menu déplié défile avec l'écran s'il est plus haut que lui). */
 .site-header { position: sticky; top: 0; z-index: 100; }
 @media (max-width: 720px) { .site-header .menu { max-height: calc(100vh - 70px); overflow-y: auto; } }
+
+/* Liste des élus et de leurs taux : colonne du rang discrète, chiffres alignés */
+.table-elus .rang { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.table-elus td.num { font-variant-numeric: tabular-nums; }
+
+/* Définitions en tête de la liste des taux : un terme par ligne, bien espacées */
+.definitions { margin: 6px 0 22px; padding: 16px 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.definitions .def-base { margin: 0 0 12px; }
+.definitions dl { margin: 0 0 12px; display: grid; gap: 8px; }
+.definitions dl > div { display: grid; grid-template-columns: 8.5rem 1fr; gap: 4px 14px; align-items: baseline; }
+.definitions dt { font-weight: 700; }
+.definitions dd { margin: 0; color: var(--ink-soft); }
+.definitions .note-source { margin: 0; }
+@media (max-width: 720px) { .definitions dl > div { grid-template-columns: 1fr; gap: 0; } }

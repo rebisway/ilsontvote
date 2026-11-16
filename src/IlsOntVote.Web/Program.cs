@@ -205,7 +205,7 @@ async Task<List<(string Url, string? Date)>> PagesPubliques(DapperContext db)
     using var cx = db.CreateConnection();
     var aujourdhui = DateTime.UtcNow.ToString("yyyy-MM-dd");
     var urls = new List<(string, string?)>();
-    foreach (var u in new[] { "/", "/lois", "/textes", "/deputes", "/senateurs", "/eurodeputes", "/statistiques" }) urls.Add((u, aujourdhui));
+    foreach (var u in new[] { "/", "/lois", "/textes", "/deputes", "/senateurs", "/eurodeputes", "/statistiques", "/elus" }) urls.Add((u, aujourdhui));
     foreach (var u in new[] { "/methodologie", "/mentions-legales", "/soutenir" }) urls.Add((u, null));
     // Un scrutin ne change plus après son vote : sa date sert de « dernière modification ».
     urls.AddRange((await cx.QueryAsync<(string, DateTime)>("SELECT '/scrutin/' || id, date_scrutin FROM scrutins")).Select(r => (r.Item1, (string?)r.Item2.ToString("yyyy-MM-dd"))));

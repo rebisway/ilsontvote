@@ -30,7 +30,7 @@
     </span>
     <label class="case"><input type="checkbox" name="ensemble" value="1" checked="@Model.EnsembleSeul" /> @L.T("votes sur l'ensemble d'un texte seulement", "votes on the whole text only")</label>
     <button type="submit" class="sans-js">@L.T("Afficher", "Show")</button>
-    @if (Model.FiltreActif) { <a class="effacer" href="@L.Lien("/statistiques")">@L.T("Effacer le filtre", "Clear filter")</a> }
+    @if (Model.FiltreActif) { <a class="effacer" href="@L.Lien("/statistiques")" title="@L.T("Effacer le filtre", "Clear filter")" aria-label="@L.T("Effacer le filtre", "Clear filter")"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></a> }
 </form>
 
 <p class="periode-rappel">@Chambres.Nom(Model.ChambreCode, L.Anglais) · <strong>@Model.PeriodeLibelle</strong>@(Model.EnsembleSeul ? L.T(" · votes sur l'ensemble seulement", " · votes on the whole text only") : "")</p>
@@ -90,38 +90,8 @@ else
 }
 
 <h2>@L.T("Présence des élus", "Attendance of elected officials")</h2>
-<p class="note-source">@L.TH("Part des scrutins publics de la période où l'élu a voté (pour, contre ou abstention), parmi ceux qui avaient lieu pendant son mandat. Les élus que l'assemblée déclare « non votants » (par exemple le président de séance) sont retirés du calcul. Pour les autres, le site ne donne <strong>aucune raison</strong> d'une absence. Attention : un membre du gouvernement, qui ne siège pas, peut apparaître avec une participation très basse. Seuls les élus ayant eu au moins " + StatistiquesModel.MinScrutinsClassement + " scrutins sur la période sont classés. ", "Share of the period's roll-call votes in which the official voted (for, against or abstention), among those held during their term. Officials that the assembly declares “non-voting” (for example the presiding officer) are removed from the calculation. For the others, the site gives <strong>no reason</strong> for an absence. Note: a member of the government, who does not sit, may appear with a very low participation. Only officials with at least " + StatistiquesModel.MinScrutinsClassement + " votes over the period are ranked. ")@Doute.Html(NiveauDoute.Calcule, L.T("calculé", "calculated"), L.T("Calculé par le site à partir des mandats et des votes ; pas un chiffre officiel.", "Calculated by the site from mandates and votes; not an official figure."))</p>
-@if (Model.PlusPresents.Count == 0)
-{
-    <p class="vide">@L.T("Pas assez de scrutins sur cette période pour classer les élus.", "Not enough votes over this period to rank elected officials.")</p>
-}
-else
-{
-    <div class="deux-colonnes">
-    @foreach (var (titre, liste) in new[] { (L.T("Les plus présents", "Most present"), Model.PlusPresents), (L.T("Les moins présents", "Least present"), Model.MoinsPresents) })
-    {
-        <div>
-            <h3 class="sous-titre-stats">@titre</h3>
-            <div class="table-wrap">
-                <table class="liste-textes">
-                    <thead><tr><th scope="col">@L.T("Élu", "Official")</th><th scope="col">@L.T("Groupe", "Group")</th><th scope="col" class="num">@L.T("Scrutins", "Votes")</th><th scope="col" class="num">Participation</th></tr></thead>
-                    <tbody>
-                    @foreach (var e in liste)
-                    {
-                        <tr>
-                            <td data-label="@L.T("Élu", "Official")"><a href="@L.Lien("/" + Chambres.Fiche(e.Chambre) + "/" + e.Slug)">@Noms.Html(e.Prenom, e.Nom)</a></td>
-                            <td data-label="@L.T("Groupe", "Group")"><span class="pastille" style="background:@(e.GroupeCouleur ?? "#8d949a")"></span> @(e.GroupeSigle ?? "—")</td>
-                            <td data-label="@L.T("Scrutins", "Votes")" class="num">@e.Scrutins.ToString("N0", fr)</td>
-                            <td data-label="Participation" class="num">@Pct(e.ParticipationPct)</td>
-                        </tr>
-                    }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    }
-    </div>
-}
+<p class="note-source">@L.T("Participation, présence, délégations et mises au point de chaque élu : la liste complète, sans seuil, avec le rang dans le tri.", "Participation, presence, proxy votes and vote corrections for every official: the complete list, without any threshold, with the rank in the sort order.")</p>
+<p><a class="bouton-lien" href="@Model.LienElus()">@L.T("Voir tous les élus et leurs taux", "See all officials and their rates")</a></p>
 
 <h2>@L.T("Activité par année", "Activity by year")</h2>
 @if (Model.Annees.Count == 0)

@@ -35,10 +35,6 @@ public class StatistiquesModel(IStatistiquesRepository stats, Langue langue) : P
     public ChiffresCles Chiffres { get; private set; } = new(0, 0, 0, 0, 0, null);
     public IReadOnlyList<StatGroupe> Groupes { get; private set; } = [];
     public IReadOnlyList<StatAnnee> Annees { get; private set; } = [];
-    public IReadOnlyList<StatElu> PlusPresents { get; private set; } = [];
-    public IReadOnlyList<StatElu> MoinsPresents { get; private set; } = [];
-    /// <summary>Seuil du classement : un élu doit avoir eu au moins ce nombre de scrutins à sa charge sur la période.</summary>
-    public const int MinScrutinsClassement = 20;
 
     /// <summary>En-têtes des colonnes de l'export dans la langue de la page.</summary>
     private IReadOnlyList<Colonne<StatGroupe>> ColonnesExport()
@@ -81,9 +77,18 @@ public class StatistiquesModel(IStatistiquesRepository stats, Langue langue) : P
 
         Chiffres = await stats.GetChiffresAsync(ChambreCode, du, au, EnsembleSeul);
         Annees = await stats.GetAnneesAsync(ChambreCode);
-        PlusPresents = await stats.GetElusAsync(ChambreCode, du, au, EnsembleSeul, true, 10, MinScrutinsClassement);
-        MoinsPresents = await stats.GetElusAsync(ChambreCode, du, au, EnsembleSeul, false, 10, MinScrutinsClassement);
         return Page();
+    }
+
+    /// <summary>Adresse de la liste complète des élus (/elus) avec la chambre, la période et l'option « votes sur l'ensemble » actives.</summary>
+    public string LienElus()
+    {
+        var q = new List<string> { "chambre=" + ChambreCle };
+        if (PeriodeCle is "annee" or "tout") q.Add("periode=" + PeriodeCle);
+        if (!string.IsNullOrEmpty(Du)) q.Add("du=" + Uri.EscapeDataString(Du));
+        if (!string.IsNullOrEmpty(Au)) q.Add("au=" + Uri.EscapeDataString(Au));
+        if (EnsembleSeul) q.Add("ensemble=1");
+        return Request.PathBase + "/elus?" + string.Join("&", q);
     }
 
     /// <summary>Adresse de la page avec les filtres actifs (pour l'export).</summary>
