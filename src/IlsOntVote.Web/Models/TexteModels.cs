@@ -79,6 +79,8 @@ public class Texte
     /// <summary>Le texte a été adopté (au moins en partie) sans vote, par l'article 49, alinéa 3.</summary>
     public bool Adopte493 { get; set; }
     public int NbScrutinsSenat { get; set; }
+    /// <summary>Décisions de séance du Sénat connues (avec ou sans scrutin public).</summary>
+    public int NbEtapesSenat { get; set; }
     public DateTime? DateAdoptionAn { get; set; }
     public DateTime? DateAdoptionSenat { get; set; }
 
@@ -150,8 +152,20 @@ public class Texte
         return Etat(en ? "NA" : "AN", en ? "the National Assembly" : "l'Assemblée nationale", NbScrutinsAn, AdopteAn, DateAdoptionAn, en);
     }
 
-    public EtatChambre EtatSenatEn(bool en) =>
-        Etat(en ? "Senate" : "Sénat", en ? "the Senate" : "le Sénat", NbScrutinsSenat, AdopteSenat, DateAdoptionSenat, en);
+    public EtatChambre EtatSenatEn(bool en)
+    {
+        // Aucun scrutin public sur l'ensemble, mais des décisions du Sénat sans scrutin public (main levée) : on le dit au lieu d'un « ? ».
+        if (NbScrutinsSenat == 0 && NbEtapesSenat > 0)
+        {
+            var culture = new System.Globalization.CultureInfo(en ? "en-GB" : "fr-FR");
+            var date = DateAdoptionSenat is null ? "" : (en ? " on " : " le ") + DateAdoptionSenat.Value.ToString("d MMMM yyyy", culture);
+            var infobulle = en
+                ? $"{(AdopteSenat ? "Adopted" : "Not adopted")} by the Senate{date} in a vote without roll call (show of hands): the detail of who voted what is not available."
+                : $"{(AdopteSenat ? "Adopté" : "Pas adopté")} par le Sénat{date} lors d'un vote sans scrutin public (main levée) : le détail « qui a voté quoi » n'est pas disponible.";
+            return new(en ? "Senate" : "Sénat", AdopteSenat ? "✓" : "✗", (AdopteSenat ? "ch-ok" : "ch-ko") + " ch-sans-scrutin", infobulle);
+        }
+        return Etat(en ? "Senate" : "Sénat", en ? "the Senate" : "le Sénat", NbScrutinsSenat, AdopteSenat, DateAdoptionSenat, en);
+    }
 
     private static EtatChambre Etat(string etiquette, string devant, int nb, bool adopte, DateTime? dateAdoption, bool en)
     {
@@ -178,6 +192,8 @@ public class Texte
 /// </summary>
 public sealed class EtapeTexte
 {
+    /// <summary>« AN » ou « SENAT ».</summary>
+    public string Chambre { get; set; } = "AN";
     public string CodeActe { get; set; } = "";
     public DateTime DateActe { get; set; }
     /// <summary>Libellé de la source : « adopté », « rejetée », « adoptée sans modification »…</summary>
@@ -195,7 +211,22 @@ public sealed class EtapeTexte
     public string Lecture => LectureEn(false);
 
     /// <summary>Nom de la lecture dans la langue demandée.</summary>
-    public string LectureEn(bool en) => EstMotion ? (en ? "Censure motion" : "Motion de censure") : en ? CodeActe.Split('-')[0] switch
+    public string LectureEn(bool en) => Chambre == "SENAT" ? LectureSenat(en) : LectureAn(en);
+
+    /// <summary>Lecture au Sénat d'après le code SEN&lt;type&gt;-DEC (type de lecture de DOSLEG : 1 première, 2 deuxième… 4 CMP, 5 nouvelle, 6 définitive).</summary>
+    private string LectureSenat(bool en) => CodeActe.Split('-')[0] switch
+    {
+        "SEN1" => en ? "1st reading" : "1re lecture",
+        "SEN2" => en ? "2nd reading" : "2e lecture",
+        "SEN3" => en ? "3rd reading" : "3e lecture",
+        "SEN4" => en ? "Joint committee text" : "Texte de la CMP",
+        "SEN5" => en ? "New reading" : "Nouvelle lecture",
+        "SEN6" => en ? "Final reading" : "Lecture définitive",
+        "SEN7" => en ? "4th reading" : "4e lecture",
+        _ => en ? "Reading" : "Lecture",
+    };
+
+    private string LectureAn(bool en) => EstMotion ? (en ? "Censure motion" : "Motion de censure") : en ? CodeActe.Split('-')[0] switch
     {
         "AN1" => "1st reading",
         "AN2" => "2nd reading",

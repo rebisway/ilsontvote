@@ -90,7 +90,7 @@
             {
                 <tr>
                     <td data-label="Date" class="col-date">@e.DateActe.ToString("d MMM yyyy", fr)</td>
-                    <td data-label="@L.T("Lecture", "Reading")">@e.LectureEn(L.Anglais)</td>
+                    <td data-label="@L.T("Lecture", "Reading")"><span class="chambre-tag @Chambres.ClasseTag(e.Chambre)">@Chambres.Court(e.Chambre, L.Anglais)</span> @e.LectureEn(L.Anglais)</td>
                     <td data-label="@L.T("Décision", "Decision")">@(e.EstMotion ? L.T("Votée par scrutin public", "Voted by roll call") : string.IsNullOrWhiteSpace(e.Resultat) ? "—" : char.ToUpper(LibellesEn.ResultatLecture(e.Resultat, L.Anglais)[0]) + LibellesEn.ResultatLecture(e.Resultat, L.Anglais)[1..])</td>
                     <td data-label="@L.T("Vote des élus", "Members' vote")">
                         @if (e.ScrutinId is not null)

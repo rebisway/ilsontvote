@@ -14,8 +14,60 @@ public sealed record TexteRow(
 /// promulgation, publication au Journal officiel, saisine et décision du Conseil constitutionnel.
 /// Cette base couvre aussi les textes d'origine Assemblée nationale qui ont été transmis au Sénat.
 /// </summary>
+/// <summary>Décision du Sénat en séance sur un texte : une lecture, avec le résultat (adopté, rejeté…) et sa date.</summary>
+public sealed record EtapeSenatRow(string Id, string TexteId, string CodeActe, DateOnly DateActe, string Resultat);
+
 public sealed class TexteSource
 {
+    /// <summary>
+    /// Résultats d'une décision du Sénat (colonne <c>oritxtcod</c> de la table <c>texte</c>) -> libellé affiché. Les codes viennent de la table
+    /// <c>oritxt</c> de DOSLEG : 2 « adopté avec modifications par le Sénat », 6 « sans modification », 9 « définitivement », 11 « adopté par le Sénat »,
+    /// 8 « rejeté par le Sénat », 27 « rejeté par question préalable », 31 « rejeté par exception d'irrecevabilité ». Le code 34 (« devenu résolution
+    /// du Sénat ») est écarté : une résolution n'est pas une loi. Les libellés d'adoption commencent par « adopt », comme ceux de l'Assemblée
+    /// (les agrégats du site reconnaissent « adopt% » comme adopté).
+    /// </summary>
+    private static readonly Dictionary<string, string> ResultatsSenat = new()
+    {
+        ["2"] = "adopté avec modifications", ["6"] = "adopté sans modification", ["9"] = "adopté définitivement", ["11"] = "adopté",
+        ["8"] = "rejeté", ["27"] = "rejeté (question préalable)", ["31"] = "rejeté (exception d'irrecevabilité)",
+    };
+
+    /// <summary>
+    /// Décisions de séance du Sénat (tables lecture, lecass, texte de DOSLEG) : un texte est rattaché à une lecture (<c>lecassidt</c>), qui
+    /// l'est à une loi ; la lecture du Sénat a le code assemblée « S ». La date est celle de la décision (<c>txtoritxtdat</c>).
+    /// </summary>
+    public IReadOnlyList<EtapeSenatRow> LireDecisionsSenat(string doslegSql)
+    {
+        var lectures = new Dictionary<string, (string Loi, string Type)>();
+        var lecass = new Dictionary<string, string>();          // lecassidt -> lecidt, pour les lectures du Sénat seulement
+        var textes = new List<Dictionary<string, string?>>();
+
+        foreach (var (table, l) in SenatSource.LignesCopy(doslegSql, "lecture", "lecass", "texte"))
+        {
+            switch (table)
+            {
+                case "lecture" when T(l["lecidt"]) is { } id && T(l["loicod"]) is { } loi && T(l["typleccod"]) is { } type:
+                    lectures[id] = (loi, type);
+                    break;
+                case "lecass" when T(l["codass"]) == "S" && T(l["lecassidt"]) is { } idt && T(l["lecidt"]) is { } lec:
+                    lecass[idt] = lec;
+                    break;
+                case "texte" when T(l["oritxtcod"]) is { } code && ResultatsSenat.ContainsKey(code):
+                    textes.Add(l);
+                    break;
+            }
+        }
+
+        var resultat = new List<EtapeSenatRow>();
+        foreach (var t in textes)
+        {
+            if (T(t["lecassidt"]) is not { } idt || !lecass.TryGetValue(idt, out var lecidt) || !lectures.TryGetValue(lecidt, out var lec)) continue;
+            if (T(t["texcod"]) is not { } texcod || Date(t["txtoritxtdat"]) is not { } date) continue;
+            resultat.Add(new EtapeSenatRow($"SEN-{texcod}", $"DOSLEG-{lec.Loi}", $"SEN{lec.Type}-DEC", date, ResultatsSenat[T(t["oritxtcod"])!]));
+        }
+        return resultat;
+    }
+
     public IReadOnlyList<TexteRow> LireTextes(string doslegSql)
     {
         var types = new Dictionary<string, (string Libelle, string Denomination)>();

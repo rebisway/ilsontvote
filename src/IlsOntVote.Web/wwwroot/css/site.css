@@ -430,10 +430,10 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
     .filtres { flex-direction: column; align-items: stretch; }
     .filtres .filtre, .filtres select, .filtres button { width: 100%; flex: none; min-height: 44px; }
     .case { min-height: 32px; }
-
+    /* barres de puces (groupes, périodes) : elles passent à la ligne */
     /* barres de puces (groupes, périodes) : défilement horizontal plutôt que 5 lignes de puces */
-    .barre-groupes { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
-    .puce { flex: none; min-height: 36px; }
+    .barre-groupes { flex-wrap: wrap; gap: 6px; }   /* passe à la ligne : pas de défilement horizontal sur téléphone */
+    .puce { min-height: 36px; padding: 4px 10px; }
 
     .chiffres { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .fiche-vote dl { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; }
@@ -623,3 +623,6 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
 
 /* Bilan de la fiche d'élu : le texte reste à côté du pourcentage tant que la place suffit ; sur téléphone il passe dessous. */
 @media (max-width: 720px) { .bilan-chiffre { flex-wrap: wrap; } }
+
+/* L'attribut hidden doit l'emporter sur « display: inline-flex » : la corbeille des listes d'élus reste cachée tant qu'aucun filtre n'est actif. */
+.effacer[hidden] { display: none !important; }

@@ -340,6 +340,67 @@ public sealed class ImportRepository(string connectionString)
             titres.Select(t => new { Id = "EP-" + t.Id, t.Titre }));
     }
 
+    // ------------------------------------------------------------------ Décisions du Sénat (DOSLEG)
+
+    /// <summary>
+    /// Remplace les décisions de séance du Sénat (chambre « SENAT » de texte_etapes). Règles :
+    ///  - seulement les LOIS : les propositions de résolution (européennes, article 34-1, règlement, commissions d'enquête, motions référendaires)
+    ///    ont leur propre page de votes ;
+    ///  - seulement à partir du premier scrutin public du Sénat de nos données : avant, on ne pourrait pas dire « sans scrutin public » ;
+    ///  - un scrutin public SUR L'ENSEMBLE du même texte à ±3 jours est lié à la décision ; sans lui, « sans scrutin public » n'est affirmé que
+    ///    si AUCUN scrutin sur l'ensemble du Sénat non rattaché à un texte n'a eu lieu à ±3 jours (il pourrait être le vote de ce texte : pas de « main levée »).
+    /// Retourne (écrites, liées à un scrutin, sans scrutin public).
+    /// </summary>
+    public async Task<(int Ecrites, int Liees, int SansScrutin)> EcrireEtapesSenatAsync(IReadOnlyList<EtapeSenatRow> etapes)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+        await using var tx = await conn.BeginTransactionAsync();
+
+        await conn.ExecuteAsync("DELETE FROM texte_etapes WHERE chambre = 'SENAT'", transaction: tx);
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO texte_etapes (id, dossier_an, senat_chemin, texte_id, code_acte, date_acte, resultat, scrutin_id, sans_scrutin_public, chambre)
+            SELECT v.id, NULL, NULL, v.texte_id, v.code, v.d, v.res, NULL, false, 'SENAT'
+              FROM unnest(@ids::text[], @textes::text[], @codes::text[], @dates::date[], @resultats::text[]) AS v(id, texte_id, code, d, res)
+              JOIN textes t ON t.id = v.texte_id
+             WHERE t.type_code NOT IN ('pac', 'pprp', 'ppre', 'ppra', 'enq', 'dape', 'mref')   -- résolutions et assimilés : pas des lois
+               AND v.d >= (SELECT min(date_scrutin) FROM scrutins WHERE chambre = 'SENAT')
+            ON CONFLICT (id) DO NOTHING
+            """, new
+            {
+                ids = etapes.Select(e => e.Id).ToArray(), textes = etapes.Select(e => e.TexteId).ToArray(),
+                codes = etapes.Select(e => e.CodeActe).ToArray(), dates = etapes.Select(e => e.DateActe.ToDateTime(TimeOnly.MinValue)).ToArray(),
+                resultats = etapes.Select(e => e.Resultat).ToArray(),
+            }, tx);
+
+        // Lien avec le scrutin public sur l'ensemble du même texte, le plus proche à ±3 jours.
+        await conn.ExecuteAsync(
+            """
+            UPDATE texte_etapes e SET scrutin_id = m.sid
+              FROM (SELECT DISTINCT ON (e2.id) e2.id AS eid, s.id AS sid
+                      FROM texte_etapes e2
+                      JOIN scrutins s ON s.chambre = 'SENAT' AND s.sur_ensemble AND s.texte_id = e2.texte_id
+                                     AND abs(s.date_scrutin - e2.date_acte) <= 3
+                     WHERE e2.chambre = 'SENAT'
+                     ORDER BY e2.id, abs(s.date_scrutin - e2.date_acte)) m
+             WHERE e.id = m.eid
+            """, transaction: tx);
+        // « Sans scrutin public » : aucun scrutin sur l'ensemble du Sénat NON RATTACHÉ à un texte à ±3 jours (un scrutin rattaché à un autre texte n'est
+        // pas celui-ci ; un scrutin sans texte pourrait l'être : dans ce cas on n'affirme rien).
+        await conn.ExecuteAsync(
+            """
+            UPDATE texte_etapes e SET sans_scrutin_public = true
+             WHERE e.chambre = 'SENAT' AND e.scrutin_id IS NULL
+               AND NOT EXISTS (SELECT 1 FROM scrutins s WHERE s.chambre = 'SENAT' AND s.sur_ensemble AND s.texte_id IS NULL AND abs(s.date_scrutin - e.date_acte) <= 3)
+            """, transaction: tx);
+        var (n, liees, sans) = await conn.QuerySingleAsync<(int, int, int)>(
+            "SELECT count(*)::int, count(*) FILTER (WHERE scrutin_id IS NOT NULL)::int, count(*) FILTER (WHERE sans_scrutin_public)::int FROM texte_etapes WHERE chambre = 'SENAT'",
+            transaction: tx);
+        await tx.CommitAsync();
+        return (n, liees, sans);
+    }
+
     // ------------------------------------------------------------------ Étapes de lecture (Dossiers législatifs de l'AN)
 
     /// <summary>

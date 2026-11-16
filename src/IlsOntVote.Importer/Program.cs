@@ -446,6 +446,11 @@ async Task<int> ImporterTextesAsync()
         var (rattaches, ambigus, sans) = await repo.RattacherScrutinsAsync();
         Console.WriteLine($"  Scrutins sur l'ensemble : {rattaches} rattachés, {ambigus} ambigus (laissés sans texte), {sans} sans texte.");
 
+        // Décisions du Sénat en séance (DOSLEG), avec ou sans scrutin public : après le rattachement, qui leur sert de repère.
+        var etapesSenat = new TexteSource().LireDecisionsSenat(doslegSql);
+        var (ecrites, liees, sansScrutin) = await repo.EcrireEtapesSenatAsync(etapesSenat);
+        Console.WriteLine($"  Décisions du Sénat : {ecrites} retenues sur {etapesSenat.Count} lues ({liees} avec scrutin public, {sansScrutin} sans scrutin public).");
+
         await repo.TerminerAsync(runId, true, rattaches, textes.Count, $"{ambigus} ambigus, {sans} sans texte");
         return 0;
     }

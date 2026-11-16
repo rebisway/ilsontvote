@@ -30,6 +30,8 @@ public static class LibellesEn
     private static readonly Dictionary<string, string> Resultats = new()
     {
         ["adopté"] = "Adopted", ["adoptée"] = "Adopted",
+        ["adopté avec modifications"] = "Adopted with amendments", ["adopté définitivement"] = "Definitively adopted",
+        ["rejeté (question préalable)"] = "Rejected (previous question)", ["rejeté (exception d'irrecevabilité)"] = "Rejected (motion of inadmissibility)",
         ["adopté sans modification"] = "Adopted without amendment", ["adoptée sans modification"] = "Adopted without amendment",
         ["modifié"] = "Amended", ["modifiée"] = "Amended",
         ["rejeté"] = "Rejected", ["rejetée"] = "Rejected",

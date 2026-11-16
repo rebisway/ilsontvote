@@ -40,17 +40,20 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
         -- « Adoptée » = adoptée, adoptée sans modification, modifiée (adoptée avec modifications) ou considérée comme définitive ; « rejetée » = non adoptée.
         GREATEST(max(s.date_scrutin), (SELECT max(e.date_acte) FROM texte_etapes e WHERE e.texte_id = t.id)) AS dernier_vote,
         count(s.id)::int AS nb_scrutins,
-        (SELECT count(*) FROM texte_etapes e WHERE e.texte_id = t.id)::int AS nb_etapes_an,
+        (SELECT count(*) FROM texte_etapes e WHERE e.texte_id = t.id AND e.chambre = 'AN')::int AS nb_etapes_an,
+        (SELECT count(*) FROM texte_etapes e WHERE e.texte_id = t.id AND e.chambre = 'SENAT')::int AS nb_etapes_senat,
         EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id AND e.article_49_3) AS adopte_493,
-        EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id AND e.resultat ILIKE ANY (ARRAY['adopt%', 'modifi%', 'consid%'])) AS adopte_an_etape,
+        EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id AND e.chambre = 'AN' AND e.resultat ILIKE ANY (ARRAY['adopt%', 'modifi%', 'consid%'])) AS adopte_an_etape,
         (COALESCE(bool_or(s.chambre = 'AN' AND s.sort LIKE 'adopt%'), false)
-         OR EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id AND e.resultat ILIKE ANY (ARRAY['adopt%', 'modifi%', 'consid%']))) AS adopte_an,
-        COALESCE(bool_or(s.chambre = 'SENAT' AND s.sort LIKE 'adopt%'), false) AS adopte_senat,
+         OR EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id AND e.chambre = 'AN' AND e.resultat ILIKE ANY (ARRAY['adopt%', 'modifi%', 'consid%']))) AS adopte_an,
+        (COALESCE(bool_or(s.chambre = 'SENAT' AND s.sort LIKE 'adopt%'), false)
+         OR EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id AND e.chambre = 'SENAT' AND e.resultat ILIKE 'adopt%')) AS adopte_senat,
         (count(s.id) FILTER (WHERE s.chambre = 'AN'))::int AS nb_scrutins_an,
         (count(s.id) FILTER (WHERE s.chambre = 'SENAT'))::int AS nb_scrutins_senat,
         GREATEST(max(s.date_scrutin) FILTER (WHERE s.chambre = 'AN' AND s.sort LIKE 'adopt%'),
-                 (SELECT max(e.date_acte) FROM texte_etapes e WHERE e.texte_id = t.id AND e.resultat ILIKE ANY (ARRAY['adopt%', 'modifi%', 'consid%']))) AS date_adoption_an,
-        max(s.date_scrutin) FILTER (WHERE s.chambre = 'SENAT' AND s.sort LIKE 'adopt%') AS date_adoption_senat
+                 (SELECT max(e.date_acte) FROM texte_etapes e WHERE e.texte_id = t.id AND e.chambre = 'AN' AND e.resultat ILIKE ANY (ARRAY['adopt%', 'modifi%', 'consid%']))) AS date_adoption_an,
+        GREATEST(max(s.date_scrutin) FILTER (WHERE s.chambre = 'SENAT' AND s.sort LIKE 'adopt%'),
+                 (SELECT max(e.date_acte) FROM texte_etapes e WHERE e.texte_id = t.id AND e.chambre = 'SENAT' AND e.resultat ILIKE 'adopt%')) AS date_adoption_senat
         """;
 
     // Colonnes triables : clé d'URL -> expression SQL. JAMAIS de SQL construit depuis l'URL.
@@ -118,7 +121,7 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
         using var conn = db.CreateConnection();
         return (await conn.QueryAsync<EtapeTexte>(
             """
-            SELECT code_acte, date_acte, resultat, scrutin_id, sans_scrutin_public, article_49_3
+            SELECT chambre, code_acte, date_acte, resultat, scrutin_id, sans_scrutin_public, article_49_3
               FROM texte_etapes WHERE texte_id = @texteId ORDER BY date_acte, code_acte
             """, new { texteId })).ToList();
     }
@@ -179,9 +182,9 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
                    FROM textes t LEFT JOIN scrutins s ON s.texte_id = t.id AND (@chambre IS NULL OR s.chambre = @chambre)
                   WHERE (recherche_norm(t.titre) ILIKE ALL (@mots) OR recherche_norm(t.titre_en) ILIKE ALL (@mots))   -- aussi dans le titre anglais ; tirets = espaces
                     -- Au moins un vote nominatif, OU des étapes de lecture à l'Assemblée sans scrutin public (main levée) : ces textes
-                    -- ne sont pas omis faute de nominatif. Les étapes sont des étapes de l'Assemblée : exclues si l'on filtre Sénat / UE.
+                    -- ne sont pas omis faute de nominatif. Les étapes suivent le filtre de chambre (Assemblée ou Sénat ; aucune pour l'UE).
                     AND (s.id IS NOT NULL
-                         OR (@chambre IS NULL OR @chambre = 'AN') AND EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id))
+                         OR EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id AND (@chambre IS NULL OR e.chambre = @chambre)))
                   GROUP BY t.id
                   {periode}
              ), classe AS (
