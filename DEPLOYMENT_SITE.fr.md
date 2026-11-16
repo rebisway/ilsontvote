@@ -57,7 +57,7 @@ vide, aucun administrateur, import ancien… et `NON CONFIGURÉ` si quelque chos
 
 | Besoin | Commande |
 |---|---|
-| Sauvegarde (14 jours gardés) | `sudo bash deploy/backup-db.sh` (à mettre en crontab : `15 3 * * *`) |
+| Sauvegarde (14 jours gardés, dans `/home/ubuntu/backups/ilsontvote`) | `sudo bash deploy/backup-db.sh` (à mettre en crontab : `15 3 * * *`) |
 | Remise à zéro des statistiques | `deploy/reset-stats.sh [AAAA-MM-JJ] [--yes]` |
 | Migrations seules | `sudo bash deploy/migrate.sh` |
 | État | `systemctl status ilsontvote ilsontvote-import.timer` · `journalctl -u ilsontvote -n 50` |

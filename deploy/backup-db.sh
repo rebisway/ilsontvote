@@ -4,7 +4,8 @@
 # ce qu'il faut vraiment protéger : les comptes (AspNetUsers), les textes à la une (scrutins.featured*) et les statistiques.
 #   Restauration :  sudo -u postgres pg_restore -d ilsontvote --clean --if-exists <fichier.dump>
 set -e
-DEST=/var/backups/ilsontvote
+# Dossier distinct de celui de rebisway (/home/ubuntu/backups/postgres). Modifiable : BACKUP_DIR=/autre/dossier backup-db.sh
+DEST="${BACKUP_DIR:-/home/ubuntu/backups/ilsontvote}"
 mkdir -p "$DEST"
 FICHIER="$DEST/ilsontvote-$(date +%Y%m%d-%H%M).dump"
 sudo -u postgres pg_dump -Fc ilsontvote > "$FICHIER"

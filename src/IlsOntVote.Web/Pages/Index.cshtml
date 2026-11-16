@@ -6,11 +6,13 @@
     var fr = L.Culture;
 }
 
+<div class="hero">
 <section class="intro">
     <h1>@L.T("Qui a voté quoi ?", "Who voted what?")</h1>
     <p>@L.TH("Chaque point est un élu. Pour chaque texte, voyez en un coup d'œil qui a voté <strong class=\"c-pour\">pour</strong>, <strong class=\"c-contre\">contre</strong>, s'est <strong class=\"c-abstention\">abstenu</strong>, ou n'a pas pris part au vote (<strong class=\"c-absent\">absent</strong>).",
         "Each dot is an elected official. For each text, see at a glance who voted <strong class=\"c-pour\">for</strong>, <strong class=\"c-contre\">against</strong>, <strong class=\"c-abstention\">abstained</strong>, or did not take part in the vote (<strong class=\"c-absent\">absent</strong>).")</p>
 </section>
+</div>
 
 <div class="colonnes">
 @foreach (var section in Model.Sections)

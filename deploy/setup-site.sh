@@ -26,9 +26,9 @@ else
 fi
 
 # 2. Dossiers : le site, l'importeur, l'état de l'importeur (jeux téléchargés), les sauvegardes.
-mkdir -p /var/www/ilsontvote_app /var/www/ilsontvote_importer /var/lib/ilsontvote-import /var/backups/ilsontvote
+mkdir -p /var/www/ilsontvote_app /var/www/ilsontvote_importer /var/lib/ilsontvote-import /home/ubuntu/backups/ilsontvote
 chown www-data:www-data /var/www/ilsontvote_app /var/www/ilsontvote_importer /var/lib/ilsontvote-import
-chmod 700 /var/backups/ilsontvote
+chmod 700 /home/ubuntu/backups/ilsontvote
 
 # 3. nginx + certificat. Les noms de domaine sont injectés dans le modèle.
 sed -e "s/__CANONICAL__/$CANONICAL/g" -e "s/__ALIASES__/$ALIASES/g" "$HERE/nginx-ilsontvote" > /etc/nginx/sites-available/ilsontvote
@@ -38,6 +38,7 @@ systemctl reload nginx
 
 DOMAINS="-d $CANONICAL"
 for a in $ALIASES; do DOMAINS="$DOMAINS -d $a"; done
-certbot --nginx $DOMAINS
+# --keep-until-expiring : un certificat encore valide est conservé sans poser de question (le script peut être relancé).
+certbot --nginx --keep-until-expiring $DOMAINS
 
 echo "Terminé. Maintenant : appsettings.Local.json (même mot de passe de base), puis update-ilsontvote.sh (voir DEPLOYMENT_SITE.fr.md)."
