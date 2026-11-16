@@ -232,9 +232,9 @@ tr[hidden] { display: none; }
 /* ---- Fiche d'un élu ---- */
 .fiche-tete h1 { margin: 18px 0 4px; font-size: clamp(1.6rem, 3.5vw, 2.3rem); letter-spacing: -0.03em; }
 .fiche-tete .meta { margin: 0 0 8px; color: var(--ink-soft); }
-.bilan-chiffre { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; }
+.bilan-chiffre { display: flex; align-items: baseline; gap: 12px; margin: 0 0 12px; }
 .bilan-chiffre strong { font-size: 2.4rem; letter-spacing: -0.03em; line-height: 1; }
-.bilan-chiffre span { color: var(--ink-soft); max-width: 620px; }
+.bilan-chiffre span { color: var(--ink-soft); }
 .barre-empilee { display: flex; height: 16px; border-radius: 999px; overflow: hidden; background: var(--absent); }
 .barre-empilee span { display: block; height: 100%; }
 .barre-empilee .b-pour { background: var(--pour); }
@@ -608,3 +608,18 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
 .definitions dd { margin: 0; color: var(--ink-soft); }
 .definitions .note-source { margin: 0; }
 @media (max-width: 720px) { .definitions dl > div { grid-template-columns: 1fr; gap: 0; } }
+
+/* Fiche d'élu : participation mois par mois (barres SVG). Teintes neutres : les couleurs de vote restent réservées aux positions. */
+.courbe { margin: 8px 0 28px; }
+.courbe-svg { width: 100%; height: auto; display: block; overflow: visible; margin-top: 28px; }
+.courbe-grille { stroke: var(--line); stroke-width: 1; }
+.courbe-axe { fill: var(--ink-soft); font-size: 10px; }
+.courbe-presence { fill: var(--ink-soft); }
+.courbe-delegation { fill: var(--tag-delegation); }
+.courbe-mois:hover rect { opacity: 0.75; }
+.legende-courbe i { border-radius: 3px; width: 14px; height: 10px; }
+.legende-courbe .l-presence { background: var(--ink-soft); }
+.legende-courbe .l-delegation { background: var(--tag-delegation); }
+
+/* Bilan de la fiche d'élu : le texte reste à côté du pourcentage tant que la place suffit ; sur téléphone il passe dessous. */
+@media (max-width: 720px) { .bilan-chiffre { flex-wrap: wrap; } }

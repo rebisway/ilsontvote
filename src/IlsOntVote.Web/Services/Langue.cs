@@ -75,7 +75,7 @@ public sealed class Langue(IHttpContextAccessor accessor)
     }
 
     /// <summary>Vrai si la langue la plus prioritaire de l'en-tête n'est pas le français (« fr-FR,fr;q=0.9,en;q=0.8 » -> faux). En-tête absent -> faux.</summary>
-    internal static bool PrefereAnglais(string entete)
+    public static bool PrefereAnglais(string entete)
     {
         string? meilleure = null; var qMax = -1.0;
         foreach (var part in entete.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))

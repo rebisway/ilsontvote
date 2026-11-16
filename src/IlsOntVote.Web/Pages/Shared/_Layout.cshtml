@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script>document.documentElement.classList.add("js");try{var th=localStorage.getItem("theme");if(th==="dark"||th==="light")document.documentElement.setAttribute("data-theme",th);}catch(e){}</script>
+    <script>document.documentElement.classList.add("js");var th="dark";try{th=localStorage.getItem("theme")==="light"?"light":"dark";}catch(e){}document.documentElement.setAttribute("data-theme",th);/* sombre par défaut ; le bouton ◐ mémorise un choix clair */</script>
     <script>try{if(localStorage.getItem("ordreNom")==="nom-prenom")document.documentElement.setAttribute("data-ordre","nom-prenom");}catch(e){}</script>
     <title>@(ViewData["Title"] is string t && t.Length > 0 ? $"{t} — Ils ont voté" : L.T("Ils ont voté — qui a voté quoi à l'Assemblée nationale et au Sénat", "Ils ont voté (They voted) — who voted what in the French National Assembly, Senate and European Parliament"))</title>
     <meta name="description" content="@(ViewData["Description"] ?? L.T("Pour chaque grand texte de loi, voyez d'un coup d'œil le vote de chaque député et de chaque sénateur : pour, contre, abstention, absent.", "For each major law, see at a glance how every French deputy, senator and MEP voted: for, against, abstention, absent."))" />

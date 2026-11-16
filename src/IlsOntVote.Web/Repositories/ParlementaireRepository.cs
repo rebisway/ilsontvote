@@ -14,6 +14,12 @@ public interface IParlementaireRepository
 
     Task<BilanParlementaire> GetBilanAsync(string parlementaireId, string chambre);
 
+    /// <summary>Périodes de mandat de l'élu (les périodes contiguës sont fusionnées), de la plus ancienne à la plus récente.</summary>
+    Task<IReadOnlyList<PeriodeMandat>> GetMandatsAsync(string parlementaireId);
+
+    /// <summary>Participation mois par mois (vue précalculée) ; liste vide tant que les statistiques ne sont pas calculées.</summary>
+    Task<IReadOnlyList<PointMensuel>> GetParticipationMensuelleAsync(string parlementaireId);
+
     /// <summary>Historique de vote sur les scrutins où le parlementaire siégeait (absences incluses).</summary>
     Task<Resultats<LigneVote>> GetVotesAsync(string parlementaireId, string chambre, bool surEnsembleSeulement, int page, int parPage,
         DateTime? du = null, DateTime? au = null, string? recherche = null, string? filtreVote = null);
@@ -107,15 +113,50 @@ public sealed class ParlementaireRepository(DapperContext db) : IParlementaireRe
             """, new { parlementaireId, chambre });
     }
 
+    public async Task<IReadOnlyList<PeriodeMandat>> GetMandatsAsync(string parlementaireId)
+    {
+        using var conn = db.CreateConnection();
+        var brut = (await conn.QueryAsync<PeriodeMandat>(
+            "SELECT date_debut, date_fin FROM mandats WHERE parlementaire_id = @parlementaireId ORDER BY date_debut", new { parlementaireId })).ToList();
+        // Fusion : une période qui commence au plus tard le lendemain de la fin de la précédente prolonge celle-ci (législatures qui s'enchaînent).
+        var fusion = new List<PeriodeMandat>();
+        foreach (var m in brut)
+        {
+            var dernier = fusion.Count > 0 ? fusion[^1] : null;
+            if (dernier is not null && (dernier.DateFin is null || m.DateDebut <= dernier.DateFin.Value.AddDays(1)))
+            {
+                if (dernier.DateFin is not null && (m.DateFin is null || m.DateFin > dernier.DateFin)) dernier.DateFin = m.DateFin;
+            }
+            else fusion.Add(new PeriodeMandat { DateDebut = m.DateDebut, DateFin = m.DateFin });
+        }
+        return fusion;
+    }
+
+    public async Task<IReadOnlyList<PointMensuel>> GetParticipationMensuelleAsync(string parlementaireId)
+    {
+        using var conn = db.CreateConnection();
+        // Une vue créée « WITH NO DATA » fait échouer toute lecture tant qu'elle n'est pas calculée : on répond « rien » plutôt qu'une erreur.
+        if (!await conn.ExecuteScalarAsync<bool>("SELECT COALESCE((SELECT ispopulated FROM pg_matviews WHERE matviewname = 'stats_participation_elu'), false)"))
+            return [];
+        // La vue est par élu et par jour : somme par mois civil. Les mois sans scrutin à sa charge n'ont pas de ligne (et pas de barre).
+        return (await conn.QueryAsync<PointMensuel>(
+            """
+            SELECT date_trunc('month', date_scrutin)::date AS mois,
+                   sum(scrutins)::int AS scrutins, sum(votants)::int AS votants, sum(delegations)::int AS delegations
+              FROM stats_participation_elu
+             WHERE parlementaire_id = @parlementaireId
+             GROUP BY 1 HAVING sum(scrutins) > 0
+             ORDER BY 1
+            """, new { parlementaireId })).ToList();
+    }
+
     public async Task<Resultats<LigneVote>> GetVotesAsync(
         string parlementaireId, string chambre, bool surEnsembleSeulement, int page, int parPage,
         DateTime? du = null, DateTime? au = null, string? recherche = null, string? filtreVote = null)
     {
         using var conn = db.CreateConnection();
         page = Math.Max(1, page);
-        // Recherche : chaque mot doit apparaître dans le titre (français ou anglais), insensible à la casse ; jokers LIKE échappés.
-        var mots = (recherche ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Take(6).Select(m => "%" + m.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%").ToArray();
+        var mots = RechercheSql.Mots(recherche);   // chaque mot dans le titre (français ou anglais) ; tirets et apostrophes = espaces
         // Liste blanche : une valeur inconnue = pas de filtre (jamais de SQL construit depuis l'adresse).
         var vote = filtreVote is "pour" or "contre" or "abstention" or "non_votant" or "absent" or "delegation" or "mise_au_point" ? filtreVote : null;
 
@@ -127,7 +168,7 @@ public sealed class ParlementaireRepository(DapperContext db) : IParlementaireRe
                AND (NOT @ensemble OR s.sur_ensemble)
                AND (@du::date IS NULL OR s.date_scrutin >= @du::date)
                AND (@au::date IS NULL OR s.date_scrutin <= @au::date)
-               AND (cardinality(@mots) = 0 OR s.titre ILIKE ALL (@mots) OR s.titre_en ILIKE ALL (@mots))
+               AND (cardinality(@mots) = 0 OR translate(s.titre, '-''’', '   ') ILIKE ALL (@mots) OR translate(s.titre_en, '-''’', '   ') ILIKE ALL (@mots))
                -- Filtre de vote : « absent » = pas de ligne dans votes (les absents ne sont pas stockés) ; délégation et mise au point
                -- sont des attributs d'un vote existant, indépendants de la position.
                AND (@vote::text IS NULL OR CASE @vote

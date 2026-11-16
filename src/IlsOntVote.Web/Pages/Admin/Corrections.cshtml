@@ -1,0 +1,47 @@
+@page
+@model IlsOntVote.Web.Pages.Admin.CorrectionsModel
+@{
+    ViewData["Title"] = "Corrections manuelles";
+    ViewData["NoIndex"] = true;
+    var fr = new System.Globalization.CultureInfo("fr-FR");
+}
+<partial name="_AdminNav" />
+<h1 class="titre-page">Corrections manuelles</h1>
+<p class="chapo">Rattachement d'un scrutin à un texte de loi, quand le calcul automatique se trompe ou reste muet. Une correction prime sur le calcul et est rejouée à chaque import. Le motif est obligatoire. Laisser le texte vide = ne pas rattacher le scrutin.</p>
+
+@if (!string.IsNullOrEmpty(Model.Message)) { <p class="note-source" role="status">@Model.Message</p> }
+
+<h2>Ajouter ou remplacer</h2>
+<form method="post" asp-page-handler="Ajouter" class="filtres">
+    <input class="filtre" type="text" name="scrutinId" placeholder="Identifiant du scrutin (ex. VTANR5L17V5451)" aria-label="Identifiant du scrutin" required />
+    <input class="filtre" type="text" name="texteId" placeholder="Identifiant du texte (ex. DOSLEG-76127), vide = non rattaché" aria-label="Identifiant du texte" />
+    <input class="filtre" type="text" name="motif" placeholder="Motif de la correction" aria-label="Motif" maxlength="300" required />
+    <button type="submit" class="bouton">Enregistrer</button>
+</form>
+
+<h2>Corrections en vigueur</h2>
+@if (Model.Corrections.Count == 0)
+{
+    <p class="vide">Aucune correction manuelle.</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table class="liste-textes">
+            <thead><tr><th>Scrutin</th><th>Texte</th><th>Motif</th><th>Par</th><th>Le</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var c in Model.Corrections)
+            {
+                <tr>
+                    <td data-label="Scrutin"><a href="/scrutin/@c.ScrutinId">@c.ScrutinId</a><br /><span class="note">@c.ScrutinTitre</span></td>
+                    <td data-label="Texte">@if (c.TexteId is null) { <em>non rattaché</em> } else { <a href="/texte/@c.TexteId">@c.TexteTitre</a> }</td>
+                    <td data-label="Motif">@c.Motif</td>
+                    <td data-label="Par">@c.Auteur</td>
+                    <td data-label="Le" class="nowrap">@c.CreeLe.ToString("d MMM yyyy", fr)</td>
+                    <td><form method="post" asp-page-handler="Supprimer"><input type="hidden" name="scrutinId" value="@c.ScrutinId" /><button type="submit" class="bouton petit secondaire">Supprimer</button></form></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}

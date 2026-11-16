@@ -114,15 +114,14 @@ public sealed class ScrutinRepository(DapperContext db) : IScrutinRepository
         page = Math.Max(1, page);
 
         // Recherche : chaque mot doit apparaître dans le titre (insensible à la casse).
-        var mots = (recherche ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Take(6).Select(m => "%" + m.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%").ToArray();
+        var mots = RechercheSql.Mots(recherche);   // tirets et apostrophes = espaces
 
         var where = """
             -- Sans filtre = « Assemblée et Sénat » : le Parlement européen ne s'affiche que si on le choisit explicitement.
             WHERE ((@chambre IS NULL AND chambre <> 'UE') OR chambre = @chambre)
               AND (NOT @ensemble OR sur_ensemble)
               AND NOT (nominatif_incomplet AND @ensemble)
-              AND (titre ILIKE ALL (@mots) OR titre_en ILIKE ALL (@mots))   -- recherche aussi dans le titre anglais
+              AND (translate(titre, '-''’', '   ') ILIKE ALL (@mots) OR translate(titre_en, '-''’', '   ') ILIKE ALL (@mots))   -- aussi dans le titre anglais ; tirets = espaces
               -- Période : bornes incluses ; `date_scrutin` est une date (sans heure).
               AND (@du::date IS NULL OR date_scrutin >= @du::date)
               AND (@au::date IS NULL OR date_scrutin <= @au::date)

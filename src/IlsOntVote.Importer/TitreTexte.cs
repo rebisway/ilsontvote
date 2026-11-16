@@ -46,6 +46,18 @@ public static partial class TitreTexte
         return Normaliser(t.TrimEnd('.'));
     }
 
+    [GeneratedRegex(@"\b(projet|proposition) de loi\b.*$", Opt)] private static partial Regex TexteCite();
+
+    /// <summary>
+    /// Clé du texte cité à la fin de l'intitulé d'un scrutin qui n'est pas un vote sur l'ensemble (« l'amendement n° 12 … à l'article 7 de la
+    /// proposition de loi visant à … (première lecture). ») ; null si l'intitulé ne cite aucun projet ni proposition de loi.
+    /// </summary>
+    public static string? CleTexteCite(string titre)
+    {
+        var m = TexteCite().Match(titre);
+        return m.Success ? CleScrutin(m.Value) : null;
+    }
+
     /// <summary>Clé d'un texte : type (« projet de loi ») + intitulé (« relatif à… »).</summary>
     public static string CleTexte(string typeLibelle, string intitule) => Normaliser($"{typeLibelle} {intitule}");
 

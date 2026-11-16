@@ -198,9 +198,8 @@ public sealed class ImportRepository(string connectionString)
         var texteLies = new List<string>();
         foreach (var (id, titre) in autres)
         {
-            var m = System.Text.RegularExpressions.Regex.Match(titre, @"\b(projet|proposition) de loi\b.*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            if (!m.Success) continue;
-            var cle = TitreTexte.CleScrutin(m.Value);
+            var cle = TitreTexte.CleTexteCite(titre);
+            if (cle is null) continue;
             var candidats = parTitre[cle].Concat(parIntitule[cle]).DistinctBy(t => t.Id).ToList();
             if (candidats.Count > 1) candidats = candidats.Where(t => t.Etat != "02").ToList();
             if (candidats.Count > 1 && candidats.Any(t => t.Promulgation is not null))
@@ -212,6 +211,15 @@ public sealed class ImportRepository(string connectionString)
             "UPDATE scrutins s SET texte_lie_id = v.t FROM unnest(@ids::text[], @tids::text[]) AS v(i, t) WHERE s.id = v.i",
             new { ids = idsLies.ToArray(), tids = texteLies.ToArray() }, tx);
         Console.WriteLine($"  scrutins liés à un texte (amendements, articles…) : {idsLies.Count} sur {autres.Count}");
+
+        // Corrections manuelles (migration 020) : elles priment sur le calcul ci-dessus et sont rejouées à CHAQUE import. texte_id NULL = « ne pas
+        // rattacher » : la colonne est alors remise à NULL, ce que le calcul automatique n'aurait pas fait.
+        var corrigees = await conn.ExecuteAsync(
+            """
+            UPDATE scrutins s SET texte_id = c.texte_id FROM corrections_rattachement c WHERE c.scrutin_id = s.id AND s.sur_ensemble;
+            UPDATE scrutins s SET texte_lie_id = c.texte_id FROM corrections_rattachement c WHERE c.scrutin_id = s.id AND NOT s.sur_ensemble;
+            """, transaction: tx);
+        if (corrigees > 0) Console.WriteLine($"  corrections manuelles appliquées : {corrigees}");
         await tx.CommitAsync();
 
         return (ids.Count, ambigus, sans);

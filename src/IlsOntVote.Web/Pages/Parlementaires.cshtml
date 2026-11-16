@@ -9,6 +9,7 @@
 }
 
 <h1 class="titre-page">@ViewData["Title"]</h1>
+<p><a class="bouton-lien" href="@L.Lien("/elus")?chambre=@Chambres.Filtre(Model.Chambre)">@L.T("Taux de présence de tous les élus", "Attendance rates of all officials")</a></p>
 
 @{
     // Anneau de répartition par groupe (SVG) : un segment par groupe, couleur du groupe. Technique du cercle à tirets : chaque segment est

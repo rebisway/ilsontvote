@@ -186,6 +186,32 @@ public sealed class BilanParlementaire
     public double TauxParticipation => Total == 0 ? 0 : 100.0 * Participations / Total;
 }
 
+/// <summary>
+/// Période de mandat d'un élu (début, fin ; fin vide = en cours). Début = date de prise de fonction (pour l'AN : celle du siège effectif,
+/// pas la date de l'élection, qui précède pour un suppléant).
+/// </summary>
+public sealed class PeriodeMandat
+{
+    public DateTime DateDebut { get; set; }
+    public DateTime? DateFin { get; set; }
+}
+
+/// <summary>
+/// Participation d'un élu sur un mois : scrutins à sa charge (mandat en cours, hors « non votant » déclaré), votes exprimés et dont par délégation.
+/// Mêmes définitions que la page des taux (/elus).
+/// </summary>
+public sealed class PointMensuel
+{
+    public DateTime Mois { get; set; }
+    public int Scrutins { get; set; }
+    public int Votants { get; set; }
+    public int Delegations { get; set; }
+    /// <summary>Part des scrutins où un vote a été exprimé (par l'élu ou par délégation), en pourcentage.</summary>
+    public double ParticipationPct => Scrutins == 0 ? 0 : 100.0 * Votants / Scrutins;
+    /// <summary>Part des scrutins où l'élu a voté lui-même (sans délégation).</summary>
+    public double PresencePct => Scrutins == 0 ? 0 : 100.0 * (Votants - Delegations) / Scrutins;
+}
+
 /// <summary>Une ligne de l'historique de vote d'un parlementaire.</summary>
 /// <summary>Une ligne de l'historique de vote d'un élu (absence incluse : un scrutin où il siégeait sans voter).</summary>
 public sealed class LigneVote

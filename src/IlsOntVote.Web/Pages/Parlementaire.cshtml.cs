@@ -21,6 +21,10 @@ public class ParlementaireModel(IParlementaireRepository parlementaires) : PageM
     public Parlementaire Elu { get; private set; } = null!;
     /// <summary>Participation sur les scrutins publics tenus pendant ses mandats (scrutins aux données incomplètes exclus).</summary>
     public BilanParlementaire Bilan { get; private set; } = new();
+    /// <summary>Périodes de mandat (début = prise de fonction), affichées sous le nom : elles expliquent un nombre de scrutins parfois faible.</summary>
+    public IReadOnlyList<PeriodeMandat> Mandats { get; private set; } = [];
+    /// <summary>Participation mois par mois (graphique de la fiche).</summary>
+    public IReadOnlyList<PointMensuel> Mensuel { get; private set; } = [];
     public Resultats<LigneVote> Votes { get; private set; } = new([], 0, 1, ParPage);
     // Défaut : 40 lignes par page (cf. ChoixLignes).
 
@@ -51,6 +55,8 @@ public class ParlementaireModel(IParlementaireRepository parlementaires) : PageM
 
         Elu = elu;
         Bilan = await parlementaires.GetBilanAsync(elu.Id, chambre);
+        Mensuel = await parlementaires.GetParticipationMensuelleAsync(elu.Id);
+        Mandats = await parlementaires.GetMandatsAsync(elu.Id);
         var (du, au) = Periode.Lire(Du, Au);
         Votes = await parlementaires.GetVotesAsync(elu.Id, chambre, !ToutAfficher, NumeroPage, ParPageEff, du, au, Q, Vote);
         return Page();

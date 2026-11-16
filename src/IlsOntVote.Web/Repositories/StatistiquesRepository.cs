@@ -177,9 +177,7 @@ public sealed class StatistiquesRepository(DapperContext db) : IStatistiquesRepo
         if (!await cx.ExecuteScalarAsync<bool>("SELECT COALESCE((SELECT ispopulated FROM pg_matviews WHERE matviewname = 'stats_participation_elu'), false)"))
             return new Resultats<StatEluDetail>([], 0, 1, parPage == 0 ? 1 : parPage);
         // Recherche : chaque mot dans « prénom nom » ou le sigle du groupe ; tirets et apostrophes comptent comme des espaces.
-        var mots = (recherche ?? "").Replace('-', ' ').Replace('\'', ' ').Replace('’', ' ')
-            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Take(6).Select(m => "%" + m.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%").ToArray();
+        var mots = RechercheSql.Mots(recherche);
 
         // Somme des jours de la période (vue par élu et par jour, cf. migration 019). Aucun seuil : tout élu ayant eu au moins un scrutin
         // à sa charge figure dans la liste ; le nombre de scrutins est affiché à côté de chaque taux pour que le lecteur juge de son poids.
