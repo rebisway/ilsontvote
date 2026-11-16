@@ -81,10 +81,14 @@
         var items = document.querySelectorAll('#elus li');
         var puces = document.querySelectorAll('#barre-groupes .puce');
         var groupe = '';
+        // Recherche tolérante : sans accents ni casse, tirets et apostrophes = espaces (« lot et garonne » trouve « Lot-et-Garonne »),
+        // et chaque mot saisi doit apparaître (dans n'importe quel ordre).
+        function norm(t) { return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[-'’]/g, ' ').replace(/\s+/g, ' ').trim(); }
+        items.forEach(function (li) { li.dataset.n = norm(li.dataset.q); });
         function appliquer() {
-            var q = input.value.trim().toLowerCase();
+            var q = norm(input.value), mots = q ? q.split(' ') : [];
             items.forEach(function (li) {
-                var ok = (!groupe || li.dataset.groupe === groupe) && (!q || li.dataset.q.indexOf(q) !== -1);
+                var ok = (!groupe || li.dataset.groupe === groupe) && mots.every(function (m) { return li.dataset.n.indexOf(m) !== -1; });
                 li.hidden = !ok;
             });
             // La corbeille n'apparaît que si un filtre (recherche ou groupe) est actif.
