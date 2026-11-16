@@ -5,7 +5,8 @@ namespace IlsOntVote.Importer;
 
 /// <summary>Une décision prise en séance publique à l'Assemblée sur un texte (lecture), avec ou sans scrutin public (table texte_etapes).</summary>
 public sealed record EtapeRow(
-    string Id, string DossierAn, string CodeActe, DateOnly DateActe, string? Resultat, string? ScrutinId, bool SansScrutinPublic);
+    string Id, string DossierAn, string CodeActe, DateOnly DateActe, string? Resultat, string? ScrutinId, bool SansScrutinPublic,
+    string? SenatChemin = null);
 
 /// <summary>
 /// Jeu « Dossiers législatifs » de l'Assemblée nationale : pour chaque dossier, ses actes. On ne retient que les actes « Décision »
@@ -35,9 +36,20 @@ public static partial class DossiersAnSource
             var dossierId = d.TryGetProperty("uid", out var u) ? u.GetString() : null;
             if (string.IsNullOrEmpty(dossierId)) continue;
 
+            // Dossier du Sénat cité par le dossier AN (« …/pjl24-123.html » -> « pjl24-123 ») : égal au signet que porte l'adresse
+            // du dossier Sénat de nos textes (56 dossiers sur 168 non rattachés autrement, tous retrouvés).
+            string? senat = null;
+            if (d.TryGetProperty("titreDossier", out var td) && td.ValueKind == JsonValueKind.Object
+                && td.TryGetProperty("senatChemin", out var sc) && sc.ValueKind == JsonValueKind.String)
+            {
+                var chemin = sc.GetString()!.TrimEnd('/');
+                senat = chemin[(chemin.LastIndexOf('/') + 1)..].Replace(".html", "");
+                if (senat.Length == 0) senat = null;
+            }
+
             var trouvees = new List<EtapeRow>();
             Parcourir(d, dossierId, trouvees);
-            foreach (var e in trouvees) yield return e;
+            foreach (var e in trouvees) yield return e with { SenatChemin = senat };
         }
     }
 

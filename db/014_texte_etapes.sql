@@ -6,13 +6,14 @@
 -- les votes à main levée ne sont jamais omis faute de nominatif).
 --
 -- `texte_id` est NULL tant que le dossier n'est pas rattaché à un texte (rattachement : adresse du dossier AN du texte, ou scrutin
--- public cité par un acte du même dossier). Rempli à l'import.
+-- public cité par un acte du même dossier, ou dossier du Sénat cité par le dossier AN). Rempli à l'import.
 
 BEGIN;
 
 CREATE TABLE texte_etapes (
     id                  text PRIMARY KEY,                 -- identifiant de l'acte AN, ex. L17-VD229940DEC
     dossier_an          text NOT NULL,                    -- identifiant du dossier AN, ex. DLR5L17N50450
+    senat_chemin        text,                             -- identifiant du dossier au Sénat cité par le dossier AN (ex. pjl24-123) : clé de rattachement
     texte_id            text REFERENCES textes (id) ON DELETE SET NULL,
     code_acte           text NOT NULL,                    -- AN1-DEBATS-DEC (1re lecture), AN2-…, ANLUNI-… (lecture unique), ANNLEC-…, ANLDEF-…
     date_acte           date NOT NULL,

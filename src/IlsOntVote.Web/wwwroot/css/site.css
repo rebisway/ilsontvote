@@ -506,3 +506,6 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
 .deux-colonnes > div { min-width: 0; }
 .sous-titre-stats { margin: 12px 0 8px; font-size: 1.02rem; }
 @media (max-width: 900px) { .deux-colonnes { grid-template-columns: minmax(0, 1fr); } }
+
+/* Étiquette de chambre dont le vote a eu lieu SANS scrutin public (main levée) : même symbole, bordure pointillée */
+.tag-ch.ch-sans-scrutin { border-style: dashed; }

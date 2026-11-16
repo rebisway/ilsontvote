@@ -50,6 +50,10 @@ public class Texte
     public bool AdopteAn { get; set; }
     public bool AdopteSenat { get; set; }
     public int NbScrutinsAn { get; set; }
+    /// <summary>Décisions de lecture à l'Assemblée connues (avec ou sans scrutin public).</summary>
+    public int NbEtapesAn { get; set; }
+    /// <summary>Une décision de lecture à l'Assemblée a adopté le texte (peut être un vote à main levée).</summary>
+    public bool AdopteAnEtape { get; set; }
     public int NbScrutinsSenat { get; set; }
     public DateTime? DateAdoptionAn { get; set; }
     public DateTime? DateAdoptionSenat { get; set; }
@@ -86,7 +90,12 @@ public class Texte
         }
     }
 
-    public EtatChambre EtatAn => Etat("AN", "l'Assemblée nationale", NbScrutinsAn, AdopteAn, DateAdoptionAn);
+    public EtatChambre EtatAn => NbScrutinsAn == 0 && NbEtapesAn > 0
+        // Aucun scrutin public sur l'ensemble, mais une ou plusieurs lectures décidées sans scrutin public : on le dit au lieu d'un « ? ».
+        ? new("AN", AdopteAn ? "✓" : "✗", (AdopteAn ? "ch-ok" : "ch-ko") + " ch-sans-scrutin",
+              $"{(AdopteAn ? "Adopté" : "Pas adopté")} par l'Assemblée nationale{(DateAdoptionAn is null ? "" : " le " + DateAdoptionAn.Value.ToString("d MMMM yyyy", new System.Globalization.CultureInfo("fr-FR")))} " +
+              "lors d'un vote sans scrutin public (main levée) : le détail « qui a voté quoi » n'est pas disponible.")
+        : Etat("AN", "l'Assemblée nationale", NbScrutinsAn, AdopteAn, DateAdoptionAn);
     public EtatChambre EtatSenat => Etat("Sénat", "le Sénat", NbScrutinsSenat, AdopteSenat, DateAdoptionSenat);
 
     private static EtatChambre Etat(string etiquette, string devant, int nb, bool adopte, DateTime? dateAdoption)

@@ -228,13 +228,13 @@ public sealed class ImportRepository(string connectionString)
         var connus = (await conn.QueryAsync<string>("SELECT id FROM scrutins WHERE chambre = 'AN' AND legislature = @l", new { l = (short)legislature }, tx)).ToHashSet();
         await conn.ExecuteAsync(
             """
-            INSERT INTO texte_etapes (id, dossier_an, code_acte, date_acte, resultat, scrutin_id, sans_scrutin_public)
-            VALUES (@Id, @DossierAn, @CodeActe, @DateActe, @Resultat, @ScrutinId, @SansScrutinPublic)
+            INSERT INTO texte_etapes (id, dossier_an, senat_chemin, code_acte, date_acte, resultat, scrutin_id, sans_scrutin_public)
+            VALUES (@Id, @DossierAn, @SenatChemin, @CodeActe, @DateActe, @Resultat, @ScrutinId, @SansScrutinPublic)
             ON CONFLICT (id) DO NOTHING
             """,
             etapes.Select(e => new
             {
-                e.Id, e.DossierAn, e.CodeActe, DateActe = e.DateActe.ToDateTime(default), e.Resultat,
+                e.Id, e.DossierAn, e.SenatChemin, e.CodeActe, DateActe = e.DateActe.ToDateTime(default), e.Resultat,
                 ScrutinId = e.ScrutinId is not null && connus.Contains(e.ScrutinId) ? e.ScrutinId : null, e.SansScrutinPublic,
             }), tx);
 
@@ -245,6 +245,15 @@ public sealed class ImportRepository(string connectionString)
               FROM (SELECT DISTINCT ON (e2.dossier_an) e2.dossier_an, t.id AS texte_id
                       FROM texte_etapes e2 JOIN textes t ON t.url_dossier_an LIKE '%' || e2.dossier_an || '.%'
                      WHERE e2.dossier_an LIKE @prefixe ORDER BY e2.dossier_an, t.id) x
+             WHERE e.dossier_an = x.dossier_an AND e.texte_id IS NULL
+            """, new { prefixe = $"DLR5L{legislature}N%" }, tx);
+        // (1 bis) dossier du Sénat cité par le dossier AN = signet de l'adresse du dossier Sénat du texte (…/pjl24-123.html).
+        await conn.ExecuteAsync(
+            """
+            UPDATE texte_etapes e SET texte_id = x.texte_id
+              FROM (SELECT DISTINCT ON (e2.dossier_an) e2.dossier_an, t.id AS texte_id
+                      FROM texte_etapes e2 JOIN textes t ON t.url_dossier_senat LIKE '%/' || e2.senat_chemin || '.html%'
+                     WHERE e2.dossier_an LIKE @prefixe AND e2.senat_chemin IS NOT NULL AND e2.texte_id IS NULL ORDER BY e2.dossier_an, t.id) x
              WHERE e.dossier_an = x.dossier_an AND e.texte_id IS NULL
             """, new { prefixe = $"DLR5L{legislature}N%" }, tx);
         // (2) un scrutin public de la décision est déjà rattaché à un texte (rapprochement par titre à l'import des textes).

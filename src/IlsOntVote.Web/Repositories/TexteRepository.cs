@@ -34,13 +34,19 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
     // « adopté » signifie donc « au moins un vote sur l'ensemble adopté dans cette chambre ».
     private const string Agregat =
         """
-        max(s.date_scrutin) AS dernier_vote,
+        -- Étapes de lecture à l'Assemblée (table texte_etapes) : elles couvrent aussi les décisions SANS scrutin public (main levée).
+        -- « Adoptée » = adoptée, adoptée sans modification, modifiée (adoptée avec modifications) ou considérée comme définitive ; « rejetée » = non adoptée.
+        GREATEST(max(s.date_scrutin), (SELECT max(e.date_acte) FROM texte_etapes e WHERE e.texte_id = t.id)) AS dernier_vote,
         count(s.id)::int AS nb_scrutins,
-        COALESCE(bool_or(s.chambre = 'AN' AND s.sort LIKE 'adopt%'), false) AS adopte_an,
+        (SELECT count(*) FROM texte_etapes e WHERE e.texte_id = t.id)::int AS nb_etapes_an,
+        EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id AND e.resultat ILIKE ANY (ARRAY['adopt%', 'modifi%', 'consid%'])) AS adopte_an_etape,
+        (COALESCE(bool_or(s.chambre = 'AN' AND s.sort LIKE 'adopt%'), false)
+         OR EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id AND e.resultat ILIKE ANY (ARRAY['adopt%', 'modifi%', 'consid%']))) AS adopte_an,
         COALESCE(bool_or(s.chambre = 'SENAT' AND s.sort LIKE 'adopt%'), false) AS adopte_senat,
         (count(s.id) FILTER (WHERE s.chambre = 'AN'))::int AS nb_scrutins_an,
         (count(s.id) FILTER (WHERE s.chambre = 'SENAT'))::int AS nb_scrutins_senat,
-        max(s.date_scrutin) FILTER (WHERE s.chambre = 'AN' AND s.sort LIKE 'adopt%') AS date_adoption_an,
+        GREATEST(max(s.date_scrutin) FILTER (WHERE s.chambre = 'AN' AND s.sort LIKE 'adopt%'),
+                 (SELECT max(e.date_acte) FROM texte_etapes e WHERE e.texte_id = t.id AND e.resultat ILIKE ANY (ARRAY['adopt%', 'modifi%', 'consid%']))) AS date_adoption_an,
         max(s.date_scrutin) FILTER (WHERE s.chambre = 'SENAT' AND s.sort LIKE 'adopt%') AS date_adoption_senat
         """;
 
@@ -149,13 +155,18 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
                  OR {EnPeriode("t.date_promulgation")} OR {EnPeriode("t.date_jo")}
                  OR {EnPeriode("t.saisine_cc_date")} OR {EnPeriode("t.decision_cc_date")}
                  OR bool_or({EnPeriode("s.date_scrutin")})
+                 OR EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id AND {EnPeriode("e.date_acte")})
              """;
         var cte =
             $"""
              WITH base AS (
                  SELECT {ColonnesTexte}, {Agregat}
-                   FROM textes t JOIN scrutins s ON s.texte_id = t.id
-                  WHERE (@chambre IS NULL OR s.chambre = @chambre) AND t.titre ILIKE ALL (@mots)
+                   FROM textes t LEFT JOIN scrutins s ON s.texte_id = t.id AND (@chambre IS NULL OR s.chambre = @chambre)
+                  WHERE t.titre ILIKE ALL (@mots)
+                    -- Au moins un vote nominatif, OU des étapes de lecture à l'Assemblée sans scrutin public (main levée) : ces textes
+                    -- ne sont pas omis faute de nominatif. Les étapes sont des étapes de l'Assemblée : exclues si l'on filtre Sénat / UE.
+                    AND (s.id IS NOT NULL
+                         OR (@chambre IS NULL OR @chambre = 'AN') AND EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id))
                   GROUP BY t.id
                   {periode}
              ), classe AS (
