@@ -14,7 +14,9 @@ public abstract class ListePageModel : PageModel
 {
     [BindProperty(SupportsGet = true)] public string? Tri { get; set; }
     [BindProperty(SupportsGet = true)] public string? Sens { get; set; }
-    [BindProperty(SupportsGet = true, Name = "page")] public int NumeroPage { get; set; } = 1;
+    // « page » est aussi une valeur de route réservée de Razor Pages (le chemin de la page, ex. « /Textes ») : sans [FromQuery],
+    // elle masquait ?page=2 et « Suivant » restait sur la page 1.
+    [BindProperty(SupportsGet = true), FromQuery(Name = "page")] public int NumeroPage { get; set; } = 1;
     [BindProperty(SupportsGet = true)] public string? Format { get; set; }
 
     protected abstract string TriDefaut { get; }

@@ -24,6 +24,8 @@
         <option value="an" selected="@(Model.Chambre == "an")">Votée à l'Assemblée</option>
         <option value="senat" selected="@(Model.Chambre == "senat")">Votée au Sénat</option>
     </select>
+    <label class="champ-date" title="Affiche les lois dont une date (vote, promulgation, Journal officiel, Conseil constitutionnel) est dans la période">Du <input type="date" name="du" value="@Model.Du" aria-label="Du (date de début)" /></label>
+    <label class="champ-date">au <input type="date" name="au" value="@Model.Au" aria-label="Au (date de fin)" /></label>
     @* Le tri se choisit par les en-têtes de colonne (écran large) ou par ces deux listes (téléphone, où les en-têtes disparaissent). *@
     <select name="tri" class="tri-mobile" aria-label="Trier par">
         <option value="vote" selected="@(Model.TriEffectif == "vote")">Trier : dernier vote</option>
@@ -39,6 +41,10 @@
     </select>
     <button type="submit">Filtrer</button>
 </form>
+@if (!string.IsNullOrEmpty(Model.Du) || !string.IsNullOrEmpty(Model.Au))
+{
+    <p class="note-source">Période : lois dont au moins une date (un des votes, la promulgation, la parution au Journal officiel, la saisine ou la décision du Conseil constitutionnel) tombe dans l'intervalle. Le parcours complet de chaque loi est dans sa fiche.</p>
+}
 
 <div class="barre-liste">
     <p class="compte">@Model.Resultats.Total.ToString("N0", fr) loi@(Model.Resultats.Total > 1 ? "s" : "")</p>

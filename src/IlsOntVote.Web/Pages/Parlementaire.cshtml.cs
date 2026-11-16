@@ -1,3 +1,4 @@
+using IlsOntVote.Web.Services;
 using IlsOntVote.Web.Models;
 using IlsOntVote.Web.Repositories;
 using Microsoft.AspNetCore.Mvc;
@@ -11,7 +12,9 @@ public class ParlementaireModel(IParlementaireRepository parlementaires) : PageM
     // 40 votes par page dans l'historique d'un élu.
     private const int ParPage = 40;
 
-    [BindProperty(SupportsGet = true, Name = "page")] public int NumeroPage { get; set; } = 1;
+    // « page » est aussi une valeur de route réservée de Razor Pages (le chemin de la page, ex. « /Textes ») : sans [FromQuery],
+    // elle masquait ?page=2 et « Suivant » restait sur la page 1.
+    [BindProperty(SupportsGet = true), FromQuery(Name = "page")] public int NumeroPage { get; set; } = 1;
     /// <summary>« tout » pour inclure amendements et articles ; sinon votes sur l'ensemble d'un texte.</summary>
     [BindProperty(SupportsGet = true)] public string? Portee { get; set; }
 
@@ -36,8 +39,8 @@ public class ParlementaireModel(IParlementaireRepository parlementaires) : PageM
 
         Elu = elu;
         Bilan = await parlementaires.GetBilanAsync(elu.Id, chambre);
-        Votes = await parlementaires.GetVotesAsync(elu.Id, chambre, !ToutAfficher, NumeroPage, ParPage,
-            Periode.Lire(Du, Au).Du, Periode.Lire(Du, Au).Au);
+        var (du, au) = Periode.Lire(Du, Au);
+        Votes = await parlementaires.GetVotesAsync(elu.Id, chambre, !ToutAfficher, NumeroPage, ParPage, du, au);
         return Page();
     }
 

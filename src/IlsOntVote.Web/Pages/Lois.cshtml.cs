@@ -13,6 +13,9 @@ public class LoisModel(ITexteRepository textes) : ListePageModel
     [BindProperty(SupportsGet = true, Name = "q")] public string? Recherche { get; set; }
     [BindProperty(SupportsGet = true)] public string? Statut { get; set; }
     [BindProperty(SupportsGet = true)] public string? Chambre { get; set; }
+    /// <summary>Période (yyyy-MM-dd) : textes dont une date (vote, promulgation, JO, Conseil constitutionnel) est dans l'intervalle.</summary>
+    [BindProperty(SupportsGet = true)] public string? Du { get; set; }
+    [BindProperty(SupportsGet = true)] public string? Au { get; set; }
 
     /// <summary>
     /// Filtres de statut proposés. La clé est la valeur d'URL ; son sens exact (le SQL) est dans
@@ -39,7 +42,7 @@ public class LoisModel(ITexteRepository textes) : ListePageModel
     protected override bool DecroissantInitial(string cle) => cle is "vote" or "promulgation" or "jo" or "scrutins";
 
     protected override IEnumerable<(string Nom, string? Valeur)> Filtres =>
-        [("q", Recherche), ("statut", Statut), ("chambre", Chambre)];
+        [("q", Recherche), ("statut", Statut), ("chambre", Chambre), ("du", Du), ("au", Au)];
 
     // Colonnes de l'export CSV/JSON. Plus complètes que le tableau affiché : un export sert à analyser,
     // il garde donc les deux chambres, les liens et la décision du Conseil constitutionnel.
@@ -65,7 +68,8 @@ public class LoisModel(ITexteRepository textes) : ListePageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
-        var filtre = new FiltreTextes(Recherche, Statut, Chambre);
+        var (du, au) = Periode.Lire(Du, Au);
+        var filtre = new FiltreTextes(Recherche, Statut, Chambre, du, au);
 
         // Export : mêmes filtres et même tri que l'écran, mais SANS pagination (parPage = 0 => tout, plafonné côté SQL).
         if (ExportDemande)

@@ -5,7 +5,7 @@ using IlsOntVote.Web.Models;
 namespace IlsOntVote.Web.Repositories;
 
 /// <summary>Filtres de la liste des lois : mots du titre, statut (clé de liste blanche) et chambre (an | senat).</summary>
-public sealed record FiltreTextes(string? Recherche, string? Statut, string? Chambre);
+public sealed record FiltreTextes(string? Recherche, string? Statut, string? Chambre, DateTime? Du = null, DateTime? Au = null);
 
 /// <summary>Accès aux textes de loi (dossiers législatifs) et à leur parcours : lecture, liste filtrée, triée et paginée.</summary>
 public interface ITexteRepository
@@ -126,6 +126,18 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
 
         // Les scrutins filtrés par chambre alimentent l'agrégat ; un texte sans vote dans cette chambre disparaît.
         // JOIN (et non LEFT JOIN) : cette page ne liste que les textes ayant au moins un vote nominatif rattaché.
+        // Période : un texte est retenu dès qu'UNE de ses dates tombe dans l'intervalle (bornes incluses) : un de ses votes,
+        // la promulgation, la parution au JO, la saisine ou la décision du Conseil constitutionnel. Les votes pris en compte
+        // sont ceux de la chambre filtrée. Sans période, aucune condition. Colonne NULL = pas dans l'intervalle.
+        static string EnPeriode(string col) =>
+            $"COALESCE(({col} >= @du::date OR @du::date IS NULL) AND ({col} <= @au::date OR @au::date IS NULL), false)";
+        var periode =
+            $"""
+             HAVING (@du::date IS NULL AND @au::date IS NULL)
+                 OR {EnPeriode("t.date_promulgation")} OR {EnPeriode("t.date_jo")}
+                 OR {EnPeriode("t.saisine_cc_date")} OR {EnPeriode("t.decision_cc_date")}
+                 OR bool_or({EnPeriode("s.date_scrutin")})
+             """;
         var cte =
             $"""
              WITH base AS (
@@ -133,12 +145,13 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
                    FROM textes t JOIN scrutins s ON s.texte_id = t.id
                   WHERE (@chambre IS NULL OR s.chambre = @chambre) AND t.titre ILIKE ALL (@mots)
                   GROUP BY t.id
+                  {periode}
              ), classe AS (
                  SELECT *, {RangStatut} AS statut_rang FROM base
              )
              """;
         var where = $"WHERE TRUE {FiltreStatut(filtre.Statut)}";
-        var p = new { chambre, mots, limit = parPage, offset = (page - 1) * parPage };
+        var p = new { chambre, mots, du = filtre.Du, au = filtre.Au, limit = parPage, offset = (page - 1) * parPage };
 
         var total = await conn.ExecuteScalarAsync<int>($"{cte} SELECT count(*) FROM classe {where}", p);
         var pagination = parPage > 0 ? "LIMIT @limit OFFSET @offset" : "LIMIT 50000";
