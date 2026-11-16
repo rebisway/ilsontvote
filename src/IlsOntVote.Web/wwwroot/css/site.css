@@ -571,3 +571,16 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
     background: url("/img/hero.webp") 75% bottom / max(100%, 760px) auto no-repeat; opacity: 0.6; mix-blend-mode: multiply; }
 :root[data-theme="dark"] .hero::before { filter: invert(1); mix-blend-mode: screen; opacity: 0.35; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .hero::before { filter: invert(1); mix-blend-mode: screen; opacity: 0.35; } }
+
+/* En-tête mobile : logo à gauche ; langue, thème et « Menu » à droite ; liens en liste verticale repliée (déployée sans JavaScript). */
+.menu-btn { display: none; font: inherit; font-size: 0.85rem; cursor: pointer; color: var(--ink); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; }
+@media (max-width: 720px) {
+    .site-header .wrap { align-items: center; }
+    .site-header .brand { margin-right: auto; }
+    .site-header .langue { margin-left: 0; }
+    .menu-btn { display: inline-block; }
+    .menu { order: 10; width: 100%; flex-direction: column; gap: 0; margin: 0; border-top: 1px solid var(--line); }
+    .menu a { padding: 12px 2px; border-bottom: 1px solid var(--line); font-size: 1rem; }
+    .menu a[aria-current="page"] { border-bottom-color: var(--line); font-weight: 650; box-shadow: inset 3px 0 0 var(--contre); padding-left: 10px; }
+    .js .menu:not(.ouvert) { display: none; }
+}
