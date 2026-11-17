@@ -326,10 +326,11 @@ a.puce { text-decoration: none; }
 .jauge-legende .seuil { margin-left: auto; color: var(--ink); }
 
 /* ---- Accueil : Assemblée nationale à gauche, Sénat à droite ---- */
-.colonnes { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 0 28px; align-items: start; }
-.colonnes .chambre { min-width: 0; }
-.colonnes .cartes { grid-template-columns: minmax(0, 1fr); }
-@media (max-width: 900px) { .colonnes { grid-template-columns: minmax(0, 1fr); } }
+/* Accueil : les chambres sont empilées ; les cartes de chacune vont par deux (une seule colonne sur téléphone). */
+.colonnes { display: block; }
+.colonnes .chambre { min-width: 0; margin-bottom: 32px; }
+.colonnes .cartes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 720px) { .colonnes .cartes { grid-template-columns: minmax(0, 1fr); } }
 
 /* ---- Cercle de groupe autour des points (couleur du groupe en anneau, couleur du vote au centre) ---- */
 .hemicycle.anneau .sieges circle { stroke: var(--g); stroke-width: 3; }

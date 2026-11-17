@@ -21,9 +21,9 @@ public sealed record SectionChambre(string Chambre, IReadOnlyList<CarteScrutin> 
 /// <summary>Accueil : les derniers textes importants de chaque chambre, chacun avec son hémicycle.</summary>
 public class IndexModel(IScrutinRepository scrutins) : PageModel
 {
-    // 3 cartes par chambre : assez pour donner une image de l'actualité, peu pour garder une page légère
+    // 4 cartes par chambre, empilées (les chambres l'une sous l'autre), 2 par ligne : assez pour donner une image de l'actualité, peu pour garder une page légère
     // (chaque hémicycle pèse plusieurs centaines de points SVG).
-    private const int CartesParChambre = 3;
+    private const int CartesParChambre = 4;
 
     public IReadOnlyList<SectionChambre> Sections { get; private set; } = [];
 

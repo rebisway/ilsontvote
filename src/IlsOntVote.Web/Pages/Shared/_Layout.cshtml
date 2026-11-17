@@ -90,6 +90,10 @@
         <div class="wrap">
             <a class="brand" href="@L.Lien("/")">Ils ont <em>voté</em></a>
             <nav class="menu" id="menu-principal" aria-label="@L.T("Navigation principale", "Main navigation")">
+                @if (chemin != "/" && chemin != "")
+                {
+                    <a href="@L.Lien("/")">@L.T("Accueil", "Home")</a>
+                }
                 <a href="@L.Lien("/lois")" @Html.Raw(Actif("/lois")) @Html.Raw(Actif("/texte/"))>@L.T("Lois", "Laws")</a>
                 <a href="@L.Lien("/textes")" @Html.Raw(Actif("/scrutin") + (chemin.StartsWith("/textes", StringComparison.OrdinalIgnoreCase) && !resolutions ? " aria-current=\"page\"" : ""))>@L.T("Scrutins", "Votes")</a>
                 <a href="@L.Lien("/textes")?nature=resolution" @Html.Raw(chemin.StartsWith("/textes", StringComparison.OrdinalIgnoreCase) && resolutions ? "aria-current=\"page\"" : "")>@L.T("Résolutions", "Resolutions")</a>
