@@ -1,0 +1,88 @@
+@page "/petition/{id}"
+@model PetitionModel
+@using IlsOntVote.Web.Repositories
+@{
+    var f = Model.Fiche!;
+    ViewData["Title"] = f.Titre.Length > 70 ? f.Titre[..70] + "…" : f.Titre;
+    ViewData["Description"] = L.T("Historique des soutiens d'une pétition du Sénat, relevé par relevé.", "Supporter history of a Senate petition, snapshot by snapshot.");
+    var fr = L.Culture;
+    var en = L.Anglais;
+    // Relevés : on n'affiche que les CHANGEMENTS (soutiens ou statut) + le premier et le dernier, pour ne pas répéter 40 lignes identiques.
+    var gardes = new List<RelevePetition>();
+    for (var i = 0; i < Model.Releves.Count; i++)
+    {
+        var r = Model.Releves[i];
+        var change = i == 0 || i == Model.Releves.Count - 1 || r.NbVotes != Model.Releves[i - 1].NbVotes || r.Statut != Model.Releves[i - 1].Statut;
+        if (change) gardes.Add(r);
+    }
+}
+
+<p class="chapo"><a href="@L.Lien("/petitions")">← @L.T("Pétitions du Sénat", "Senate petitions")</a> · <a href="@L.Lien("/petitions/anomalies")">@L.T("Anomalies", "Anomalies")</a></p>
+<h1 class="titre-page">@f.Titre</h1>
+
+<section class="definitions" aria-label="@L.T("Fiche", "Details")">
+    <dl>
+        <div><dt>@L.T("Publiée", "Published")</dt><dd>@(f.DatePublication?.ToString("d MMMM yyyy", fr) ?? "—")</dd></div>
+        <div><dt>Type</dt><dd>@PetitionsModel.TypeLibelle(f.Type, en)</dd></div>
+        <div><dt>@L.T("Statut publié", "Published status")</dt><dd>@PetitionsModel.StatutLibelle(f.Statut, en)</dd></div>
+        <div><dt>@L.T("Soutiens", "Supporters")</dt><dd>@f.NbVotes.ToString("N0", fr)</dd></div>
+        @if (f.DateLimiteVote is { } lim) { <div><dt>@L.T("Date limite", "Deadline")</dt><dd>@lim.ToString("d MMMM yyyy", fr)</dd></div> }
+        <div><dt>@L.T("Source", "Source")</dt><dd><a href="@f.Url" rel="noopener">petitions.senat.fr</a></dd></div>
+    </dl>
+    @if (f.AbsenteDepuis is { } abs)
+    {
+        <p class="note-source"><span class="doute doute-incertain" title="@L.T("Absente du fichier source au dernier relevé", "Missing from the source file at the latest snapshot")">⚠ @L.T("Absente du fichier source", "Missing from the source file")</span> @L.T("depuis le relevé du", "since the snapshot of") @abs.ToString("d MMMM yyyy", fr). @L.T("Les chiffres ci-dessus sont ceux du dernier relevé où elle figurait.", "The figures above are from the last snapshot where it appeared.")</p>
+    }
+</section>
+
+<h2>@L.T("Constats", "Findings")</h2>
+@if (Model.Anomalies.Count == 0)
+{
+    <p class="vide">@L.T("Aucun constat : le nombre de soutiens n'a pas baissé et la pétition n'a pas disparu du fichier depuis le début de l'historique.", "No finding: the number of supporters has not dropped and the petition has not left the file since the history began.")</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table class="liste-textes">
+            <thead><tr><th>@L.T("Détecté le", "Detected on")</th><th>Type</th><th class="num">@L.T("Avant", "Before")</th><th class="num">@L.T("Après", "After")</th><th class="num">@L.T("Baisse", "Drop")</th></tr></thead>
+            <tbody>
+            @foreach (var a in Model.Anomalies)
+            {
+                <tr>
+                    <td class="nowrap" data-label="@L.T("Détecté le", "Detected on")" title="@L.T("Relevé précédent : ", "Previous snapshot: ")@a.ReleveAvant.ToString("d MMM yyyy", fr)">@a.DetecteLe.ToString("d MMM yyyy", fr)</td>
+                    <td data-label="Type">@PetitionAnomaliesModel.TypeLibelle(a.Type, en)</td>
+                    <td class="num" data-label="@L.T("Avant", "Before")">@a.ValeurAvant.ToString("N0", fr)</td>
+                    <td class="num" data-label="@L.T("Après", "After")">@(a.ValeurApres?.ToString("N0", fr) ?? "—")</td>
+                    <td class="num" data-label="@L.T("Baisse", "Drop")">@(a.Baisse is { } b ? b.ToString("N0", fr) + (a.BaissePct is { } p ? " (" + p.ToString("0.0", fr) + (en ? "%" : " %") + ")" : "") : "—")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <p class="note-source">@L.T("Le fichier source n'indique aucune cause : le site n'en suppose aucune.", "The source file gives no cause: the site assumes none.")</p>
+}
+
+<h2>@L.T("Historique des relevés", "Snapshot history")</h2>
+@if (gardes.Count == 0)
+{
+    <p class="vide">@L.T("Aucun relevé conservé pour cette pétition.", "No snapshot kept for this petition.")</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table class="liste-textes">
+            <thead><tr><th>@L.T("Relevé du", "Snapshot of")</th><th class="num">@L.T("Soutiens", "Supporters")</th><th>@L.T("Statut publié", "Published status")</th></tr></thead>
+            <tbody>
+            @foreach (var r in gardes)
+            {
+                <tr>
+                    <td class="nowrap" data-label="@L.T("Relevé du", "Snapshot of")">@r.ReleveLe.ToString("d MMM yyyy", fr)</td>
+                    <td class="num" data-label="@L.T("Soutiens", "Supporters")">@r.NbVotes.ToString("N0", fr)</td>
+                    <td data-label="@L.T("Statut publié", "Published status")">@PetitionsModel.StatutLibelle(r.Statut, en)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <p class="note-source">@L.T($"{Model.Releves.Count} relevés conservés depuis le {Model.Releves[0].ReleveLe.ToString("d MMMM yyyy", fr)} ; seules les lignes où le nombre de soutiens ou le statut change sont listées, plus le premier et le dernier relevé.", $"{Model.Releves.Count} snapshots kept since {Model.Releves[0].ReleveLe.ToString("d MMMM yyyy", fr)}; only rows where supporters or status change are listed, plus the first and last snapshot.")</p>
+}

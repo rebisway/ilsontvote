@@ -48,6 +48,12 @@ public static class ExportDonnees
                    url_dossier_senat, url_dossier_an, saisine_cc_date, saisine_cc_par, decision_cc_numero, decision_cc_date, decision_cc_libelle, decision_cc_url
               FROM textes ORDER BY id
             """),
+        new("petitions", "Pétitions déposées sur petitions.senat.fr : titre, type, statut publié par la source, nombre de soutiens de citoyens (pas des votes d'élus).",
+            "SELECT id, titre, type, statut, date_publication, date_limite_vote, nb_votes, url FROM petitions ORDER BY date_publication, id"),
+        new("petitions_historique", "Relevés successifs du nombre de soutiens et du statut de chaque pétition du Sénat (ajout seul, un relevé par import).",
+            "SELECT petition_id, releve_le, nb_votes, statut FROM petitions_historique ORDER BY petition_id, releve_le"),
+        new("petitions_anomalies", "Constats entre deux relevés : baisse du nombre de soutiens, disparition ou réapparition d'une pétition dans le fichier source. Sans cause connue.",
+            "SELECT petition_id, type, detecte_le, releve_precedent, valeur_avant, valeur_apres FROM petitions_anomalies ORDER BY detecte_le, petition_id"),
         new("texte_etapes", "Décisions de séance sur un texte (Assemblée et Sénat), avec ou sans scrutin public.",
             """
             SELECT id, texte_id, chambre, code_acte, date_acte, resultat, scrutin_id, sans_scrutin_public, article_49_3

@@ -15,6 +15,102 @@ public sealed class ImportRepository(string connectionString)
             "INSERT INTO import_runs (source) VALUES (@source) RETURNING id", new { source });
     }
 
+    /// <summary>Vrai si un relevé de cette date est déjà dans l'historique des pétitions (évite de retélécharger une archive).</summary>
+    public async Task<bool> ReleveExisteAsync(DateTime releve)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        return await conn.ExecuteScalarAsync<bool>("SELECT EXISTS (SELECT 1 FROM petitions_historique WHERE releve_le = @releve::date)", new { releve });
+    }
+
+    /// <summary>
+    /// Écrit un relevé de pétitions : (1) la fiche courante (upsert ; <paramref name="majFiche"/> = false pour une ARCHIVE ancienne, qui ne doit
+    /// pas écraser un état plus récent), (2) une ligne d'historique (ajout seul), (3) les anomalies par comparaison avec le relevé PRÉCÉDENT
+    /// (le plus récent de date inférieure). Idempotent : rejouer le même relevé ne duplique ni l'historique ni les anomalies.
+    /// Retourne (pétitions écrites, anomalies nouvelles).
+    /// </summary>
+    public async Task<(int Ecrites, int Anomalies)> EcrireReleveAsync(IReadOnlyList<PetitionRow> petitions, DateTime releve, bool majFiche)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+        await using var tx = await conn.BeginTransactionAsync();
+
+        var ecrites = await conn.ExecuteAsync(
+            majFiche
+                ? """
+                  INSERT INTO petitions (id, titre, description, date_publication, nb_votes, statut, date_limite_vote, type, url)
+                  VALUES (@Id, @Titre, @Description, @DatePublication, @NbVotes, @Statut, @DateLimiteVote, @Type, @Url)
+                  ON CONFLICT (id) DO UPDATE
+                     SET titre = EXCLUDED.titre, description = EXCLUDED.description, date_publication = EXCLUDED.date_publication,
+                         nb_votes = EXCLUDED.nb_votes, statut = EXCLUDED.statut, date_limite_vote = EXCLUDED.date_limite_vote,
+                         type = EXCLUDED.type, url = EXCLUDED.url
+                  """
+                : """
+                  INSERT INTO petitions (id, titre, description, date_publication, nb_votes, statut, date_limite_vote, type, url)
+                  VALUES (@Id, @Titre, @Description, @DatePublication, @NbVotes, @Statut, @DateLimiteVote, @Type, @Url)
+                  ON CONFLICT (id) DO NOTHING
+                  """, petitions, tx);
+
+        // Historique : une ligne par pétition et par relevé (rejeu du même jour : la ligne est remplacée par la même valeur).
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO petitions_historique (petition_id, releve_le, nb_votes, statut) VALUES (@Id, @releve::date, @NbVotes, @Statut)
+            ON CONFLICT (petition_id, releve_le) DO UPDATE SET nb_votes = EXCLUDED.nb_votes, statut = EXCLUDED.statut
+            """, petitions.Select(p => new { p.Id, p.NbVotes, p.Statut, releve }), tx);
+
+        // Relevé précédent = le plus récent de date inférieure ; sans lui (tout premier relevé), il n'y a rien à comparer.
+        var precedent = await conn.ExecuteScalarAsync<DateTime?>("SELECT max(releve_le) FROM petitions_historique WHERE releve_le < @releve::date", new { releve }, tx);
+        var anomalies = 0;
+        if (precedent is not null)
+        {
+            var p = new { releve, precedent };
+            // Baisse : moins de soutiens qu'au relevé précédent.
+            anomalies += await conn.ExecuteAsync(
+                """
+                INSERT INTO petitions_anomalies (petition_id, type, detecte_le, releve_precedent, valeur_avant, valeur_apres)
+                SELECT h.petition_id, 'baisse', @releve::date, @precedent::date, a.nb_votes, h.nb_votes
+                  FROM petitions_historique h
+                  JOIN petitions_historique a ON a.petition_id = h.petition_id AND a.releve_le = @precedent::date
+                 WHERE h.releve_le = @releve::date AND h.nb_votes < a.nb_votes
+                ON CONFLICT (petition_id, type, detecte_le) DO NOTHING
+                """, p, tx);
+            // Disparition : présente au relevé précédent, absente de celui-ci.
+            anomalies += await conn.ExecuteAsync(
+                """
+                INSERT INTO petitions_anomalies (petition_id, type, detecte_le, releve_precedent, valeur_avant, valeur_apres)
+                SELECT a.petition_id, 'disparition', @releve::date, @precedent::date, a.nb_votes, NULL
+                  FROM petitions_historique a
+                 WHERE a.releve_le = @precedent::date
+                   AND NOT EXISTS (SELECT 1 FROM petitions_historique h WHERE h.petition_id = a.petition_id AND h.releve_le = @releve::date)
+                ON CONFLICT (petition_id, type, detecte_le) DO NOTHING
+                """, p, tx);
+            // Réapparition : présente ici, absente du relevé précédent, mais connue avant (dernier nombre connu = valeur_avant).
+            anomalies += await conn.ExecuteAsync(
+                """
+                INSERT INTO petitions_anomalies (petition_id, type, detecte_le, releve_precedent, valeur_avant, valeur_apres)
+                SELECT h.petition_id, 'reapparition', @releve::date, @precedent::date,
+                       (SELECT x.nb_votes FROM petitions_historique x WHERE x.petition_id = h.petition_id AND x.releve_le < @precedent::date ORDER BY x.releve_le DESC LIMIT 1),
+                       h.nb_votes
+                  FROM petitions_historique h
+                 WHERE h.releve_le = @releve::date
+                   AND NOT EXISTS (SELECT 1 FROM petitions_historique a WHERE a.petition_id = h.petition_id AND a.releve_le = @precedent::date)
+                   AND EXISTS (SELECT 1 FROM petitions_historique x WHERE x.petition_id = h.petition_id AND x.releve_le < @precedent::date)
+                ON CONFLICT (petition_id, type, detecte_le) DO NOTHING
+                """, p, tx);
+        }
+
+        // « Absente depuis » : seulement si ce relevé est le plus récent connu (un rattrapage d'archives ne doit pas le fausser).
+        await conn.ExecuteAsync(
+            """
+            UPDATE petitions p SET absente_depuis =
+                   CASE WHEN EXISTS (SELECT 1 FROM petitions_historique h WHERE h.petition_id = p.id AND h.releve_le = @releve::date) THEN NULL
+                        ELSE COALESCE(p.absente_depuis, @releve::date) END
+             WHERE @releve::date >= (SELECT max(releve_le) FROM petitions_historique)
+            """, new { releve }, tx);
+
+        await tx.CommitAsync();
+        return (ecrites, anomalies);
+    }
+
     /// <summary>Clôt la ligne du journal avec le résultat (succès, compteurs, message d'erreur éventuel).</summary>
     public async Task TerminerAsync(long runId, bool ok, int scrutins, long votes, string? message)
     {

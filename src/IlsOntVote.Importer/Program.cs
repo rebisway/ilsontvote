@@ -19,7 +19,7 @@ const int LegislatureEnCours = 17;
 int[] LegislaturesCompletes = [15, 16, 17];
 
 var argv = args.ToList();
-if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export"))
+if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions"))
 {
     Console.Error.WriteLine("Usage : IlsOntVote.Importer an [--legislature 17|15,16,17|all] [--scrutins-dir D --amo-dir D]");
     Console.Error.WriteLine("        IlsOntVote.Importer senat [--senateurs-dir D --dosleg-sql F]");
@@ -62,6 +62,7 @@ return argv[0] switch
     "dossiers" => await ImporterDossiersAsync(),
     "traductions" => await TraduireTitresAsync(),
     "export" => await ExporterDonneesAsync(),
+    "petitions" => await ImporterPetitionsAsync(),
     _ => await ImporterTextesAsync(),
 };
 
@@ -359,6 +360,57 @@ async Task<IReadOnlyList<(string Source, string Cible)>> LancerScriptTraductionA
             .ToList();
     }
     finally { try { Directory.Delete(dossier, true); } catch (IOException) { } }
+}
+
+/// <summary>
+/// Pétitions du Sénat (petitions.senat.fr) : télécharge le CSV de data.gouv.fr (mis à jour chaque lundi à la source), l'écrit avec son historique
+/// et détecte les anomalies (baisse de soutiens, disparition). <c>--archives</c> : rattrape d'abord les fichiers hebdomadaires archivés par
+/// data.gouv.fr (à partir de mars 2026), dans l'ordre chronologique, pour reconstituer l'historique passé.
+/// </summary>
+async Task<int> ImporterPetitionsAsync()
+{
+    Console.WriteLine("=== Pétitions du Sénat ===");
+    var runId = await repo.DemarrerAsync("PETITIONS");
+    try
+    {
+        var dossier = Path.Combine(Directory.GetCurrentDirectory(), "data", "petitions");
+        int anomaliesTotal = 0;
+
+        if (argv.Contains("--archives"))
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(2) };
+            var index = await http.GetStringAsync(PetitionsSource.UrlArchives);
+            // Noms de la forme AAAA-MM-JJ_petitions.csv ; l'ordre chronologique est indispensable (chaque relevé est comparé au précédent).
+            var fichiers = System.Text.RegularExpressions.Regex.Matches(index, @"(\d{4}-\d{2}-\d{2})_petitions\.csv")
+                .Select(m => m.Groups[1].Value).Distinct().Order().ToList();
+            Console.WriteLine($"  {fichiers.Count} archives hebdomadaires.");
+            foreach (var jour in fichiers)
+            {
+                var date = DateTime.Parse(jour, System.Globalization.CultureInfo.InvariantCulture);
+                if (await repo.ReleveExisteAsync(date)) continue;   // déjà en historique
+                var chemin = Path.Combine(dossier, "archives", jour + "_petitions.csv");
+                await Telechargement.TelechargerFichierAsync(PetitionsSource.UrlArchives + jour + "_petitions.csv", chemin);
+                var (_, an) = await repo.EcrireReleveAsync(PetitionsSource.Lire(chemin), date, majFiche: false);
+                anomaliesTotal += an;
+                Console.WriteLine($"  archive {jour} : {an} anomalie(s).");
+            }
+        }
+
+        var fichier = Path.Combine(dossier, "petitions.csv");
+        await Telechargement.TelechargerFichierAsync(PetitionsSource.Url, fichier);
+        var lignes = PetitionsSource.Lire(fichier);
+        var (n, anomalies) = await repo.EcrireReleveAsync(lignes, DateTime.UtcNow.Date, majFiche: true);
+        anomaliesTotal += anomalies;
+        Console.WriteLine($"  {lignes.Count} pétitions lues, {n} écrites ; {anomaliesTotal} anomalie(s) détectée(s) au total.");
+        await repo.TerminerAsync(runId, true, n, anomaliesTotal, null);
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex);
+        await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
+        return 1;
+    }
 }
 
 /// <summary>

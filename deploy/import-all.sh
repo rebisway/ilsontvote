@@ -42,6 +42,10 @@ if [ "$1" = "historique" ]; then $DOTNET "$IMP" dossiers --legislature all || rc
 echo "=== Parlement européen ==="
 $DOTNET "$IMP" ue || rc=1
 
+# Pétitions du Sénat (data.gouv.fr, mises à jour chaque lundi à la source) : petit fichier, relu à chaque passage.
+echo "=== Pétitions du Sénat ==="
+$DOTNET "$IMP" petitions || rc=1
+
 # Traduction automatique des NOUVEAUX titres seulement (mémoire en base) : fr -> en (interface /en) et en -> fr (votes européens sans titre
 # français officiel). APRÈS le Parlement européen : le ré-import d'un vote remet son titre anglais d'origine, que la mémoire retraduit aussitôt.
 # Facultatif : sans les modèles (voir deploy/setup-traduction.sh), l'étape est ignorée sans erreur.

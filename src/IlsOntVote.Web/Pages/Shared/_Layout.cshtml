@@ -100,7 +100,16 @@
                 <a href="@L.Lien("/deputes")" @Html.Raw(Actif("/depute"))>@L.T("Députés", "Deputies")</a>
                 <a href="@L.Lien("/senateurs")" @Html.Raw(Actif("/senateur"))>@L.T("Sénateurs", "Senators")</a>
                 <a href="@L.Lien("/eurodeputes")" @Html.Raw(Actif("/eurodepute"))>@L.T("Eurodéputés", "MEPs")</a>
-                <a href="@L.Lien("/statistiques")" @Html.Raw(Actif("/statistiques"))>@L.T("Statistiques", "Statistics")</a>
+                @{ var plusActif = chemin.StartsWith("/statistiques", StringComparison.OrdinalIgnoreCase) || chemin.StartsWith("/petitions", StringComparison.OrdinalIgnoreCase) || chemin.StartsWith("/donnees", StringComparison.OrdinalIgnoreCase); }
+                @* Rubriques secondaires regroupées pour ne pas encombrer le menu ; <details> natif : fonctionne au clavier et sans JavaScript. *@
+                <details class="plus" @Html.Raw(plusActif ? "data-actif" : "")>
+                    <summary>@L.T("Suppléments", "More")</summary>
+                    <div class="plus-liste">
+                        <a href="@L.Lien("/statistiques")" @Html.Raw(Actif("/statistiques"))>@L.T("Statistiques", "Statistics")</a>
+                        <a href="@L.Lien("/petitions")" @Html.Raw(Actif("/petitions"))>@L.T("Pétitions", "Petitions")</a>
+                        <a href="@L.Lien("/donnees")" @Html.Raw(Actif("/donnees"))>@L.T("Données", "Data")</a>
+                    </div>
+                </details>
             </nav>
             <nav class="langue" aria-label="@L.T("Langue", "Language")">
                 @* hl= mémorise le choix explicite (cookie) : sinon la langue du navigateur reprendrait la main *@
@@ -158,6 +167,10 @@
     // Bascule clair/sombre : mémorisée dans le navigateur ; sans choix, le thème du système s'applique (CSS prefers-color-scheme).
     // Menu mobile : replié derrière le bouton « Menu » (sans JavaScript, il reste déployé).
     (function () {
+        (function () { var mq = window.matchMedia("(max-width: 720px)"), d = document.querySelector("details.plus");
+            function maj() { if (d) { if (mq.matches) d.setAttribute("open", ""); else d.removeAttribute("open"); } }
+            maj(); if (mq.addEventListener) mq.addEventListener("change", maj); })();
+        document.addEventListener("click", function (e) { if (window.matchMedia("(max-width: 720px)").matches) return; document.querySelectorAll("details.plus[open]").forEach(function (d) { if (!d.contains(e.target)) d.removeAttribute("open"); }); });
         var b = document.getElementById("menu-btn"), m = document.getElementById("menu-principal");
         if (!b || !m) return;
         b.addEventListener("click", function () {

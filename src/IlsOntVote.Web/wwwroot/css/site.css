@@ -627,3 +627,19 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
 
 /* L'attribut hidden doit l'emporter sur « display: inline-flex » : la corbeille des listes d'élus reste cachée tant qu'aucun filtre n'est actif. */
 .effacer[hidden] { display: none !important; }
+
+/* Menu « Suppléments » : statistiques, pétitions, données. Liste déroulante sur écran large, section dépliée dans le menu mobile. */
+.menu .plus { position: relative; }
+.menu .plus summary { list-style: none; cursor: pointer; color: var(--ink-soft); padding: 2px 0; border-bottom: 2px solid transparent; }
+.menu .plus summary::-webkit-details-marker { display: none; }
+.menu .plus summary::after { content: " ▾"; font-size: 0.8em; }
+.menu .plus summary:hover, .menu .plus[open] summary { color: var(--ink); }
+.menu .plus[data-actif] summary { color: var(--ink); border-bottom-color: var(--contre); }
+.menu .plus-liste { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; min-width: 170px; display: flex; flex-direction: column; background: var(--paper, var(--bg)); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; box-shadow: 0 6px 18px rgba(0,0,0,.18); }
+.menu .plus-liste a { padding: 8px 0; }
+@media (max-width: 720px) {
+    /* Téléphone : pas de liste déroulante, les trois entrées restent à plat dans le menu (le script garde le <details> ouvert). */
+    .menu .plus summary { display: none; }
+    .menu .plus-liste { position: static; box-shadow: none; border: 0; border-radius: 0; padding: 0; min-width: 0; }
+    .menu .plus-liste a { padding: 12px 2px; }
+}
