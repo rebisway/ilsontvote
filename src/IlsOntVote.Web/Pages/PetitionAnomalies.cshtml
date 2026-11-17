@@ -2,7 +2,7 @@
 @model PetitionAnomaliesModel
 @using IlsOntVote.Web.Services
 @{
-    ViewData["Title"] = L.T("Anomalies des pétitions du Sénat", "Senate petition anomalies");
+    ViewData["Title"] = L.T("Anomalies des pétitions", "Petition anomalies");
     ViewData["Description"] = L.T("Baisses du nombre de soutiens et disparitions relevées sur les pétitions du Sénat entre deux relevés du fichier officiel : recherche par critères, tri, export.", "Drops in supporters and disappearances recorded on Senate petitions between two snapshots of the official file: search by criteria, sort, export.");
     var fr = L.Culture;
     var en = L.Anglais;
@@ -10,12 +10,17 @@
     string Nb(int? n) => n is null ? "—" : n.Value.ToString("N0", fr);
 }
 
-<h1 class="titre-page">@L.T("Anomalies des pétitions du Sénat", "Senate petition anomalies")</h1>
-<p class="chapo">@L.TH("Le site enregistre, à chaque import, le nombre de soutiens et le statut de chaque pétition du fichier officiel, sans jamais effacer les relevés précédents. Un <strong>constat</strong> est une différence entre deux relevés consécutifs : <strong>baisse</strong> du nombre de soutiens, <strong>disparition</strong> de la pétition du fichier, ou <strong>réapparition</strong>. Le fichier source n'indique aucune cause (signatures invalidées, retrait, changement de décompte…) : le site n'en suppose aucune. <a href=\"/petitions\">Toutes les pétitions</a>.", "At each import the site records the number of supporters and the status of every petition in the official file, never deleting earlier snapshots. A <strong>finding</strong> is a difference between two consecutive snapshots: a <strong>drop</strong> in supporters, the petition <strong>missing</strong> from the file, or its <strong>reappearance</strong>. The source file gives no cause (invalidated signatures, withdrawal, change of counting…): the site assumes none. <a href=\"/en/petitions\">All petitions</a>.")</p>
-<p class="note-source">@L.T("Historique tenu depuis le 12 mars 2026 (archives hebdomadaires de data.gouv.fr), puis à chaque import quotidien. Avant cette date, rien n'est connu.", "History kept since 12 March 2026 (weekly data.gouv.fr archives), then at each daily import. Nothing is known before that date.")</p>
+<h1 class="titre-page">@L.T("Anomalies des pétitions", "Petition anomalies")</h1>
+<p class="chapo">@L.TH("Le site enregistre, à chaque import, le nombre de soutiens et le statut de chaque pétition des fichiers officiels (Sénat et Assemblée nationale), sans jamais effacer les relevés précédents. Un <strong>constat</strong> est une différence entre deux relevés consécutifs : <strong>baisse</strong> du nombre de soutiens, <strong>disparition</strong> de la pétition du fichier, ou <strong>réapparition</strong>. <a href=\"/petitions\">Toutes les pétitions</a>.", "At each import the site records the number of supporters and the status of every petition in the official files (Senate and National Assembly), never deleting earlier snapshots. A <strong>finding</strong> is a difference between two consecutive snapshots: a <strong>drop</strong> in supporters, the petition <strong>missing</strong> from the file, or its <strong>reappearance</strong>. <a href=\"/en/petitions\">All petitions</a>.")</p>
+<p class="note-source">@L.T("Historique tenu depuis le 12 mars 2026 pour le Sénat et le 30 juillet 2025 pour l'Assemblée (archives hebdomadaires de data.gouv.fr), puis à chaque changement du fichier source. Avant ces dates, rien n'est connu.", "History kept since 12 March 2026 for the Senate and 30 July 2025 for the Assembly (weekly data.gouv.fr archives), then at each change of the source file. Nothing is known before those dates.")</p>
 
 <form class="filtres filtres-auto filtres-liste" method="get" action="@L.Lien("/petitions/anomalies")">
     <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("Mots du titre…", "Title words…")" aria-label="@L.T("Mots du titre", "Title words")" />
+    <select name="chambre" aria-label="@L.T("Plateforme", "Platform")">
+        <option value="">@L.T("Sénat et Assemblée", "Senate and Assembly")</option>
+        <option value="senat" selected="@(Model.Chambre == "senat")">@L.T("Sénat", "Senate")</option>
+        <option value="an" selected="@(Model.Chambre == "an")">@L.T("Assemblée nationale", "National Assembly")</option>
+    </select>
     <select name="type" aria-label="Type">
         <option value="">@L.T("Tous les types", "All types")</option>
         @foreach (var t in PetitionAnomaliesModel.Types) { <option value="@t" selected="@(Model.Type == t)">@PetitionAnomaliesModel.TypeLibelle(t, en)</option> }
@@ -75,7 +80,7 @@ else
             {
                 <tr>
                     <td class="nowrap" data-label="@L.T("Détectée le", "Detected on")" title="@L.T("Relevé précédent : ", "Previous snapshot: ")@a.ReleveAvant.ToString("d MMM yyyy", fr)">@a.DetecteLe.ToString("d MMM yyyy", fr)</td>
-                    <td data-label="@L.T("Pétition", "Petition")"><a href="@L.Lien("/petition/" + a.PetitionId)">@a.Titre</a></td>
+                    <td data-label="@L.T("Pétition", "Petition")"><a href="@L.Lien("/petition/" + a.PetitionId)">@a.Titre</a> <span class="note-source">@(a.Chambre == "AN" ? L.T("Assemblée", "Assembly") : L.T("Sénat", "Senate"))</span></td>
                     <td data-label="Type">@PetitionAnomaliesModel.TypeLibelle(a.Type, en)</td>
                     <td class="num" data-label="@L.T("Avant", "Before")">@Nb(a.ValeurAvant)</td>
                     <td class="num" data-label="@L.T("Après", "After")">@(a.ValeurApres is null ? "—" : Nb(a.ValeurApres))</td>

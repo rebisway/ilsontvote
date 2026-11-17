@@ -42,8 +42,9 @@ if [ "$1" = "historique" ]; then $DOTNET "$IMP" dossiers --legislature all || rc
 echo "=== Parlement européen ==="
 $DOTNET "$IMP" ue || rc=1
 
-# Pétitions du Sénat (data.gouv.fr, mises à jour chaque lundi à la source) : petit fichier, relu à chaque passage.
-echo "=== Pétitions du Sénat ==="
+# Pétitions du Sénat et de l'Assemblée (data.gouv.fr, mises à jour chaque lundi à la source). Le fichier est téléchargé chaque nuit (~12 Mo),
+# mais un relevé n'est écrit que s'il a changé (empreinte) ; l'historique et les anomalies s'en déduisent. Rattrapage initial : « petitions --archives ».
+echo "=== Pétitions (Sénat et Assemblée) ==="
 $DOTNET "$IMP" petitions || rc=1
 
 # Traduction automatique des NOUVEAUX titres seulement (mémoire en base) : fr -> en (interface /en) et en -> fr (votes européens sans titre

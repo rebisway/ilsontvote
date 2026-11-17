@@ -643,3 +643,21 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
     .menu .plus-liste { position: static; box-shadow: none; border: 0; border-radius: 0; padding: 0; min-width: 0; }
     .menu .plus-liste a { padding: 12px 2px; }
 }
+
+/* Onglets de plateforme (pétitions) : liens, l'actif est souligné. */
+.onglets { display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 16px 0 8px; border-bottom: 1px solid var(--line); }
+.onglets a { text-decoration: none; color: var(--ink-soft); padding: 8px 2px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.onglets a:hover { color: var(--ink); }
+.onglets a[aria-current="page"] { color: var(--ink); font-weight: 650; border-bottom-color: var(--contre); }
+
+/* Pétitions : les listes de commission et de type ne prennent pas une ligne entière. */
+.filtres select[name="commission"], .filtres select[name="type"] { max-width: 460px; }
+
+/* Pétitions : une teinte par statut (hors couleurs de vote) et un peu de relief sur la fiche. */
+:root { --st-ouverte: #15803d; --st-seuil: #0e7490; --st-classee: #6d28d9; --st-archivee: #be185d; --st-neutre: #64748b; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --st-ouverte: #4ade80; --st-seuil: #22d3ee; --st-classee: #a78bfa; --st-archivee: #f472b6; --st-neutre: #94a3b8; } }
+:root[data-theme="dark"] { --st-ouverte: #4ade80; --st-seuil: #22d3ee; --st-classee: #a78bfa; --st-archivee: #f472b6; --st-neutre: #94a3b8; }
+.st-ouverte { --st: var(--st-ouverte); } .st-seuil { --st: var(--st-seuil); } .st-classee { --st: var(--st-classee); } .st-archivee { --st: var(--st-archivee); } .st-neutre { --st: var(--st-neutre); }
+.puce-statut { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: 0.82rem; font-weight: 650; white-space: nowrap; color: var(--st); border: 1px solid var(--st); background: color-mix(in srgb, var(--st) 14%, transparent); }
+.grand-nombre { font-weight: 650; color: var(--st); font-variant-numeric: tabular-nums; }
+.titre-section { margin-top: 28px; }

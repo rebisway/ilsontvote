@@ -15,60 +15,79 @@ public sealed class ImportRepository(string connectionString)
             "INSERT INTO import_runs (source) VALUES (@source) RETURNING id", new { source });
     }
 
-    /// <summary>Vrai si un relevé de cette date est déjà dans l'historique des pétitions (évite de retélécharger une archive).</summary>
-    public async Task<bool> ReleveExisteAsync(DateTime releve)
+    /// <summary>Vrai si un relevé de cette source et de cette date est déjà traité (évite de retélécharger une archive).</summary>
+    public async Task<bool> ReleveExisteAsync(string chambre, DateTime releve)
     {
         await using var conn = new NpgsqlConnection(connectionString);
-        return await conn.ExecuteScalarAsync<bool>("SELECT EXISTS (SELECT 1 FROM petitions_historique WHERE releve_le = @releve::date)", new { releve });
+        return await conn.ExecuteScalarAsync<bool>("SELECT EXISTS (SELECT 1 FROM petitions_releves WHERE chambre = @chambre AND releve_le = @releve::date)", new { chambre, releve });
+    }
+
+    /// <summary>Date du relevé le plus récent déjà traité pour cette source (NULL si aucun).</summary>
+    public async Task<DateTime?> DernierReleveAsync(string chambre)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        return await conn.ExecuteScalarAsync<DateTime?>("SELECT max(releve_le) FROM petitions_releves WHERE chambre = @chambre", new { chambre });
+    }
+
+    /// <summary>Empreinte du fichier du dernier relevé de cette source (NULL si inconnue) : un fichier identique n'ajoute pas de relevé.</summary>
+    public async Task<string?> DernierShaAsync(string chambre)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        return await conn.ExecuteScalarAsync<string?>("SELECT sha256 FROM petitions_releves WHERE chambre = @chambre ORDER BY releve_le DESC LIMIT 1", new { chambre });
     }
 
     /// <summary>
-    /// Écrit un relevé de pétitions : (1) la fiche courante (upsert ; <paramref name="majFiche"/> = false pour une ARCHIVE ancienne, qui ne doit
-    /// pas écraser un état plus récent), (2) une ligne d'historique (ajout seul), (3) les anomalies par comparaison avec le relevé PRÉCÉDENT
-    /// (le plus récent de date inférieure). Idempotent : rejouer le même relevé ne duplique ni l'historique ni les anomalies.
-    /// Retourne (pétitions écrites, anomalies nouvelles).
+    /// Écrit un relevé de pétitions d'UNE source : (1) la fiche courante (upsert ; <paramref name="majFiche"/> = false pour une ARCHIVE ancienne, qui ne
+    /// doit pas écraser un état plus récent), (2) une ligne d'historique (ajout seul), (3) les anomalies par comparaison avec le relevé PRÉCÉDENT de la
+    /// même source. Les requêtes sont limitées à la source (<c>chambre</c>) : deux plateformes peuvent avoir un relevé le même jour.
+    /// Idempotent : rejouer le même relevé ne duplique ni l'historique ni les anomalies. Retourne (pétitions écrites, anomalies nouvelles).
     /// </summary>
-    public async Task<(int Ecrites, int Anomalies)> EcrireReleveAsync(IReadOnlyList<PetitionRow> petitions, DateTime releve, bool majFiche)
+    public async Task<(int Ecrites, int Anomalies)> EcrireReleveAsync(string chambre, IReadOnlyList<PetitionRow> petitions, DateTime releve, bool majFiche, string? sha)
     {
         await using var conn = new NpgsqlConnection(connectionString);
         await conn.OpenAsync();
         await using var tx = await conn.BeginTransactionAsync();
 
+        const string colonnes = "id, chambre, titre, description, date_publication, nb_votes, statut, date_limite_vote, type, url, commission, decision_commission, legislature";
+        const string valeurs = "@Id, @Chambre, @Titre, @Description, @DatePublication, @NbVotes, @Statut, @DateLimiteVote, @Type, @Url, @Commission, @DecisionCommission, @Legislature";
         var ecrites = await conn.ExecuteAsync(
             majFiche
-                ? """
-                  INSERT INTO petitions (id, titre, description, date_publication, nb_votes, statut, date_limite_vote, type, url)
-                  VALUES (@Id, @Titre, @Description, @DatePublication, @NbVotes, @Statut, @DateLimiteVote, @Type, @Url)
-                  ON CONFLICT (id) DO UPDATE
-                     SET titre = EXCLUDED.titre, description = EXCLUDED.description, date_publication = EXCLUDED.date_publication,
-                         nb_votes = EXCLUDED.nb_votes, statut = EXCLUDED.statut, date_limite_vote = EXCLUDED.date_limite_vote,
-                         type = EXCLUDED.type, url = EXCLUDED.url
-                  """
-                : """
-                  INSERT INTO petitions (id, titre, description, date_publication, nb_votes, statut, date_limite_vote, type, url)
-                  VALUES (@Id, @Titre, @Description, @DatePublication, @NbVotes, @Statut, @DateLimiteVote, @Type, @Url)
-                  ON CONFLICT (id) DO NOTHING
-                  """, petitions, tx);
+                ? $"""
+                   INSERT INTO petitions ({colonnes}) VALUES ({valeurs})
+                   ON CONFLICT (id) DO UPDATE
+                      SET titre = EXCLUDED.titre, description = EXCLUDED.description, date_publication = EXCLUDED.date_publication,
+                          nb_votes = EXCLUDED.nb_votes, statut = EXCLUDED.statut, date_limite_vote = EXCLUDED.date_limite_vote, type = EXCLUDED.type,
+                          url = EXCLUDED.url, commission = EXCLUDED.commission, decision_commission = EXCLUDED.decision_commission, legislature = EXCLUDED.legislature
+                   """
+                : $"INSERT INTO petitions ({colonnes}) VALUES ({valeurs}) ON CONFLICT (id) DO NOTHING", petitions, tx);
 
-        // Historique : une ligne par pétition et par relevé (rejeu du même jour : la ligne est remplacée par la même valeur).
+        // Historique : une ligne par pétition et par relevé (rejeu du même relevé : la ligne est remplacée par la même valeur).
         await conn.ExecuteAsync(
             """
             INSERT INTO petitions_historique (petition_id, releve_le, nb_votes, statut) VALUES (@Id, @releve::date, @NbVotes, @Statut)
             ON CONFLICT (petition_id, releve_le) DO UPDATE SET nb_votes = EXCLUDED.nb_votes, statut = EXCLUDED.statut
             """, petitions.Select(p => new { p.Id, p.NbVotes, p.Statut, releve }), tx);
 
-        // Relevé précédent = le plus récent de date inférieure ; sans lui (tout premier relevé), il n'y a rien à comparer.
-        var precedent = await conn.ExecuteScalarAsync<DateTime?>("SELECT max(releve_le) FROM petitions_historique WHERE releve_le < @releve::date", new { releve }, tx);
+        // Relevé précédent DE CETTE SOURCE ; sans lui (tout premier relevé), il n'y a rien à comparer.
+        var precedent = await conn.ExecuteScalarAsync<DateTime?>(
+            "SELECT max(releve_le) FROM petitions_releves WHERE chambre = @chambre AND releve_le < @releve::date", new { chambre, releve }, tx);
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO petitions_releves (chambre, releve_le, sha256, nb_petitions) VALUES (@chambre, @releve::date, @sha, @n)
+            ON CONFLICT (chambre, releve_le) DO UPDATE SET sha256 = EXCLUDED.sha256, nb_petitions = EXCLUDED.nb_petitions
+            """, new { chambre, releve, sha, n = petitions.Count }, tx);
+
         var anomalies = 0;
         if (precedent is not null)
         {
-            var p = new { releve, precedent };
-            // Baisse : moins de soutiens qu'au relevé précédent.
+            var p = new { chambre, releve, precedent };
+            // Baisse : moins de soutiens qu'au relevé précédent (un nombre manquant, NULL, ne compte jamais comme une baisse).
             anomalies += await conn.ExecuteAsync(
                 """
                 INSERT INTO petitions_anomalies (petition_id, type, detecte_le, releve_precedent, valeur_avant, valeur_apres)
                 SELECT h.petition_id, 'baisse', @releve::date, @precedent::date, a.nb_votes, h.nb_votes
                   FROM petitions_historique h
+                  JOIN petitions pt ON pt.id = h.petition_id AND pt.chambre = @chambre
                   JOIN petitions_historique a ON a.petition_id = h.petition_id AND a.releve_le = @precedent::date
                  WHERE h.releve_le = @releve::date AND h.nb_votes < a.nb_votes
                 ON CONFLICT (petition_id, type, detecte_le) DO NOTHING
@@ -79,6 +98,7 @@ public sealed class ImportRepository(string connectionString)
                 INSERT INTO petitions_anomalies (petition_id, type, detecte_le, releve_precedent, valeur_avant, valeur_apres)
                 SELECT a.petition_id, 'disparition', @releve::date, @precedent::date, a.nb_votes, NULL
                   FROM petitions_historique a
+                  JOIN petitions pt ON pt.id = a.petition_id AND pt.chambre = @chambre
                  WHERE a.releve_le = @precedent::date
                    AND NOT EXISTS (SELECT 1 FROM petitions_historique h WHERE h.petition_id = a.petition_id AND h.releve_le = @releve::date)
                 ON CONFLICT (petition_id, type, detecte_le) DO NOTHING
@@ -91,6 +111,7 @@ public sealed class ImportRepository(string connectionString)
                        (SELECT x.nb_votes FROM petitions_historique x WHERE x.petition_id = h.petition_id AND x.releve_le < @precedent::date ORDER BY x.releve_le DESC LIMIT 1),
                        h.nb_votes
                   FROM petitions_historique h
+                  JOIN petitions pt ON pt.id = h.petition_id AND pt.chambre = @chambre
                  WHERE h.releve_le = @releve::date
                    AND NOT EXISTS (SELECT 1 FROM petitions_historique a WHERE a.petition_id = h.petition_id AND a.releve_le = @precedent::date)
                    AND EXISTS (SELECT 1 FROM petitions_historique x WHERE x.petition_id = h.petition_id AND x.releve_le < @precedent::date)
@@ -98,14 +119,15 @@ public sealed class ImportRepository(string connectionString)
                 """, p, tx);
         }
 
-        // « Absente depuis » : seulement si ce relevé est le plus récent connu (un rattrapage d'archives ne doit pas le fausser).
+        // « Absente depuis » : seulement si ce relevé est le plus récent de CETTE source (un rattrapage d'archives ne doit pas le fausser).
         await conn.ExecuteAsync(
             """
             UPDATE petitions p SET absente_depuis =
                    CASE WHEN EXISTS (SELECT 1 FROM petitions_historique h WHERE h.petition_id = p.id AND h.releve_le = @releve::date) THEN NULL
                         ELSE COALESCE(p.absente_depuis, @releve::date) END
-             WHERE @releve::date >= (SELECT max(releve_le) FROM petitions_historique)
-            """, new { releve }, tx);
+             WHERE p.chambre = @chambre
+               AND @releve::date >= (SELECT max(releve_le) FROM petitions_releves WHERE chambre = @chambre)
+            """, new { chambre, releve }, tx);
 
         await tx.CommitAsync();
         return (ecrites, anomalies);

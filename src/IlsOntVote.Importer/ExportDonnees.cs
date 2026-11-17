@@ -48,8 +48,8 @@ public static class ExportDonnees
                    url_dossier_senat, url_dossier_an, saisine_cc_date, saisine_cc_par, decision_cc_numero, decision_cc_date, decision_cc_libelle, decision_cc_url
               FROM textes ORDER BY id
             """),
-        new("petitions", "Pétitions déposées sur petitions.senat.fr : titre, type, statut publié par la source, nombre de soutiens de citoyens (pas des votes d'élus).",
-            "SELECT id, titre, type, statut, date_publication, date_limite_vote, nb_votes, url FROM petitions ORDER BY date_publication, id"),
+        new("petitions", "Pétitions déposées sur petitions.senat.fr et petitions.assemblee-nationale.fr : titre, statut publié par la source, commission et décision (Assemblée), nombre de soutiens de citoyens.",
+            "SELECT id, chambre, titre, type, statut, commission, decision_commission, legislature, date_publication, date_limite_vote, nb_votes, url FROM petitions ORDER BY chambre, date_publication, id"),
         new("petitions_historique", "Relevés successifs du nombre de soutiens et du statut de chaque pétition du Sénat (ajout seul, un relevé par import).",
             "SELECT petition_id, releve_le, nb_votes, statut FROM petitions_historique ORDER BY petition_id, releve_le"),
         new("petitions_anomalies", "Constats entre deux relevés : baisse du nombre de soutiens, disparition ou réapparition d'une pétition dans le fichier source. Sans cause connue.",

@@ -10,10 +10,18 @@ public sealed class Petition
     public string Id { get; set; } = "";
     public string Titre { get; set; } = "";
     public DateTime? DatePublication { get; set; }
-    public int NbVotes { get; set; }
+    /// <summary>NULL = non renseigné par la source (manquant ≠ zéro).</summary>
+    public int? NbVotes { get; set; }
     public string Statut { get; set; } = "";
     public DateTime? DateLimiteVote { get; set; }
-    public string Type { get; set; } = "";
+    /// <summary>« Texte législatif » / « Mission de contrôle » (Sénat) ; NULL à l'Assemblée, dont la source ne distingue pas de type.</summary>
+    public string? Type { get; set; }
+    /// <summary>SENAT ou AN.</summary>
+    public string Chambre { get; set; } = "SENAT";
+    /// <summary>Assemblée : commission permanente saisie et décision publiée par la source (texte tel quel).</summary>
+    public string? Commission { get; set; }
+    public string? DecisionCommission { get; set; }
+    public string? Legislature { get; set; }
     public string Url { get; set; } = "";
     /// <summary>Nombre de constats (baisse, disparition, réapparition) enregistrés pour cette pétition.</summary>
     public int NbAnomalies { get; set; }
@@ -25,7 +33,7 @@ public sealed class Petition
 public sealed class RelevePetition
 {
     public DateTime ReleveLe { get; set; }
-    public int NbVotes { get; set; }
+    public int? NbVotes { get; set; }
     public string Statut { get; set; } = "";
 }
 
@@ -40,7 +48,8 @@ public sealed class AnomaliePetition
     public string Type { get; set; } = "";
     public DateTime DetecteLe { get; set; }
     public DateTime ReleveAvant { get; set; }
-    public int ValeurAvant { get; set; }
+    public int? ValeurAvant { get; set; }
+    public string Chambre { get; set; } = "SENAT";
     public int? ValeurApres { get; set; }
     /// <summary>Soutiens perdus (baisse seulement).</summary>
     public int? Baisse { get; set; }
@@ -50,20 +59,22 @@ public sealed class AnomaliePetition
 }
 
 /// <summary>Critères de recherche d'anomalies (tous facultatifs, cumulables).</summary>
-public sealed record CriteresAnomalies(string? Type, DateTime? Du, DateTime? Au, int? BaisseMin, double? BaissePctMin, int? AvantMin, string? Recherche);
+public sealed record CriteresAnomalies(string? Type, DateTime? Du, DateTime? Au, int? BaisseMin, double? BaissePctMin, int? AvantMin, string? Recherche, string? Chambre = null);
 
 /// <summary>Effectif d'un statut ou d'un type de pétition.</summary>
 public sealed class EffectifPetition
 {
+    public string Chambre { get; set; } = "";
     public string Libelle { get; set; } = "";
     public int Nombre { get; set; }
 }
 
 public interface IPetitionRepository
 {
-    Task<Resultats<Petition>> ListerAsync(string? recherche, string? statut, string? type, string tri, bool decroissant, int page, int parPage);
+    Task<Resultats<Petition>> ListerAsync(string? recherche, string? chambre, string? statut, string? type, string? commission, string? anomalie, DateTime? du, DateTime? au, string tri, bool decroissant, int page, int parPage);
     Task<IReadOnlyList<EffectifPetition>> CompterParStatutAsync();
     Task<IReadOnlyList<EffectifPetition>> CompterParTypeAsync();
+    Task<IReadOnlyList<EffectifPetition>> CompterParCommissionAsync();
     Task<Petition?> GetAsync(string id);
     Task<IReadOnlyList<RelevePetition>> GetHistoriqueAsync(string id);
     Task<IReadOnlyList<AnomaliePetition>> GetAnomaliesAsync(string id);
@@ -81,13 +92,17 @@ public sealed class PetitionRepository(DapperContext db) : IPetitionRepository
     public static readonly IReadOnlyDictionary<string, string> Tris = new Dictionary<string, string>
     {
         ["date"] = "date_publication",
+        ["chambre"] = "chambre",
         ["titre"] = "recherche_norm(titre)",
         ["soutiens"] = "nb_votes",
         ["statut"] = "statut",
         ["type"] = "type",
+        ["commission"] = "recherche_norm(commission)",
+        ["fin"] = "date_limite_vote",
+        ["historique"] = "(SELECT count(*) FROM petitions_anomalies a WHERE a.petition_id = petitions.id)",
     };
 
-    public async Task<Resultats<Petition>> ListerAsync(string? recherche, string? statut, string? type, string tri, bool decroissant, int page, int parPage)
+    public async Task<Resultats<Petition>> ListerAsync(string? recherche, string? chambre, string? statut, string? type, string? commission, string? anomalie, DateTime? du, DateTime? au, string tri, bool decroissant, int page, int parPage)
     {
         using var cx = db.CreateConnection();
         if (!await TableExisteAsync(cx)) return new Resultats<Petition>([], 0, 1, parPage);
@@ -96,15 +111,21 @@ public sealed class PetitionRepository(DapperContext db) : IPetitionRepository
         const string filtre =
             """
              WHERE (cardinality(@mots) = 0 OR recherche_norm(titre) ILIKE ALL (@mots))
+               AND (@chambre IS NULL OR chambre = @chambre)
                AND (@statut IS NULL OR statut = @statut)
                AND (@type IS NULL OR type = @type)
+               AND (@commission IS NULL OR commission = @commission)
+               AND (@anomalie IS NULL OR EXISTS (SELECT 1 FROM petitions_anomalies a WHERE a.petition_id = petitions.id AND (@anomalie = 'oui' OR a.type = @anomalie)))
+               AND (@du::date IS NULL OR date_publication >= @du::date)
+               AND (@au::date IS NULL OR date_publication <= @au::date)
             """;
-        var p = new { mots, statut = Vide(statut), type = Vide(type), limit = parPage, offset = (page - 1) * parPage };
+        var p = new { mots, chambre = Vide(chambre), statut = Vide(statut), type = Vide(type), commission = Vide(commission), anomalie = Vide(anomalie), du, au, limit = parPage, offset = (page - 1) * parPage };
         var total = await cx.ExecuteScalarAsync<int>($"SELECT count(*) FROM petitions {filtre}", p);
         var ordre = Tris.GetValueOrDefault(tri, Tris["date"]);
         var lignes = (await cx.QueryAsync<Petition>(
             $"""
-             SELECT id, titre, date_publication AS DatePublication, nb_votes AS NbVotes, statut, date_limite_vote AS DateLimiteVote, type, url,
+             SELECT id, titre, date_publication AS DatePublication, nb_votes AS NbVotes, statut, date_limite_vote AS DateLimiteVote, type, url, chambre,
+                    commission, decision_commission AS DecisionCommission, legislature,
                     absente_depuis AS AbsenteDepuis, (SELECT count(*) FROM petitions_anomalies a WHERE a.petition_id = petitions.id)::int AS NbAnomalies
                FROM petitions {filtre}
               ORDER BY {ordre} {(decroissant ? "DESC" : "ASC")} NULLS LAST, id
@@ -115,13 +136,14 @@ public sealed class PetitionRepository(DapperContext db) : IPetitionRepository
 
     public Task<IReadOnlyList<EffectifPetition>> CompterParStatutAsync() => CompterAsync("statut");
     public Task<IReadOnlyList<EffectifPetition>> CompterParTypeAsync() => CompterAsync("type");
+    public Task<IReadOnlyList<EffectifPetition>> CompterParCommissionAsync() => CompterAsync("commission");
 
     /// <summary>Effectifs par colonne (nom en dur, jamais saisi) : statut ou type.</summary>
     private async Task<IReadOnlyList<EffectifPetition>> CompterAsync(string colonne)
     {
         using var cx = db.CreateConnection();
         if (!await TableExisteAsync(cx)) return [];
-        return (await cx.QueryAsync<EffectifPetition>($"SELECT {colonne} AS Libelle, count(*)::int AS Nombre FROM petitions GROUP BY {colonne} ORDER BY 2 DESC")).ToList();
+        return (await cx.QueryAsync<EffectifPetition>($"SELECT chambre AS Chambre, {colonne} AS Libelle, count(*)::int AS Nombre FROM petitions WHERE {colonne} IS NOT NULL GROUP BY chambre, {colonne} ORDER BY chambre, 3 DESC")).ToList();
     }
 
     /// <summary>Clés de tri des anomalies (liste blanche) -> expression SQL.</summary>
@@ -142,7 +164,8 @@ public sealed class PetitionRepository(DapperContext db) : IPetitionRepository
         if (!await TableExisteAsync(cx)) return null;
         return await cx.QuerySingleOrDefaultAsync<Petition>(
             """
-            SELECT id, titre, date_publication AS DatePublication, nb_votes AS NbVotes, statut, date_limite_vote AS DateLimiteVote, type, url,
+            SELECT id, titre, date_publication AS DatePublication, nb_votes AS NbVotes, statut, date_limite_vote AS DateLimiteVote, type, url, chambre,
+                   commission, decision_commission AS DecisionCommission, legislature,
                    absente_depuis AS AbsenteDepuis, (SELECT count(*) FROM petitions_anomalies a WHERE a.petition_id = petitions.id)::int AS NbAnomalies
               FROM petitions WHERE id = @id
             """, new { id });
@@ -160,7 +183,7 @@ public sealed class PetitionRepository(DapperContext db) : IPetitionRepository
     private const string SelectAnomalie =
         """
         SELECT a.petition_id AS PetitionId, p.titre, a.type, a.detecte_le AS DetecteLe, a.releve_precedent AS ReleveAvant,
-               a.valeur_avant AS ValeurAvant, a.valeur_apres AS ValeurApres,
+               a.valeur_avant AS ValeurAvant, a.valeur_apres AS ValeurApres, p.chambre AS Chambre,
                (a.valeur_avant - a.valeur_apres) AS Baisse,
                ((a.valeur_avant - a.valeur_apres) * 100.0 / NULLIF(a.valeur_avant, 0))::float8 AS BaissePct, p.statut
         """;
@@ -183,6 +206,7 @@ public sealed class PetitionRepository(DapperContext db) : IPetitionRepository
             """
               FROM petitions_anomalies a JOIN petitions p ON p.id = a.petition_id
              WHERE (@type IS NULL OR a.type = @type)
+               AND (@chambre IS NULL OR p.chambre = @chambre)
                AND (@du::date IS NULL OR a.detecte_le >= @du::date)
                AND (@au::date IS NULL OR a.detecte_le <= @au::date)
                AND (@baisseMin::int IS NULL OR (a.valeur_avant - a.valeur_apres) >= @baisseMin::int)
@@ -192,7 +216,7 @@ public sealed class PetitionRepository(DapperContext db) : IPetitionRepository
             """;
         var p = new
         {
-            type = string.IsNullOrWhiteSpace(c.Type) ? null : c.Type, du = c.Du, au = c.Au, baisseMin = c.BaisseMin, pctMin = c.BaissePctMin,
+            type = string.IsNullOrWhiteSpace(c.Type) ? null : c.Type, chambre = string.IsNullOrWhiteSpace(c.Chambre) ? null : c.Chambre, du = c.Du, au = c.Au, baisseMin = c.BaisseMin, pctMin = c.BaissePctMin,
             avantMin = c.AvantMin, mots = RechercheSql.Mots(c.Recherche), limit = parPage, offset = (page - 1) * parPage,
         };
         var total = await cx.ExecuteScalarAsync<int>($"SELECT count(*) {filtre}", p);

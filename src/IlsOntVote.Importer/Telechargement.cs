@@ -5,6 +5,45 @@ namespace IlsOntVote.Importer;
 /// <summary>Téléchargement des jeux de données publics (AN, Sénat). Les zips arrivent de sources externes : ils sont extraits dans un dossier dédié, jamais exécutés.</summary>
 public static class Telechargement
 {
+    /// <summary>
+    /// Identité envoyée à toutes les sources : fixe et honnête (le projet et son site), jamais déguisée ni changeante. Une source gênée par notre trafic
+    /// sait ainsi qui contacter ; certains serveurs refusent en outre les requêtes sans User-Agent.
+    /// </summary>
+    public const string UserAgent = "IlsOntVote/1.0 (+https://www.ilsontvote.org)";
+
+    /// <summary>Client HTTP commun : User-Agent fixe et délai donné.</summary>
+    public static HttpClient CreerClient(TimeSpan delai)
+    {
+        var http = new HttpClient { Timeout = delai };
+        http.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
+        return http;
+    }
+
+    /// <summary>
+    /// Requête conditionnelle : compare l'ETag du serveur (requête HEAD, sans télécharger le fichier) à celui enregistré après le dernier traitement
+    /// réussi (<c>destination + ".etag"</c>). Retourne (false, etag) si le fichier n'a pas changé. Sans ETag ou sans fichier local : (true, …), on télécharge.
+    /// L'ETag n'est enregistré qu'APRÈS un traitement réussi (<see cref="EnregistrerEtag"/>) : un import en échec ne doit pas faire sauter le suivant.
+    /// </summary>
+    public static async Task<(bool Modifie, string? Etag)> VerifierEtagAsync(string url, string destination)
+    {
+        try
+        {
+            using var http = CreerClient(TimeSpan.FromMinutes(1));
+            using var tete = await http.SendAsync(new HttpRequestMessage(HttpMethod.Head, url));
+            var etag = tete.IsSuccessStatusCode ? tete.Headers.ETag?.Tag : null;
+            if (etag is null || !File.Exists(destination)) return (true, etag);
+            var connu = File.Exists(destination + ".etag") ? File.ReadAllText(destination + ".etag").Trim() : null;
+            return (connu != etag, etag);
+        }
+        catch (HttpRequestException) { return (true, null); }   // HEAD refusé : on télécharge, comme avant
+    }
+
+    /// <summary>Enregistre l'ETag d'un fichier traité avec succès (cf. <see cref="VerifierEtagAsync"/>).</summary>
+    public static void EnregistrerEtag(string destination, string? etag)
+    {
+        if (etag is not null) File.WriteAllText(destination + ".etag", etag);
+    }
+
     /// <summary>Nombre d'essais par fichier (« The response ended prematurely » observé depuis la VM sur les gros zips de l'AN).</summary>
     private const int EssaisMax = 6;
 
@@ -12,7 +51,7 @@ public static class Telechargement
     public static async Task TelechargerFichierAsync(string url, string destination)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-        using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+        using var http = CreerClient(TimeSpan.FromMinutes(10));
 
         // D'abord par tranches (plus rapide et plus fiable quand le serveur le permet), sinon flux continu ci-dessous.
         if (await EssayerParTranchesAsync(http, url, destination)) return;

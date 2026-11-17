@@ -14,6 +14,8 @@ namespace IlsOntVote.Web.Pages;
 public class PetitionAnomaliesModel(IPetitionRepository petitions, Langue langue) : ListePageModel
 {
     [BindProperty(SupportsGet = true)] public string? Type { get; set; }
+    /// <summary>« senat » ou « an » (vide = les deux plateformes).</summary>
+    [BindProperty(SupportsGet = true)] public string? Chambre { get; set; }
     [BindProperty(SupportsGet = true)] public string? Du { get; set; }
     [BindProperty(SupportsGet = true)] public string? Au { get; set; }
     /// <summary>Baisse minimale en nombre de soutiens.</summary>
@@ -33,7 +35,7 @@ public class PetitionAnomaliesModel(IPetitionRepository petitions, Langue langue
     protected override IReadOnlyCollection<string> ClesTri { get; } = [.. PetitionRepository.TrisAnomalies.Keys];
     protected override bool DecroissantInitial(string cle) => cle is not ("titre" or "type");
     protected override IEnumerable<(string Nom, string? Valeur)> Filtres =>
-        [("type", Type), ("du", Du), ("au", Au), ("baisse", BaisseTexte), ("pct", PctTexte), ("avant", AvantTexte), ("q", Recherche)];
+        [("type", Type), ("chambre", Chambre), ("du", Du), ("au", Au), ("baisse", BaisseTexte), ("pct", PctTexte), ("avant", AvantTexte), ("q", Recherche)];
 
     /// <summary>Libellé d'un type d'anomalie dans la langue de la page.</summary>
     public static string TypeLibelle(string type, bool anglais) => type switch
@@ -50,7 +52,7 @@ public class PetitionAnomaliesModel(IPetitionRepository petitions, Langue langue
     private CriteresAnomalies Criteres()
     {
         var (du, au) = Services.Periode.Lire(Du, Au);
-        return new CriteresAnomalies(Types.Contains(Type) ? Type : null, du, au, Entier(BaisseTexte), Reel(PctTexte), Entier(AvantTexte), Recherche);
+        return new CriteresAnomalies(Types.Contains(Type) ? Type : null, du, au, Entier(BaisseTexte), Reel(PctTexte), Entier(AvantTexte), Recherche, Chambre switch { "senat" => "SENAT", "an" => "AN", _ => null });
     }
 
     private IReadOnlyList<Colonne<AnomaliePetition>> ColonnesExport()
@@ -60,6 +62,7 @@ public class PetitionAnomaliesModel(IPetitionRepository petitions, Langue langue
         {
             new(en ? "Detected on" : "Détectée le", a => a.DetecteLe),
             new(en ? "Previous snapshot" : "Relevé précédent", a => a.ReleveAvant),
+            new(en ? "Platform" : "Plateforme", a => a.Chambre == "AN" ? (en ? "National Assembly" : "Assemblée nationale") : (en ? "Senate" : "Sénat")),
             new(en ? "Title" : "Titre", a => a.Titre),
             new("Type", a => a.Type),
             new(en ? "Supporters before" : "Soutiens avant", a => a.ValeurAvant),

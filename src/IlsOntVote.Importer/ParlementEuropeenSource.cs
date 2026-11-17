@@ -23,9 +23,7 @@ public sealed class ParlementEuropeenSource : IDisposable
 
     private readonly Dictionary<string, string?> _titresFr = new();
 
-    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromMinutes(2) };
-
-    public ParlementEuropeenSource() => _http.DefaultRequestHeaders.UserAgent.ParseAdd("IlsOntVote/1.0 (+https://www.ilsontvote.org)");
+    private readonly HttpClient _http = Telechargement.CreerClient(TimeSpan.FromMinutes(2));
 
     /// <summary>Identifiants et dates de tous les votes (liste paginée), du plus récent au plus ancien.</summary>
     public async Task<List<(string Id, DateOnly Date, string Titre)>> ListerVotesAsync()

@@ -363,46 +363,73 @@ async Task<IReadOnlyList<(string Source, string Cible)>> LancerScriptTraductionA
 }
 
 /// <summary>
-/// Pétitions du Sénat (petitions.senat.fr) : télécharge le CSV de data.gouv.fr (mis à jour chaque lundi à la source), l'écrit avec son historique
-/// et détecte les anomalies (baisse de soutiens, disparition). <c>--archives</c> : rattrape d'abord les fichiers hebdomadaires archivés par
-/// data.gouv.fr (à partir de mars 2026), dans l'ordre chronologique, pour reconstituer l'historique passé.
+/// Pétitions (Sénat et Assemblée nationale) : télécharge le CSV de data.gouv.fr de chaque plateforme (mis à jour chaque lundi à la source), l'écrit avec
+/// son historique et détecte les anomalies (baisse de soutiens, disparition). Un fichier identique au précédent (même empreinte) n'ajoute pas de relevé.
+/// <c>--force</c> écrit même si le fichier est identique au précédent (remise à jour des fiches). <c>--source senat|an</c> limite à une plateforme. <c>--archives</c> rattrape d'abord les fichiers hebdomadaires archivés par data.gouv.fr
+/// (Sénat depuis mars 2026, Assemblée depuis juillet 2025), dans l'ordre chronologique ; chaque archive est supprimée après traitement (10 Mo l'une pour l'AN).
 /// </summary>
 async Task<int> ImporterPetitionsAsync()
 {
-    Console.WriteLine("=== Pétitions du Sénat ===");
+    Console.WriteLine("=== Pétitions ===");
     var runId = await repo.DemarrerAsync("PETITIONS");
     try
     {
-        var dossier = Path.Combine(Directory.GetCurrentDirectory(), "data", "petitions");
-        int anomaliesTotal = 0;
+        var demande = Option("--source");
+        var sources = new[] { PetitionsSource.Senat, PetitionsSource.Assemblee }
+            .Where(x => demande is null || (demande == "an" && x.Chambre == "AN") || (demande == "senat" && x.Chambre == "SENAT")).ToList();
+        int total = 0, anomaliesTotal = 0;
 
-        if (argv.Contains("--archives"))
+        foreach (var source in sources)
         {
-            using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(2) };
-            var index = await http.GetStringAsync(PetitionsSource.UrlArchives);
-            // Noms de la forme AAAA-MM-JJ_petitions.csv ; l'ordre chronologique est indispensable (chaque relevé est comparé au précédent).
-            var fichiers = System.Text.RegularExpressions.Regex.Matches(index, @"(\d{4}-\d{2}-\d{2})_petitions\.csv")
-                .Select(m => m.Groups[1].Value).Distinct().Order().ToList();
-            Console.WriteLine($"  {fichiers.Count} archives hebdomadaires.");
-            foreach (var jour in fichiers)
-            {
-                var date = DateTime.Parse(jour, System.Globalization.CultureInfo.InvariantCulture);
-                if (await repo.ReleveExisteAsync(date)) continue;   // déjà en historique
-                var chemin = Path.Combine(dossier, "archives", jour + "_petitions.csv");
-                await Telechargement.TelechargerFichierAsync(PetitionsSource.UrlArchives + jour + "_petitions.csv", chemin);
-                var (_, an) = await repo.EcrireReleveAsync(PetitionsSource.Lire(chemin), date, majFiche: false);
-                anomaliesTotal += an;
-                Console.WriteLine($"  archive {jour} : {an} anomalie(s).");
-            }
-        }
+            Console.WriteLine($"--- {source.Nom} ---");
+            var dossier = Path.Combine(Directory.GetCurrentDirectory(), "data", "petitions", source.Chambre.ToLowerInvariant());
 
-        var fichier = Path.Combine(dossier, "petitions.csv");
-        await Telechargement.TelechargerFichierAsync(PetitionsSource.Url, fichier);
-        var lignes = PetitionsSource.Lire(fichier);
-        var (n, anomalies) = await repo.EcrireReleveAsync(lignes, DateTime.UtcNow.Date, majFiche: true);
-        anomaliesTotal += anomalies;
-        Console.WriteLine($"  {lignes.Count} pétitions lues, {n} écrites ; {anomaliesTotal} anomalie(s) détectée(s) au total.");
-        await repo.TerminerAsync(runId, true, n, anomaliesTotal, null);
+            if (argv.Contains("--archives"))
+            {
+                using var http = Telechargement.CreerClient(TimeSpan.FromMinutes(2));
+                var index = await http.GetStringAsync(source.UrlArchives);
+                // Noms de la forme AAAA-MM-JJ_petitions.csv ; l'ordre chronologique est indispensable (chaque relevé est comparé au précédent).
+                var fichiers = System.Text.RegularExpressions.Regex.Matches(index, @"(\d{4}-\d{2}-\d{2})_petitions\.csv")
+                    .Select(m => m.Groups[1].Value).Distinct().Order().ToList();
+                Console.WriteLine($"  {fichiers.Count} archives hebdomadaires.");
+                foreach (var jour in fichiers)
+                {
+                    var date = DateTime.Parse(jour, System.Globalization.CultureInfo.InvariantCulture);
+                    if (await repo.ReleveExisteAsync(source.Chambre, date)) continue;   // déjà traité
+                    var chemin = Path.Combine(dossier, "archives", jour + "_petitions.csv");
+                    await Telechargement.TelechargerFichierAsync(source.UrlArchives + jour + "_petitions.csv", chemin);
+                    var sha = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(await File.ReadAllBytesAsync(chemin))).ToLowerInvariant();
+                    // Une archive plus récente que tout relevé déjà traité met la fiche à jour (traitement chronologique : la dernière archive donne l'état
+                    // courant) ; une archive plus ancienne que l'existant ne doit jamais l'écraser. Sans cela, le fichier du jour, identique à la
+                    // dernière archive, est jugé « inchangé » et les fiches resteraient à la valeur de leur première apparition.
+                    var dernier = await repo.DernierReleveAsync(source.Chambre);
+                    var (_, an) = await repo.EcrireReleveAsync(source.Chambre, PetitionsSource.Lire(chemin, source), date, majFiche: dernier is null || date >= dernier, sha);
+                    File.Delete(chemin);
+                    anomaliesTotal += an;
+                    Console.WriteLine($"  archive {jour} : {an} anomalie(s).");
+                }
+            }
+
+            var fichier = Path.Combine(dossier, "petitions.csv");
+            // Requête conditionnelle : si l'ETag du serveur est celui du dernier traitement réussi, on ne télécharge rien (les sources changent le lundi).
+            var (modifie, etag) = argv.Contains("--force") ? (true, null) : await Telechargement.VerifierEtagAsync(source.Url, fichier);
+            if (!modifie) { Console.WriteLine("  fichier inchangé (ETag) : rien à télécharger."); continue; }
+            await Telechargement.TelechargerFichierAsync(source.Url, fichier);
+            var shaCourant = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(await File.ReadAllBytesAsync(fichier))).ToLowerInvariant();
+            if (!argv.Contains("--force") && shaCourant == await repo.DernierShaAsync(source.Chambre))
+            {
+                Console.WriteLine("  fichier inchangé depuis le dernier relevé : rien à écrire.");
+                Telechargement.EnregistrerEtag(fichier, etag);
+                continue;
+            }
+            var lignes = PetitionsSource.Lire(fichier, source);
+            var (n, anomalies) = await repo.EcrireReleveAsync(source.Chambre, lignes, DateTime.UtcNow.Date, majFiche: true, shaCourant);
+            Telechargement.EnregistrerEtag(fichier, etag);   // après un traitement réussi seulement
+            total += n; anomaliesTotal += anomalies;
+            Console.WriteLine($"  {lignes.Count} pétitions lues, {n} écrites ; {anomalies} anomalie(s) sur ce relevé.");
+        }
+        Console.WriteLine($"  Total : {total} pétitions écrites, {anomaliesTotal} anomalie(s) détectée(s).");
+        await repo.TerminerAsync(runId, true, total, anomaliesTotal, null);
         return 0;
     }
     catch (Exception ex)
