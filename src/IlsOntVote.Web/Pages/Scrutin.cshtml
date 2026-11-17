@@ -59,14 +59,15 @@
     var statutLoi = loi.Statut.Traduit(L.Anglais);
     <section class="bloc-texte" aria-label="@L.T("Le texte voté", "The text voted")">
         <p class="bloc-texte-titre"><span class="statut @statutLoi.Classe">@statutLoi.Libelle</span>
-            <a href="@L.Lien("/texte/" + loi.Id)">@L.T("Voir tout le parcours de ce texte →", "See this text's full journey →")</a></p>
+            <a href="@L.Lien("/texte/" + loi.Id)">@L.T("Voir tout le parcours de ce texte →", "See this text's full journey →")</a>
+            @if (!string.IsNullOrEmpty(loi.UrlLegifrance)) { <a href="@loi.UrlLegifrance" rel="noopener" target="_blank">@L.T("Texte sur Légifrance", "Text on Légifrance") ↗</a> }
+            @if (!string.IsNullOrEmpty(loi.UrlDossierSenat)) { <a href="@loi.UrlDossierSenat" rel="noopener" target="_blank">@L.T("Dossier législatif", "Legislative file") ↗</a> }
+        </p>
         <p class="bloc-texte-faits">
             @if (loi.DatePromulgation is not null) { <span>@L.T("Promulgué le", "Promulgated on") <b>@loi.DatePromulgation.Value.ToString("d MMMM yyyy", fr)</b></span> }
             @if (loi.DateJo is not null) { <span>@L.T("Paru au Journal officiel le", "Published in the Official Journal on") <b>@loi.DateJo.Value.ToString("d MMMM yyyy", fr)</b></span> }
             @if (!string.IsNullOrEmpty(loi.NumeroLoi)) { <span>@L.T("Loi n°", "Law no.") <b>@loi.NumeroLoi</b></span> }
             @if (loi.DecisionCcLibelle is not null) { <span>@L.T("Conseil constitutionnel :", "Constitutional Council:") <b>@loi.DecisionCcLibelle</b></span> }
-            @if (!string.IsNullOrEmpty(loi.UrlLegifrance)) { <a href="@loi.UrlLegifrance" rel="noopener" target="_blank">@L.T("Texte sur Légifrance", "Text on Légifrance") ↗</a> }
-            @if (!string.IsNullOrEmpty(loi.UrlDossierSenat)) { <a href="@loi.UrlDossierSenat" rel="noopener" target="_blank">@L.T("Dossier législatif", "Legislative file") ↗</a> }
         </p>
     </section>
 }
