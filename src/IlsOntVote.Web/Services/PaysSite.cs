@@ -23,11 +23,18 @@ public sealed class PaysSite(DapperContext db)
     public const string CookiePays = "ilsontvote_pays";
     private static readonly TimeSpan Duree = TimeSpan.FromMinutes(5);
 
+    /// <summary>Une chambre telle que décrite dans la table <c>chambres</c> : son pays (FR, EU, GB…), si elle est publiée, et la disposition de son hémicycle.</summary>
+    public sealed record ChambreInfo(string Code, string Pays, bool Actif, string Disposition);
+
+    private IReadOnlyList<ChambreInfo> _chambres = [];
     private IReadOnlyList<PaysActif> _actifs = [];
     private DateTime _charge = DateTime.MinValue;
 
     /// <summary>Pays actifs avec préfixe (copie en mémoire, rafraîchie toutes les 5 minutes). La France n'en fait pas partie (racine du site).</summary>
     public IReadOnlyList<PaysActif> Actifs => _actifs;
+
+    /// <summary>Force le rechargement au prochain appel : la page d'activation de /Admin le demande après chaque changement (sinon 5 minutes d'attente).</summary>
+    public void Invalider() => _charge = DateTime.MinValue;
 
     public async Task ChargerAsync()
     {
@@ -37,13 +44,28 @@ public sealed class PaysSite(DapperContext db)
             using var cx = db.CreateConnection();
             // Table ou colonne absente (migration 031 pas encore appliquée) : aucun pays, le site reste tel quel.
             if (!await cx.ExecuteScalarAsync<bool>("SELECT to_regclass('public.pays') IS NOT NULL AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'pays' AND column_name = 'prefixe_url')"))
-            { _actifs = []; _charge = DateTime.UtcNow; return; }
+            { _actifs = []; _chambres = []; _charge = DateTime.UtcNow; return; }
             _actifs = (await cx.QueryAsync<PaysActif>(
                 "SELECT code, prefixe_url AS prefixe, nom_fr, nom_en FROM pays WHERE actif AND prefixe_url IS NOT NULL ORDER BY ordre")).ToList();
+            _chambres = (await cx.QueryAsync<ChambreInfo>("SELECT code, pays, actif, disposition FROM chambres ORDER BY ordre")).ToList();
             _charge = DateTime.UtcNow;
         }
         catch (Exception) { /* base indisponible : on garde la liste connue, réessai au prochain appel */ }
     }
+
+    /// <summary>
+    /// Chambres dont les données s'affichent sur le site d'un pays : la France (null) montre ses chambres et le Parlement européen ; un pays à préfixe (« GB ») ne montre
+    /// QUE les siennes. Garde-fou : les données d'un pays ne doivent jamais apparaître sur le site d'un autre (ni listes, ni fiches, ni plan du site).
+    /// Sans table « chambres » (base ancienne) : les trois chambres historiques.
+    /// </summary>
+    public string[] ChambresVisibles(string? paysSite)
+    {
+        if (_chambres.Count == 0) return paysSite is null ? ["AN", "SENAT", "UE"] : [];
+        return _chambres.Where(c => paysSite is null ? c.Pays is "FR" or "EU" : c.Pays == paysSite).Select(c => c.Code).ToArray();
+    }
+
+    /// <summary>Disposition de l'hémicycle d'une chambre (« hemicycle » ou « face-a-face ») ; « hemicycle » par défaut.</summary>
+    public string Disposition(string chambre) => _chambres.FirstOrDefault(c => c.Code == chambre)?.Disposition ?? "hemicycle";
 
     /// <summary>Pays dont le préfixe est le premier segment de l'adresse (« /uk/lois » -> UK, reste « /lois ») ; aucun si l'adresse n'en porte pas. Segment entier : « /ukraine » ne correspond pas.</summary>
     public static (PaysActif? Pays, PathString Reste) Correspond(IReadOnlyList<PaysActif> actifs, PathString chemin)
@@ -74,8 +96,19 @@ public sealed class PaysSite(DapperContext db)
         await site.ChargerAsync();
         var actifs = site.Actifs;
         var req = ctx.Request;
-        if (actifs.Count == 0 || !EstPageDuSite(req.Path)) { await suite(); return; }
+        if (actifs.Count == 0) { await suite(); return; }
         var lecture = HttpMethods.IsGet(req.Method) || HttpMethods.IsHead(req.Method);
+
+        // 0. Préfixe de pays sur un FICHIER (/uk/css/site.css, /uk/favicon.svg…) : retiré aussi, comme /en : la page du pays les référence avec son préfixe (PathBase).
+        //    Administration et comptes n'ont pas de version par pays.
+        if ((req.Path.Value ?? "").Contains('.'))
+        {
+            var (paysFichier, resteFichier) = Correspond(actifs, req.Path);
+            if (paysFichier is not null) { req.PathBase = req.PathBase.Add("/" + paysFichier.Prefixe); req.Path = resteFichier; }
+            await suite();
+            return;
+        }
+        if (!EstPageDuSite(req.Path)) { await suite(); return; }
 
         // 1. Choix explicite : cookie, puis redirection vers l'accueil du pays choisi (« fr » = la racine).
         var choix = req.Query["pays"].ToString().ToLowerInvariant();

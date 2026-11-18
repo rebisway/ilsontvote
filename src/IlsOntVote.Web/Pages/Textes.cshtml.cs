@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace IlsOntVote.Web.Pages;
 
 /// <summary>Liste des scrutins publics (tous les votes), triable et exportable.</summary>
-public class TextesModel(IScrutinRepository scrutins) : ListePageModel
+public class TextesModel(IScrutinRepository scrutins, Langue langue) : ListePageModel
 {
     // 30 lignes : un tableau lisible d'un coup d'œil ; au-delà on pagine (l'export, lui, n'est pas paginé).
     protected override int ParPageDefaut => 30;
@@ -27,10 +27,13 @@ public class TextesModel(IScrutinRepository scrutins) : ListePageModel
     /// <summary>« resolution » : ne garde que les votes sur des propositions de résolution (menu « Résolutions »).</summary>
     [BindProperty(SupportsGet = true)] public string? Nature { get; set; }
     public bool Resolutions => Nature == "resolution";
+    /// <summary>Vrai sur le site d'un pays hors France : la liste de chambres de la France est masquée.</summary>
+    public bool SitePays => langue.Pays is not null;
 
     public Resultats<Scrutin> Resultats { get; private set; } = new([], 0, 1, 30);
 
-    public bool ToutAfficher => Portee == "tout";
+    /// <summary>Toutes les divisions sur le site d'un pays (aucune n'est rattachée à un texte « sur l'ensemble » : un filtre vide la liste) ; sinon selon la case « amendements et articles ».</summary>
+    public bool ToutAfficher => Portee == "tout" || SitePays;
 
     protected override string TriDefaut => "date";
     protected override IReadOnlyCollection<string> ClesTri { get; } = [.. ScrutinRepository.ClesTri];
@@ -60,7 +63,10 @@ public class TextesModel(IScrutinRepository scrutins) : ListePageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
-        var chambre = Chambre switch { "an" => Chambres.AN, "senat" => Chambres.Senat, "ue" => Chambres.UE, _ => null };
+        // Site d'un pays (/uk) : sa seule chambre (Communes) ; le paramètre « chambre » de la France n'a pas de sens. Les chambres des autres pays sont de toute façon
+        // écartées par ScrutinRepository (chambres visibles du site).
+        var chambre = langue.Pays == "GB" ? Chambres.Commons
+            : Chambre switch { "an" => Chambres.AN, "senat" => Chambres.Senat, "ue" => Chambres.UE, _ => null };
 
         var (du, au) = Periode.Lire(Du, Au);
 

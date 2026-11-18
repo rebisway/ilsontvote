@@ -21,8 +21,10 @@
         <div class="chambre-tete">
             <h2>@Chambres.Nom(section.Chambre, L.Anglais)</h2>
             <p class="actions-chambre">
-                <a class="bouton-lien" href="@L.Lien("/textes")?chambre=@Chambres.Filtre(section.Chambre)">@L.T("Tous les textes", "All votes")</a>
-                <a class="bouton-lien" href="@L.Lien("/" + Chambres.Liste(section.Chambre))">@L.T("Tous les ", "All ")@Chambres.Membres(section.Chambre, L.Anglais)</a>
+                <a class="bouton-lien" href="@L.Lien("/textes")?chambre=@Chambres.Filtre(section.Chambre)">@(section.Chambre == Chambres.Commons ? "All divisions" : L.T("Tous les textes", "All votes"))</a>
+                @if (Chambres.AUneFiche(section.Chambre)) {
+                    <a class="bouton-lien" href="@L.Lien("/" + Chambres.Liste(section.Chambre))">@L.T("Tous les ", "All ")@Chambres.Membres(section.Chambre, L.Anglais)</a>
+                }
             </p>
         </div>
 

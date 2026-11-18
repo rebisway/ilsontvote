@@ -1,0 +1,76 @@
+@page
+@model IlsOntVote.Web.Pages.Admin.PaysModel
+@using IlsOntVote.Web.Pages.Admin
+@{
+    ViewData["Title"] = "Pays et chambres";
+    ViewData["NoIndex"] = true;
+    var fr = ImportAffichage.Fr;
+}
+<partial name="_AdminNav" />
+<h1 class="titre-page">Pays et chambres</h1>
+<p class="chapo">Ouvrir ou fermer un pays du site. <strong>Pays actif</strong> : son adresse (par exemple <code>/uk</code>) existe et le sélecteur de pays s'affiche pour tous. <strong>Chambre active</strong> : ses données entrent dans les données ouvertes au prochain export. Les changements sont immédiats.</p>
+
+@if (Model.Message is not null) { <p class="note" role="status">@Model.Message</p> }
+
+<h2>Pays</h2>
+<div class="table-wrap">
+    <table>
+        <thead><tr><th>Pays</th><th>Adresse</th><th class="num">Scrutins</th><th>État</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var p in Model.Pays)
+        {
+            <tr>
+                <td>@p.NomFr <span class="note">@p.Code</span></td>
+                <td>@if (p.PrefixeUrl is not null) { if (p.Actif) { <a href="/@p.PrefixeUrl" target="_blank" rel="noopener">/@p.PrefixeUrl</a> } else { <span>/@p.PrefixeUrl</span> } } else { <span class="note-source">racine / non applicable</span> }</td>
+                <td class="num">@p.NbScrutins.ToString("N0", fr)</td>
+                <td>@if (p.Actif) { <span class="badge b-ok">Actif</span> } else { <span class="badge b-attente">Inactif</span> }</td>
+                <td>
+                    @if (p.Code is "FR" or "EU") { <span class="note-source">toujours actif</span> }
+                    else
+                    {
+                        <form method="post" asp-page-handler="Pays" style="display:inline"><input type="hidden" name="code" value="@p.Code" />
+                            <button type="submit" class="bouton petit @(p.Actif ? "secondaire" : "")" onclick="return confirm('@(p.Actif ? "Désactiver" : "Activer") @p.Code ?');">@(p.Actif ? "Désactiver" : "Activer")</button></form>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<h2>Chambres</h2>
+<div class="table-wrap">
+    <table>
+        <thead><tr><th>Chambre</th><th>Pays</th><th class="num">Sièges</th><th>Hémicycle</th><th class="num">Scrutins</th><th>Dernier</th><th>Données ouvertes</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var c in Model.Chambres)
+        {
+            <tr>
+                <td>@c.NomFr <span class="note">@c.Code</span></td>
+                <td>@c.Pays</td>
+                <td class="num">@(c.NbSieges?.ToString("N0", fr) ?? "—")</td>
+                <td>@(c.Disposition == "face-a-face" ? "bancs face à face" : "demi-cercle")</td>
+                <td class="num">@c.NbScrutins.ToString("N0", fr)</td>
+                <td class="nowrap">@(c.DernierScrutin?.ToString("d MMM yyyy", fr) ?? "—")</td>
+                <td>@if (c.Actif) { <span class="badge b-ok">Incluse</span> } else { <span class="badge b-attente">Exclue</span> }</td>
+                <td><form method="post" asp-page-handler="Chambre" style="display:inline"><input type="hidden" name="code" value="@c.Code" />
+                    <button type="submit" class="bouton petit secondaire">@(c.Actif ? "Exclure" : "Inclure")</button></form></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+@foreach (var ch in Model.Groupes.GroupBy(g => g.Chambre))
+{
+    <h2>Gouvernement : @ch.Key</h2>
+    <p class="note-source">Cocher les groupes qui siègent du côté du gouvernement ; tous les autres sont dessinés du côté opposé. À revoir après chaque changement de majorité.</p>
+    <form method="post" asp-page-handler="Gouvernement" class="filtres">
+        <input type="hidden" name="chambre" value="@ch.Key" />
+        @foreach (var g in ch)
+        {
+            <label class="case"><input type="checkbox" name="groupes" value="@g.Id" checked="@g.Gouvernement" /> @g.Sigle <span class="note">@g.Libelle · @g.Membres</span></label>
+        }
+        <button type="submit" class="bouton petit">Enregistrer</button>
+    </form>
+}

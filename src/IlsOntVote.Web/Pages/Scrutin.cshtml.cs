@@ -10,7 +10,7 @@ namespace IlsOntVote.Web.Pages;
 /// Page de détail d'un scrutin : caractéristiques du vote, hémicycle (un point par élu), décompte par groupe,
 /// liste des élus et, si on l'a identifié, le texte de loi concerné et son parcours.
 /// </summary>
-public class ScrutinModel(IScrutinRepository scrutins, ITexteRepository textes) : PageModel
+public class ScrutinModel(IScrutinRepository scrutins, ITexteRepository textes, PaysSite site) : PageModel
 {
     /// <summary>Le scrutin affiché (jamais null : la page répond 404 avant si l'identifiant est inconnu).</summary>
     public Scrutin Scrutin { get; private set; } = null!;
@@ -29,7 +29,7 @@ public class ScrutinModel(IScrutinRepository scrutins, ITexteRepository textes) 
 
         Scrutin = s;
         Sieges = await scrutins.GetSiegesAsync(id);
-        Vue = HemicycleLayout.Construire(Sieges);
+        Vue = HemicycleLayout.Construire(Sieges, site.Disposition(s.Chambre));   // demi-cercle ou bancs face à face selon la chambre
         Groupes = HemicycleLayout.DecompteParGroupe(Sieges);
         // Le rattachement vote -> texte se fait à l'import, par titre : on n'invente rien ici.
         Loi = await textes.GetParScrutinAsync(id);

@@ -221,10 +221,10 @@ async Task<List<(string Url, string? Date)>> PagesPubliques(DapperContext db)
     foreach (var u in new[] { "/", "/lois", "/textes", "/deputes", "/senateurs", "/eurodeputes", "/statistiques", "/elus", "/petitions", "/petitions/anomalies", "/donnees" }) urls.Add((u, aujourdhui));
     foreach (var u in new[] { "/methodologie", "/mentions-legales", "/soutenir" }) urls.Add((u, null));
     // Un scrutin ne change plus après son vote : sa date sert de « dernière modification ».
-    urls.AddRange((await cx.QueryAsync<(string, DateTime)>("SELECT '/scrutin/' || id, date_scrutin FROM scrutins")).Select(r => (r.Item1, (string?)r.Item2.ToString("yyyy-MM-dd"))));
+    urls.AddRange((await cx.QueryAsync<(string, DateTime)>("SELECT '/scrutin/' || id, date_scrutin FROM scrutins WHERE chambre IN (SELECT code FROM chambres WHERE pays IN ('FR', 'EU'))")).Select(r => (r.Item1, (string?)r.Item2.ToString("yyyy-MM-dd"))));
     urls.AddRange((await cx.QueryAsync<string>("SELECT '/texte/' || id FROM textes")).Select(u => (u, (string?)null)));
     urls.AddRange((await cx.QueryAsync<string>(
-        "SELECT CASE chambre WHEN 'SENAT' THEN '/senateur/' WHEN 'UE' THEN '/eurodepute/' ELSE '/depute/' END || slug FROM parlementaires")).Select(u => (u, (string?)null)));
+        "SELECT CASE chambre WHEN 'SENAT' THEN '/senateur/' WHEN 'UE' THEN '/eurodepute/' ELSE '/depute/' END || slug FROM parlementaires WHERE chambre IN (SELECT code FROM chambres WHERE pays IN ('FR', 'EU'))")).Select(u => (u, (string?)null)));
     return urls;
 }
 string Absolue(string chemin, bool en) => SiteUrl + (en ? "/en" + (chemin == "/" ? "" : chemin) : chemin);

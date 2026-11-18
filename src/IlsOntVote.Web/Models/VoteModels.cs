@@ -8,24 +8,30 @@ public static class Chambres
     public const string AN = "AN";
     public const string Senat = "SENAT";
     public const string UE = "UE";
+    public const string Commons = "COMMONS";
 
     public static string Nom(string chambre, bool en = false) => en
-        ? chambre switch { Senat => "Senate", UE => "European Parliament", _ => "National Assembly" }
-        : chambre switch { Senat => "Sénat", UE => "Parlement européen", _ => "Assemblée nationale" };
+        ? chambre switch { Senat => "Senate", UE => "European Parliament", Commons => "House of Commons", _ => "National Assembly" }
+        : chambre switch { Senat => "Sénat", UE => "Parlement européen", Commons => "Chambre des Communes", _ => "Assemblée nationale" };
     public static string Membre(string chambre, bool en = false) => en
-        ? chambre switch { Senat => "senator", UE => "MEP", _ => "deputy" }
-        : chambre switch { Senat => "sénateur", UE => "eurodéputé", _ => "député" };
+        ? chambre switch { Senat => "senator", UE => "MEP", Commons => "MP", _ => "deputy" }
+        : chambre switch { Senat => "sénateur", UE => "eurodéputé", Commons => "député britannique", _ => "député" };
     public static string Membres(string chambre, bool en = false) => en
-        ? chambre switch { Senat => "senators", UE => "MEPs", _ => "deputies" }
-        : chambre switch { Senat => "sénateurs", UE => "eurodéputés", _ => "députés" };
+        ? chambre switch { Senat => "senators", UE => "MEPs", Commons => "MPs", _ => "deputies" }
+        : chambre switch { Senat => "sénateurs", UE => "eurodéputés", Commons => "députés britanniques", _ => "députés" };
     /// <summary>Sigle court pour les étiquettes de tableau.</summary>
     public static string Court(string chambre, bool en = false) => en
-        ? chambre switch { Senat => "Senate", UE => "EU", _ => "NA" }
-        : chambre switch { Senat => "Sénat", UE => "UE", _ => "AN" };
+        ? chambre switch { Senat => "Senate", UE => "EU", Commons => "Commons", _ => "NA" }
+        : chambre switch { Senat => "Sénat", UE => "UE", Commons => "Communes", _ => "AN" };
     /// <summary>Classe CSS de l'étiquette de chambre (couleur propre à chaque assemblée).</summary>
-    public static string ClasseTag(string chambre) => chambre switch { Senat => "ch-senat", UE => "ch-ue", _ => "ch-an" };
+    public static string ClasseTag(string chambre) => chambre switch { Senat => "ch-senat", UE => "ch-ue", Commons => "ch-commons", _ => "ch-an" };
     /// <summary>Valeur du filtre d'URL (?chambre=) pour cette chambre.</summary>
-    public static string Filtre(string chambre) => chambre switch { Senat => "senat", UE => "ue", _ => "an" };
+    public static string Filtre(string chambre) => chambre switch { Senat => "senat", UE => "ue", Commons => "commons", _ => "an" };
+
+    /// <summary>Vrai si la chambre a des fiches d'élus et une liste d'élus (pas encore pour les Communes : les liens ne doivent pas pointer vers une page absente).</summary>
+    public static bool AUneFiche(string chambre) => chambre != Commons;
+    /// <summary>Mot qui désigne un scrutin de la chambre (« scrutin », « division » aux Communes).</summary>
+    public static string Terme(string chambre, bool en = false) => chambre == Commons ? (en ? "division" : "division") : (en ? "vote" : "scrutin");
 
     /// <summary>Préfixe d'URL des fiches : /depute/{slug}, /senateur/{slug} ou /eurodepute/{slug}.</summary>
     public static string Fiche(string chambre) => chambre switch { Senat => "senateur", UE => "eurodepute", _ => "depute" };
@@ -124,6 +130,8 @@ public sealed class Siege
     public string GroupeSigle { get; set; } = "";
     public string? GroupeCouleur { get; set; }
     public int GroupeOrdre { get; set; }
+    /// <summary>Groupe qui siège sur les bancs du gouvernement (chambres en bancs face à face) ; faux ailleurs.</summary>
+    public bool GroupeGouvernement { get; set; }
     public string Position { get; set; } = Pos.Absent;
     public bool ParDelegation { get; set; }
     public bool Rectifie { get; set; }
@@ -131,7 +139,7 @@ public sealed class Siege
     public bool OrigineInconnue { get; set; }
 
     public string NomComplet => $"{Prenom} {Nom}";
-    public string Lien => $"/{Chambres.Fiche(Chambre)}/{Slug}";
+    public string? Lien => Chambres.AUneFiche(Chambre) ? $"/{Chambres.Fiche(Chambre)}/{Slug}" : null;
 
     // Coordonnées calculées par HemicycleLayout.
     public double X { get; set; }

@@ -135,17 +135,18 @@ public sealed class CommonsSource : IDisposable
         // Comparaison au décompte officiel sur les listes Ayes / Noes hors scrutateurs (voir Analyser) : seul un déficit de noms est un manque.
         var manquants = Math.Max(0, d.OfficielPour - d.NbPourListe) + Math.Max(0, d.OfficielContre - d.NbContreListe);
         var notes = new List<string>();
+        // Notes en ANGLAIS : le site des Communes (/uk) n'a que l'interface anglaise.
         if (manquants > 0)
-            notes.Add($"Décompte officiel : {d.OfficielPour} pour, {d.OfficielContre} contre ; membres nommés dans les listes publiées : {d.NbPourListe} pour, {d.NbContreListe} contre " +
-                      "(scrutateurs listés à part, ajoutés aux votes). Résultat « adopté / rejeté » calculé d'après le décompte officiel.");
+            notes.Add($"Official count: {d.OfficielPour} ayes, {d.OfficielContre} noes; members named in the published lists: {d.NbPourListe} ayes, {d.NbContreListe} noes " +
+                      "(tellers are listed separately and added to the votes). The adopted / rejected result is computed from the official count.");
         if (deuxListes.Count > 0)
-            notes.Add($"{deuxListes.Count} membre(s) figurent à la fois dans la liste des pour et dans celle des contre : enregistré(s) comme abstention (vote dans les deux lobbies, que la pratique parlementaire britannique assimile à une abstention).");
+            notes.Add($"{deuxListes.Count} member(s) appear in both the ayes and the noes lists: recorded as an abstention (voted in both lobbies, which parliamentary practice treats as an abstention).");
         var scrutin = new ScrutinRow(
             // Numéro : l'identifiant de division (unique sur toute la législature). Le numéro de division de la session repart de 1 chaque session et
             // violerait la contrainte unique (chambre, législature, numéro) de scrutins (constaté) : il est repris dans le libellé du type de vote.
             id, Chambres.Commons, Legislature, d.Id, d.Date, d.Titre, "division", Sort(d.OfficielPour, d.OfficielContre), null, false,
             d.OfficielPour + d.OfficielContre, d.OfficielPour, d.OfficielContre, deuxListes.Count, null, null,
-            manquants, notes.Count == 0 ? null : string.Join(" ", notes), $"Division n° {d.Numero} de la session (vote par appel nominal ; pas d'abstention formelle aux Communes)", null, null, null, d.Titre);
+            manquants, notes.Count == 0 ? null : string.Join(" ", notes), $"Division no. {d.Numero} of the session (recorded vote; no formal abstention in the Commons)", null, null, null, d.Titre);
         return new ScrutinAvecVotes(scrutin, votes);
     }
 

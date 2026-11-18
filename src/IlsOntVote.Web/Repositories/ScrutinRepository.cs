@@ -1,6 +1,7 @@
 using Dapper;
 using IlsOntVote.Web.Data;
 using IlsOntVote.Web.Models;
+using IlsOntVote.Web.Services;
 
 namespace IlsOntVote.Web.Repositories;
 
@@ -8,6 +9,9 @@ public interface IScrutinRepository
 {
     /// <summary>Textes « à la une » d'une chambre : ceux marqués featured, sinon les derniers votes sur l'ensemble d'une loi.</summary>
     Task<IReadOnlyList<Scrutin>> GetAccueilAsync(string chambre, int max);
+
+    /// <summary>Derniers scrutins d'une chambre, tous types confondus (accueil d'un pays sans « à la une » ni vote sur l'ensemble identifié : Communes).</summary>
+    Task<IReadOnlyList<Scrutin>> GetDernieresAsync(string chambre, int max);
 
     Task<Scrutin?> GetAsync(string id);
 
@@ -19,8 +23,14 @@ public interface IScrutinRepository
         string tri = "date", bool decroissant = true, DateTime? du = null, DateTime? au = null, string? texteId = null, bool resolutionsSeulement = false);
 }
 
-public sealed class ScrutinRepository(DapperContext db) : IScrutinRepository
+public sealed class ScrutinRepository(DapperContext db, PaysSite site, Langue langue) : IScrutinRepository
 {
+    /// <summary>
+    /// Chambres visibles sur le site courant (France : AN, Sénat, UE ; /uk : Communes). Garde-fou : un scrutin d'un autre pays n'est ni listé ni ouvert par son
+    /// identifiant sur ce site (sinon les divisions britanniques apparaîtraient sur le site français dès leur import).
+    /// </summary>
+    private string[] Visibles => site.ChambresVisibles(langue.Pays);
+
     private const string Colonnes =
         """
         id, chambre, legislature, numero, date_scrutin, titre, titre_en, titre_en_auto, titre_fr_auto, sort, type_vote, sur_ensemble,
@@ -28,6 +38,14 @@ public sealed class ScrutinRepository(DapperContext db) : IScrutinRepository
         nominatif_incomplet, nb_votes_manquants, note,
         type_vote_libelle, type_majorite, suffrages_exprimes, suffrages_requis
         """;
+
+    public async Task<IReadOnlyList<Scrutin>> GetDernieresAsync(string chambre, int max)
+    {
+        if (!Visibles.Contains(chambre)) return [];
+        using var conn = db.CreateConnection();
+        return (await conn.QueryAsync<Scrutin>(
+            $"SELECT {Colonnes} FROM scrutins WHERE chambre = @chambre ORDER BY date_scrutin DESC, numero DESC LIMIT @max", new { chambre, max })).ToList();
+    }
 
     public async Task<IReadOnlyList<Scrutin>> GetAccueilAsync(string chambre, int max)
     {
@@ -56,7 +74,7 @@ public sealed class ScrutinRepository(DapperContext db) : IScrutinRepository
     {
         using var conn = db.CreateConnection();
         return await conn.QuerySingleOrDefaultAsync<Scrutin>(
-            $"SELECT {Colonnes} FROM scrutins WHERE id = @id", new { id });
+            $"SELECT {Colonnes} FROM scrutins WHERE id = @id AND chambre = ANY(@visibles)", new { id, visibles = Visibles });
     }
 
     public async Task<IReadOnlyList<Siege>> GetSiegesAsync(string scrutinId)
@@ -70,6 +88,7 @@ public sealed class ScrutinRepository(DapperContext db) : IScrutinRepository
             SELECT p.id AS parlementaire_id, p.chambre, p.prenom, p.nom, p.slug,
                    g.id AS groupe_id, COALESCE(g.sigle, 'NI') AS groupe_sigle,
                    g.couleur AS groupe_couleur, COALESCE(g.ordre, 130) AS groupe_ordre,
+                   COALESCE(g.gouvernement, false) AS groupe_gouvernement,
                    COALESCE(v.position, 'absent') AS position,
                    COALESCE(v.par_delegation, false) AS par_delegation,
                    COALESCE(v.rectifie, false) AS rectifie,
@@ -119,6 +138,7 @@ public sealed class ScrutinRepository(DapperContext db) : IScrutinRepository
         var where = """
             -- Sans filtre = « Assemblée et Sénat » : le Parlement européen ne s'affiche que si on le choisit explicitement.
             WHERE ((@chambre IS NULL AND chambre <> 'UE') OR chambre = @chambre)
+              AND chambre = ANY(@visibles)   -- seulement les chambres du site courant (voir Visibles)
               AND (NOT @ensemble OR sur_ensemble)
               AND NOT (nominatif_incomplet AND @ensemble)
               AND (recherche_norm(titre) ILIKE ALL (@mots) OR recherche_norm(titre_en) ILIKE ALL (@mots))   -- aussi dans le titre anglais ; tirets = espaces
@@ -131,7 +151,7 @@ public sealed class ScrutinRepository(DapperContext db) : IScrutinRepository
               -- de loi : elles ont leur propre entrée de menu et ne sont pas rattachées à un texte de loi.
               AND (NOT @resolutions OR titre ~* 'proposition de r[ée]solution')
             """;
-        var p = new { chambre, ensemble = surEnsembleSeulement, mots, du, au, texte = texteId, resolutions = resolutionsSeulement, limit = parPage, offset = (page - 1) * parPage };
+        var p = new { chambre, visibles = Visibles, ensemble = surEnsembleSeulement, mots, du, au, texte = texteId, resolutions = resolutionsSeulement, limit = parPage, offset = (page - 1) * parPage };
 
         var total = await conn.ExecuteScalarAsync<int>($"SELECT count(*) FROM scrutins {where}", p);
         var colonne = Tris.GetValueOrDefault(tri, "date_scrutin");

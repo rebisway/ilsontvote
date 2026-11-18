@@ -21,26 +21,32 @@ public sealed record EntreeManifeste(string Fichier, string Description, long Li
 public static class ExportDonnees
 {
     /// <summary>Jeux exportés. Les colonnes suivent le schéma de la base, sans les champs éditoriaux internes (à la une, titres normalisés).</summary>
+    /// <summary>
+    /// Filtre commun aux jeux qui portent sur des chambres : seules les chambres PUBLIÉES (<c>chambres.actif</c>) sont exportées. Une chambre en préparation
+    /// (Communes avant l'ouverture du site britannique) ne doit pas apparaître dans les données ouvertes publiques.
+    /// </summary>
+    private const string ChambresActives = "chambre IN (SELECT code FROM chambres WHERE actif)";
+
     public static readonly IReadOnlyList<JeuDonnees> Jeux =
     [
         new("groupes", "Groupes politiques (un identifiant par législature pour l'Assemblée).",
-            "SELECT id, chambre, sigle, libelle, legislature FROM groupes ORDER BY chambre, legislature, sigle"),
+            "SELECT id, chambre, sigle, libelle, legislature FROM groupes WHERE " + ChambresActives + " ORDER BY chambre, legislature, sigle"),
         new("parlementaires", "Députés, sénateurs et eurodéputés (identité, département ou pays, circonscription).",
-            "SELECT id, chambre, civilite, prenom, nom, slug, departement, circonscription FROM parlementaires ORDER BY chambre, nom, prenom"),
+            "SELECT id, chambre, civilite, prenom, nom, slug, departement, circonscription FROM parlementaires WHERE " + ChambresActives + " ORDER BY chambre, nom, prenom"),
         new("mandats", "Périodes de mandat (début = prise de fonction ; fin vide = en cours).",
-            "SELECT parlementaire_id, legislature, date_debut, date_fin FROM mandats ORDER BY parlementaire_id, date_debut"),
+            "SELECT parlementaire_id, legislature, date_debut, date_fin FROM mandats WHERE parlementaire_id IN (SELECT id FROM parlementaires WHERE " + ChambresActives + ") ORDER BY parlementaire_id, date_debut"),
         new("appartenances_groupes", "Appartenance d'un élu à un groupe, avec dates.",
-            "SELECT parlementaire_id, groupe_id, date_debut, date_fin FROM groupe_appartenances ORDER BY parlementaire_id, date_debut"),
+            "SELECT parlementaire_id, groupe_id, date_debut, date_fin FROM groupe_appartenances WHERE parlementaire_id IN (SELECT id FROM parlementaires WHERE " + ChambresActives + ") ORDER BY parlementaire_id, date_debut"),
         new("scrutins", "Scrutins publics : décompte, résultat, texte rattaché (texte_id : vote sur l'ensemble ; texte_lie_id : amendement ou article).",
-            """
+            $"""
             SELECT id, chambre, legislature, numero, date_scrutin, titre, titre_fr_auto, titre_en, titre_en_auto, type_vote_libelle, sort, sur_ensemble,
                    nb_votants, nb_pour, nb_contre, nb_abstentions, nb_non_votants, suffrages_exprimes, suffrages_requis, nominatif_incomplet, texte_id, texte_lie_id
-              FROM scrutins ORDER BY date_scrutin, chambre, numero
+              FROM scrutins WHERE {ChambresActives} ORDER BY date_scrutin, chambre, numero
             """),
         new("votes", "Vote de chaque élu à chaque scrutin public (pour, contre, abstention, non_votant). Les absents ne figurent pas dans ce fichier.",
-            """
+            $"""
             SELECT scrutin_id, parlementaire_id, groupe_id, "position", par_delegation, rectifie, position_origine, origine_inconnue
-              FROM votes ORDER BY scrutin_id, parlementaire_id
+              FROM votes WHERE scrutin_id IN (SELECT id FROM scrutins WHERE {ChambresActives}) ORDER BY scrutin_id, parlementaire_id
             """),
         new("textes", "Textes de loi : type, titre, état, promulgation, Journal officiel, décision du Conseil constitutionnel, liens officiels.",
             """

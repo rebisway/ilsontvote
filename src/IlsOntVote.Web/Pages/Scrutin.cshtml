@@ -26,7 +26,7 @@
 
 <header class="scrutin-tete">
     <p class="meta">
-        @Chambres.Nom(s.Chambre, L.Anglais) · @L.T("scrutin n°", "vote no.") @s.Numero · <time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMMM yyyy", fr)</time>
+        @Chambres.Nom(s.Chambre, L.Anglais) · @(s.Chambre == Chambres.Commons ? "division no." : L.T("scrutin n°", "vote no.")) @s.Numero · <time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMMM yyyy", fr)</time>
         · <span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span>
     </p>
     <h1>@titre</h1>
@@ -205,7 +205,7 @@
         @foreach (var d in Model.Sieges.OrderBy(x => x.Nom).ThenBy(x => x.Prenom))
         {
             <tr data-q="@((d.NomComplet + " " + d.GroupeSigle).ToLowerInvariant())">
-                <td><a href="@L.Lien(d.Lien)">@Noms.Html(d.Prenom, d.Nom)</a></td>
+                <td>@if (d.Lien is { } lienFiche) { <a href="@L.Lien(lienFiche)">@Noms.Html(d.Prenom, d.Nom)</a> } else { @Noms.Html(d.Prenom, d.Nom) }</td>
                 <td>@d.GroupeSigle</td>
                 <td>
                     <span class="badge b-@d.Position">@Libelle(d.Position)</span>

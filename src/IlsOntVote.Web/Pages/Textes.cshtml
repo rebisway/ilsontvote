@@ -3,7 +3,7 @@
 @using IlsOntVote.Web.Models
 @using IlsOntVote.Web.Services
 @{
-    ViewData["Title"] = Model.Resolutions ? L.T("Résolutions", "Resolutions") : L.T("Scrutins", "Votes");
+    ViewData["Title"] = Model.Resolutions ? L.T("Résolutions", "Resolutions") : Model.SitePays ? "Divisions" : L.T("Scrutins", "Votes");
     ViewData["Description"] = L.T("Tous les scrutins publics de l'Assemblée nationale et du Sénat : cherchez un texte, triez, exportez, et voyez qui a voté quoi.", "All roll-call votes of the French National Assembly and Senate: search a text, sort, export, and see who voted what.");
     var fr = L.Culture;
 }
@@ -15,24 +15,37 @@
 }
 else
 {
-    <h1 class="titre-page">@L.T("Scrutins", "Votes")</h1>
+    <h1 class="titre-page">@(Model.SitePays ? "Divisions" : L.T("Scrutins", "Votes"))</h1>
 @* chapô des scrutins : voir plus bas *@
+@if (Model.SitePays)
+{
+    <p class="chapo">Every recorded vote (division) of the House of Commons since July 2024, most recent first. Click a column title to sort; export the table in CSV or JSON. Members who did not vote are shown as absent only when the published lists are complete.</p>
+}
+else
+{
 <p class="chapo">@L.TH("Les votes sur l'ensemble d'un texte, du plus récent au plus ancien. Cochez « amendements et articles » pour voir aussi les votes intermédiaires. Cliquez sur un titre de colonne pour trier. Pour suivre le parcours complet d'une loi (promulgation, Journal officiel, Conseil constitutionnel), voir <a href=\"/lois\">les lois</a>.", "Votes on the whole text, most recent first. Tick “amendments and articles” to also see intermediate votes. Click a column title to sort. To follow a law's full journey (promulgation, Official Journal, Constitutional Council), see <a href=\"/en/lois\">the laws</a>.")</p>
+}
 }
 
 <form class="filtres filtres-auto filtres-liste" method="get" action="@L.Lien("/textes")">
     <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("Chercher un texte (ex. retraites, finances, immigration…)", "Search a text (e.g. pensions, finance, immigration…)")" aria-label="@L.T("Chercher un texte", "Search a text")" />
     @if (!string.IsNullOrEmpty(Model.TexteId)) { <input type="hidden" name="texte" value="@Model.TexteId" /> }
     @if (Model.Resolutions) { <input type="hidden" name="nature" value="resolution" /> }
+    @if (!Model.SitePays)
+    {
     <select name="chambre" aria-label="@L.T("Chambre", "Chamber")">
         <option value="" selected="@string.IsNullOrEmpty(Model.Chambre)">@L.T("Assemblée et Sénat", "National Assembly and Senate")</option>
         <option value="an" selected="@(Model.Chambre == "an")">@L.T("Assemblée nationale", "National Assembly")</option>
         <option value="senat" selected="@(Model.Chambre == "senat")">@L.T("Sénat", "Senate")</option>
         <option value="ue" selected="@(Model.Chambre == "ue")">@L.T("Parlement européen", "European Parliament")</option>
     </select>
+    }
     <span class="periode"><label class="champ-date">@L.T("Du", "From") <input type="date" name="du" value="@Model.Du" aria-label="@L.T("Du (date de début)", "From (start date)")" /></label>
         <label class="champ-date">@L.T("au", "to") <input type="date" name="au" value="@Model.Au" aria-label="@L.T("Au (date de fin)", "To (end date)")" /></label></span>
-    <label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" /> @L.T("amendements et articles", "amendments and articles")</label>
+    @if (!Model.SitePays)
+    {
+        <label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" /> @L.T("amendements et articles", "amendments and articles")</label>
+    }
     @* Tri : en-têtes de colonne (écran large) ou ces listes (téléphone). *@
     <select name="tri" class="tri-mobile" aria-label="@L.T("Trier par", "Sort by")">
         <option value="date" selected="@(Model.TriEffectif == "date")">@L.T("Trier : date", "Sort: date")</option>

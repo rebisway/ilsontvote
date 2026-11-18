@@ -30,13 +30,30 @@
         return $"M{F(x1)} {F(y1)}A{F(r)} {F(r)} 0 {grand} 1 {F(x2)} {F(y2)}";
     }
 }
-<svg id="@id" class="hemicycle" viewBox="0 0 @HemicycleLayout.Largeur.ToString(inv) @HemicycleLayout.Hauteur.ToString(inv)"
+<svg id="@id" class="hemicycle@(vue.FaceAFace ? " faceaface" : "")" viewBox="0 0 @vue.LargeurVue.ToString(inv) @vue.HauteurVue.ToString(inv)"
      role="img" aria-label="@L.T("Hémicycle : un point par élu, coloré selon son vote, entouré de la couleur de son groupe", "Hemicycle: one dot per elected official, coloured by vote, ringed with the colour of their group")">
 
     @* Couleurs des groupes, propres à ce dessin. <style> est valide dans un SVG en ligne. *@
     @Html.Raw("<style>" + css + "</style>")
 
     @* Arcs de groupes (toujours visibles, quel que soit le mode de coloration des points). *@
+    @if (vue.FaceAFace)
+    {
+        @* Croissants face à face : fauteuil du président en haut de l'allée, arc coloré à l'extérieur de chaque groupe (équivalent des arcs de l'hémicycle). *@
+        <g class="bancs">
+            <rect class="fauteuil" x="@F(vue.LargeurVue / 2 - 12)" y="6" width="24" height="20" rx="4"><title>@L.T("Président de séance (Speaker)", "Speaker's chair")</title></rect>
+            @foreach (var b in vue.Bandes!)
+            {
+                <path class="arc" d="@b.Chemin" style="stroke:@CouleurSure(b.Couleur)"><title>@b.Sigle — @b.Effectif</title></path>
+                if (Model.Detaille && b.Etiquette)
+                {
+                    @Html.Raw($"<text x=\"{F(b.LX)}\" y=\"{F(b.LY)}\" text-anchor=\"middle\" dominant-baseline=\"middle\">{System.Net.WebUtility.HtmlEncode(b.Sigle)}</text>")
+                }
+            }
+        </g>
+    }
+    else
+    {
     <g class="arcs">
         @foreach (var a in vue.Arcs)
         {
@@ -63,6 +80,8 @@
                 @Html.Raw($"<text x=\"{F(x)}\" y=\"{F(y)}\" text-anchor=\"{ancre}\" dominant-baseline=\"middle\">{System.Net.WebUtility.HtmlEncode(a.Sigle)}</text>")
             }
         </g>
+    }
+
     }
 
     <g class="sieges">

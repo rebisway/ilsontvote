@@ -19,7 +19,7 @@ public sealed record CarteScrutin(Scrutin Scrutin, HemicycleVue Vue)
 public sealed record SectionChambre(string Chambre, IReadOnlyList<CarteScrutin> Cartes);
 
 /// <summary>Accueil : les derniers textes importants de chaque chambre, chacun avec son hémicycle.</summary>
-public class IndexModel(IScrutinRepository scrutins) : PageModel
+public class IndexModel(IScrutinRepository scrutins, Langue langue, PaysSite site) : PageModel
 {
     // 4 cartes par chambre, empilées (les chambres l'une sous l'autre), 2 par ligne : assez pour donner une image de l'actualité, peu pour garder une page légère
     // (chaque hémicycle pèse plusieurs centaines de points SVG).
@@ -30,6 +30,18 @@ public class IndexModel(IScrutinRepository scrutins) : PageModel
     public async Task OnGetAsync()
     {
         var sections = new List<SectionChambre>();
+        // Site d'un pays (/uk) : les derniers scrutins de sa chambre, dessinés selon sa disposition (bancs face à face aux Communes).
+        if (langue.Pays == "GB")
+        {
+            var cartes = new List<CarteScrutin>();
+            foreach (var s in await scrutins.GetDernieresAsync(Chambres.Commons, CartesParChambre + 2))
+            {
+                var sieges = await scrutins.GetSiegesAsync(s.Id);
+                cartes.Add(new CarteScrutin(s, HemicycleLayout.Construire(sieges, site.Disposition(s.Chambre))));
+            }
+            Sections = [new SectionChambre(Chambres.Commons, cartes)];
+            return;
+        }
         foreach (var chambre in new[] { Chambres.AN, Chambres.Senat, Chambres.UE })
         {
             var cartes = new List<CarteScrutin>();

@@ -37,7 +37,7 @@ public class CommonsTests
         Assert.Equal(3, sc.Votes.Count);                                   // pas de clé (scrutin, membre) en double
         Assert.Equal("abstention", sc.Votes.Single(v => v.ParlementaireId == "COMMONS-9").Position);
         Assert.Equal(1, sc.Scrutin.NbAbstentions);
-        Assert.Contains("deux lobbies", sc.Scrutin.Note);
+        Assert.Contains("both lobbies", sc.Scrutin.Note);
         Assert.Null(sc.Scrutin.Sort);                                      // 2 contre 2 : égalité, résultat indéterminé, rien d'inventé
     }
 
@@ -47,7 +47,7 @@ public class CommonsTests
         var json = Division(5, 3, Membre(1, "Anna Pour", "Lab", "Labour"), Membre(3, "Carl Contre", "Con", "Conservative"), "");
         var sc = CommonsSource.VersScrutin(CommonsSource.Analyser(json));
         Assert.Equal(6, sc.Scrutin.NbVotesManquants);                      // 8 attendus, 2 nommés
-        Assert.Contains("Décompte officiel : 5 pour, 3 contre", sc.Scrutin.Note);
+        Assert.Contains("Official count: 5 ayes, 3 noes", sc.Scrutin.Note);
     }
 
     [Fact]
