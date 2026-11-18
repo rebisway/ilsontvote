@@ -62,7 +62,7 @@ public class PetitionAnomaliesModel(IPetitionRepository petitions, Langue langue
         {
             new(en ? "Detected on" : "Détectée le", a => a.DetecteLe),
             new(en ? "Previous snapshot" : "Relevé précédent", a => a.ReleveAvant),
-            new(en ? "Platform" : "Plateforme", a => a.Chambre == "AN" ? (en ? "National Assembly" : "Assemblée nationale") : (en ? "Senate" : "Sénat")),
+            new(en ? "Platform" : "Plateforme", a => PetitionsModel.PlateformeLibelle(a.Chambre, en)),
             new(en ? "Title" : "Titre", a => a.Titre),
             new("Type", a => a.Type),
             new(en ? "Supporters before" : "Soutiens avant", a => a.ValeurAvant),

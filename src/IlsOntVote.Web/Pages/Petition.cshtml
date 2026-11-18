@@ -23,7 +23,7 @@
 <section class="definitions fiche-petition @PetitionsModel.StatutClasse(f.Statut)" aria-label="@L.T("Fiche", "Details")">
     <dl>
         <div><dt>@L.T("Publiée", "Published")</dt><dd>@(f.DatePublication?.ToString("d MMMM yyyy", fr) ?? "—")</dd></div>
-        <div><dt>@L.T("Plateforme", "Platform")</dt><dd>@(f.Chambre == "AN" ? L.T("Assemblée nationale", "National Assembly") : L.T("Sénat", "Senate"))</dd></div>
+        <div><dt>@L.T("Plateforme", "Platform")</dt><dd>@PetitionsModel.PlateformeLibelle(f.Chambre, en)</dd></div>
         @if (f.Type is not null) { <div><dt>Type</dt><dd>@PetitionsModel.TypeLibelle(f.Type, en)</dd></div> }
         @if (f.Commission is not null) { <div><dt>@L.T("Commission saisie", "Committee")</dt><dd>@f.Commission</dd></div> }
         @if (f.DecisionCommission is null && f.Chambre == "AN" && f.Statut is "classee" or "archivee") { <div><dt>@L.T("Décision publiée", "Published decision")</dt><dd><span class="doute doute-manquant" title="@L.T("La source ne publie aucune décision pour cette pétition", "The source publishes no decision for this petition")">? @L.T("non publiée par la source", "not published by the source")</span></dd></div> }
@@ -31,8 +31,28 @@
         <div><dt>@L.T("Statut publié", "Published status")</dt><dd><span class="puce-statut @PetitionsModel.StatutClasse(f.Statut)">@PetitionsModel.StatutLibelle(f.Statut, en)</span></dd></div>
         <div><dt>@L.T("Soutiens", "Supporters")</dt><dd><strong class="grand-nombre">@(f.NbVotes?.ToString("N0", fr) ?? "—")</strong></dd></div>
         @if (f.DateLimiteVote is { } lim) { <div><dt>@L.T("Fin du recueil", "End of collection")</dt><dd>@lim.ToString("d MMMM yyyy", fr)</dd></div> }
-        <div><dt>@L.T("Source", "Source")</dt><dd><a href="@f.Url" rel="noopener">@(f.Chambre == "AN" ? "petitions.assemblee-nationale.fr" : "petitions.senat.fr")</a></dd></div>
+        <div><dt>@L.T("Source", "Source")</dt><dd><a href="@f.Url" rel="noopener">@(f.Chambre == "AN" ? "petitions.assemblee-nationale.fr" : f.Chambre == "UK" ? "petition.parliament.uk" : "petitions.senat.fr")</a></dd></div>
     </dl>
+    @if (f.Chambre == "UK")
+    {
+        @* Étapes de la plateforme du Parlement britannique, telles que publiées : seuil de réponse (10 000), réponse, seuil de débat (100 000), débat. Une étape sans date n'a pas eu lieu (ou n'est pas publiée). *@
+        <dl>
+            <div><dt>Response threshold (10,000)</dt><dd>@(f.SeuilReponseLe is { } sr ? "reached on " + sr.ToString("d MMMM yyyy", fr) : "not reached")</dd></div>
+            @if (f.ReponseLe is { } rl)
+            {
+                <div><dt>Government response</dt><dd>@rl.ToString("d MMMM yyyy", fr)@if (f.ReponseResume is not null) { <br /><span class="note-source">@f.ReponseResume</span> }</dd></div>
+            }
+            <div><dt>Debate threshold (100,000)</dt><dd>@(f.SeuilDebatLe is { } sd ? "reached on " + sd.ToString("d MMMM yyyy", fr) : "not reached")</dd></div>
+            @if (f.DebatLe is { } dl)
+            {
+                <div><dt>Debate in Parliament</dt><dd>@dl.ToString("d MMMM yyyy", fr)@if (f.DebatUrl is not null) { <text> · <a href="@f.DebatUrl" rel="noopener">transcript</a></text> }</dd></div>
+            }
+            else if (f.DebatPrevuLe is { } dp)
+            {
+                <div><dt>Debate scheduled</dt><dd>@dp.ToString("d MMMM yyyy", fr)</dd></div>
+            }
+        </dl>
+    }
     @if (f.AbsenteDepuis is { } abs)
     {
         <p class="note-source"><span class="doute doute-incertain" title="@L.T("Absente du fichier source au dernier relevé", "Missing from the source file at the latest snapshot")">⚠ @L.T("Absente du fichier source", "Missing from the source file")</span> @L.T("depuis le relevé du", "since the snapshot of") @abs.ToString("d MMMM yyyy", fr). @L.T("Les chiffres ci-dessus sont ceux du dernier relevé où elle figurait.", "The figures above are from the last snapshot where it appeared.")</p>

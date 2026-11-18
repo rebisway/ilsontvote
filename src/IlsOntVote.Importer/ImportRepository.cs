@@ -50,8 +50,8 @@ public sealed class ImportRepository(string connectionString)
         await conn.OpenAsync();
         await using var tx = await conn.BeginTransactionAsync();
 
-        const string colonnes = "id, chambre, titre, description, date_publication, nb_votes, statut, date_limite_vote, type, url, commission, decision_commission, legislature";
-        const string valeurs = "@Id, @Chambre, @Titre, @Description, @DatePublication, @NbVotes, @Statut, @DateLimiteVote, @Type, @Url, @Commission, @DecisionCommission, @Legislature";
+        const string colonnes = "id, chambre, titre, description, date_publication, nb_votes, statut, date_limite_vote, type, url, commission, decision_commission, legislature, seuil_reponse_le, reponse_le, reponse_resume, seuil_debat_le, debat_prevu_le, debat_le, debat_url";
+        const string valeurs = "@Id, @Chambre, @Titre, @Description, @DatePublication, @NbVotes, @Statut, @DateLimiteVote, @Type, @Url, @Commission, @DecisionCommission, @Legislature, @SeuilReponseLe, @ReponseLe, @ReponseResume, @SeuilDebatLe, @DebatPrevuLe, @DebatLe, @DebatUrl";
         var ecrites = await conn.ExecuteAsync(
             majFiche
                 ? $"""
@@ -59,7 +59,9 @@ public sealed class ImportRepository(string connectionString)
                    ON CONFLICT (id) DO UPDATE
                       SET titre = EXCLUDED.titre, description = EXCLUDED.description, date_publication = EXCLUDED.date_publication,
                           nb_votes = EXCLUDED.nb_votes, statut = EXCLUDED.statut, date_limite_vote = EXCLUDED.date_limite_vote, type = EXCLUDED.type,
-                          url = EXCLUDED.url, commission = EXCLUDED.commission, decision_commission = EXCLUDED.decision_commission, legislature = EXCLUDED.legislature
+                          url = EXCLUDED.url, commission = EXCLUDED.commission, decision_commission = EXCLUDED.decision_commission, legislature = EXCLUDED.legislature,
+                          seuil_reponse_le = EXCLUDED.seuil_reponse_le, reponse_le = EXCLUDED.reponse_le, reponse_resume = EXCLUDED.reponse_resume, seuil_debat_le = EXCLUDED.seuil_debat_le,
+                          debat_prevu_le = EXCLUDED.debat_prevu_le, debat_le = EXCLUDED.debat_le, debat_url = EXCLUDED.debat_url
                    """
                 : $"INSERT INTO petitions ({colonnes}) VALUES ({valeurs}) ON CONFLICT (id) DO NOTHING", petitions, tx);
 

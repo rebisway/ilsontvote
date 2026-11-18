@@ -38,7 +38,17 @@ public class PetitionsModel(IPetitionRepository petitions, Langue langue) : List
     protected override IEnumerable<(string Nom, string? Valeur)> Filtres => [("q", Recherche), ("chambre", Chambre), ("statut", Statut), ("type", Type), ("commission", Commission), ("anomalie", Anomalie), ("du", Du), ("au", Au)];
 
     /// <summary>Code de chambre en base (SENAT / AN) d'après le paramètre d'adresse ; NULL = toutes.</summary>
-    public string? ChambreCode => Chambre switch { "senat" => "SENAT", "an" => "AN", _ => null };
+    /// <summary>Plateforme affichée : sur le site britannique (/uk) la seule « UK » ; sur le site français, selon le paramètre (null = les deux plateformes françaises).</summary>
+    public string? ChambreCode => langue.Pays == "GB" ? "UK" : Chambre switch { "senat" => "SENAT", "an" => "AN", _ => null };
+
+    /// <summary>Nom de la plateforme dans la langue de la page.</summary>
+    public static string PlateformeLibelle(string code, bool anglais) => code switch
+    {
+        "AN" => anglais ? "National Assembly" : "Assemblée nationale",
+        "SENAT" => anglais ? "Senate" : "Sénat",
+        "UK" => anglais ? "UK Parliament" : "Parlement britannique",
+        _ => code,
+    };
 
     /// <summary>Libellé du statut dans la langue de la page (les valeurs publiées par la source sont en français).</summary>
     public static string StatutLibelle(string statut, bool anglais) => statut.ToLowerInvariant() switch
@@ -48,6 +58,8 @@ public class PetitionsModel(IPetitionRepository petitions, Langue langue) : List
         "seuil atteint" => anglais ? "Threshold reached" : statut,
         // Assemblée (libellés de la source en minuscules sans accents : « archivee », « classee », « expiree »)
         "ouverte" => anglais ? "Open" : "Ouverte",
+        "open" => anglais ? "Open" : "Ouverte",           // plateforme britannique
+        "closed" => anglais ? "Closed" : "Clôturée",
         "archivee" => anglais ? "Archived" : "Archivée",
         "classee" => anglais ? "Closed without action" : "Classée",
         "expiree" => anglais ? "Expired" : "Expirée",
@@ -61,6 +73,8 @@ public class PetitionsModel(IPetitionRepository petitions, Langue langue) : List
     public static string StatutClasse(string statut) => statut.ToLowerInvariant() switch
     {
         "ouverte" => "st-ouverte",
+        "open" => "st-ouverte",
+        "closed" => "st-archivee",
         "seuil atteint" => "st-seuil",
         "classee" => "st-classee",
         "archivee" => "st-archivee",
@@ -89,6 +103,8 @@ public class PetitionsModel(IPetitionRepository petitions, Langue langue) : List
             new(en ? "End of collection" : "Fin du recueil", p => p.DateLimiteVote),
             new(en ? "Findings (history)" : "Constats (historique)", p => p.NbAnomalies),
             new(en ? "Committee" : "Commission", p => p.Commission),
+            new(en ? "Government response" : "Réponse du gouvernement", p => p.ReponseLe),
+            new(en ? "Debated on" : "Débattue le", p => p.DebatLe),
             new(en ? "Committee decision" : "Décision de la commission", p => p.DecisionCommission),
             new("URL", p => p.Url),
         };

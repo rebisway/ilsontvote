@@ -16,11 +16,14 @@
 
 <form class="filtres filtres-auto filtres-liste" method="get" action="@L.Lien("/petitions/anomalies")">
     <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("Mots du titre…", "Title words…")" aria-label="@L.T("Mots du titre", "Title words")" />
+    @if (L.Pays is null)
+    {
     <select name="chambre" aria-label="@L.T("Plateforme", "Platform")">
         <option value="">@L.T("Sénat et Assemblée", "Senate and Assembly")</option>
         <option value="senat" selected="@(Model.Chambre == "senat")">@L.T("Sénat", "Senate")</option>
         <option value="an" selected="@(Model.Chambre == "an")">@L.T("Assemblée nationale", "National Assembly")</option>
     </select>
+    }
     <select name="type" aria-label="Type">
         <option value="">@L.T("Tous les types", "All types")</option>
         @foreach (var t in PetitionAnomaliesModel.Types) { <option value="@t" selected="@(Model.Type == t)">@PetitionAnomaliesModel.TypeLibelle(t, en)</option> }
@@ -80,7 +83,7 @@ else
             {
                 <tr>
                     <td class="nowrap" data-label="@L.T("Détectée le", "Detected on")" title="@L.T("Relevé précédent : ", "Previous snapshot: ")@a.ReleveAvant.ToString("d MMM yyyy", fr)">@a.DetecteLe.ToString("d MMM yyyy", fr)</td>
-                    <td data-label="@L.T("Pétition", "Petition")"><a href="@L.Lien("/petition/" + a.PetitionId)">@a.Titre</a> <span class="note-source">@(a.Chambre == "AN" ? L.T("Assemblée", "Assembly") : L.T("Sénat", "Senate"))</span></td>
+                    <td data-label="@L.T("Pétition", "Petition")"><a href="@L.Lien("/petition/" + a.PetitionId)">@a.Titre</a> <span class="note-source">@(a.Chambre == "AN" ? L.T("Assemblée", "Assembly") : a.Chambre == "UK" ? "UK Parliament" : L.T("Sénat", "Senate"))</span></td>
                     <td data-label="Type">@PetitionAnomaliesModel.TypeLibelle(a.Type, en)</td>
                     <td class="num" data-label="@L.T("Avant", "Before")">@Nb(a.ValeurAvant)</td>
                     <td class="num" data-label="@L.T("Après", "After")">@(a.ValeurApres is null ? "—" : Nb(a.ValeurApres))</td>

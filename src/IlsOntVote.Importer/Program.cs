@@ -444,6 +444,39 @@ async Task<int> ImporterCommunesAsync()
 }
 
 /// <summary>
+/// Pétitions du Parlement britannique (<c>petitions --source uk</c>) : un relevé par jour (ouvertes + clôturées, 330 pages de l'API), historique des soutiens et détection des baisses
+/// par le même code que les pétitions françaises (<c>EcrireReleveAsync</c>, plateforme « UK »). Pas d'archives : l'historique commence au premier import. Rien n'est écrit si rien n'a
+/// changé depuis le dernier relevé (empreinte) ; <c>--force</c> écrit quand même.
+/// </summary>
+async Task<int> ImporterPetitionsRoyaumeUniAsync()
+{
+    Console.WriteLine("=== Pétitions du Parlement britannique ===");
+    var runId = await repo.DemarrerAsync("PETITIONS-UK");
+    try
+    {
+        using var source = new PetitionsRoyaumeUniSource();
+        var lignes = await source.LireToutesAsync(Console.WriteLine);
+        var sha = PetitionsRoyaumeUniSource.Empreinte(lignes);
+        if (!argv.Contains("--force") && sha == await repo.DernierShaAsync(PetitionsRoyaumeUniSource.Plateforme))
+        {
+            Console.WriteLine($"  {lignes.Count} pétitions lues, inchangées depuis le dernier relevé : rien à écrire.");
+            await repo.TerminerAsync(runId, true, 0, 0, "inchangé depuis le dernier relevé");
+            return 0;
+        }
+        var (n, anomalies) = await repo.EcrireReleveAsync(PetitionsRoyaumeUniSource.Plateforme, lignes, DateTime.UtcNow.Date, majFiche: true, sha);
+        Console.WriteLine($"  {lignes.Count} pétitions lues, {n} écrites ; {anomalies} anomalie(s) sur ce relevé.");
+        await repo.TerminerAsync(runId, true, n, anomalies, null);
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex);
+        await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
+        return 1;
+    }
+}
+
+/// <summary>
 /// Amendements déposés à l'Assemblée, par dossier législatif (jeu officiel « Amendements », ~365 Mo par législature). Par défaut la législature
 /// en cours ; <c>--legislature 16,17</c> ou <c>all</c> pour les deux. Le fichier n'est retéléchargé que si son ETag a changé (planning plusieurs
 /// fois par jour sans coût) ; <c>--force</c> ignore l'ETag. Après traitement le zip est remplacé par un fichier vide : seul l'ETag compte, le disque
@@ -505,6 +538,7 @@ async Task<int> ImporterAmendementsAsync()
 /// </summary>
 async Task<int> ImporterPetitionsAsync()
 {
+    if (Option("--source") == "uk") return await ImporterPetitionsRoyaumeUniAsync();
     Console.WriteLine("=== Pétitions ===");
     var runId = await repo.DemarrerAsync("PETITIONS");
     try

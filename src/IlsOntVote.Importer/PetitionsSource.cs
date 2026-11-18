@@ -8,7 +8,17 @@ namespace IlsOntVote.Importer;
 /// <c>NbVotes</c> est NULL quand la source ne le renseigne pas (manquant ≠ zéro). Les champs propres à une plateforme sont NULL sur l'autre.
 /// </summary>
 public sealed record PetitionRow(string Id, string Chambre, string Titre, string? Description, DateTime? DatePublication, int? NbVotes, string Statut,
-    DateTime? DateLimiteVote, string? Type, string Url, string? Commission, string? DecisionCommission, string? Legislature);
+    DateTime? DateLimiteVote, string? Type, string Url, string? Commission, string? DecisionCommission, string? Legislature)
+{
+    // Étapes propres à la plateforme du Parlement britannique (NULL sur les plateformes françaises).
+    public DateTime? SeuilReponseLe { get; init; }
+    public DateTime? ReponseLe { get; init; }
+    public string? ReponseResume { get; init; }
+    public DateTime? SeuilDebatLe { get; init; }
+    public DateTime? DebatPrevuLe { get; init; }
+    public DateTime? DebatLe { get; init; }
+    public string? DebatUrl { get; init; }
+}
 
 /// <summary>Une plateforme de pétitions : fichier courant, dossier d'archives hebdomadaires et préfixe d'identifiant (les numéros des plateformes se recoupent).</summary>
 public sealed record SourcePetitions(string Chambre, string Prefixe, string Url, string UrlArchives, string Nom);

@@ -14,6 +14,7 @@
     <h2>Where the data comes from</h2>
     <ul>
         <li><strong>House of Commons divisions</strong>: the UK Parliament's public <a href="https://commonsvotes-api.parliament.uk/">Commons Votes API</a> (JSON), from the start of the current Parliament (the 59th, opened on 9 July 2024). Contains Parliamentary information licensed under the <a href="https://www.parliament.uk/site-information/copyright-parliament/open-parliament-licence/">Open Parliament Licence v3.0</a>.</li>
+        <li><strong>Petitions</strong>: the public JSON of <a href="https://petition.parliament.uk/">petition.parliament.uk</a> (same licence): open and closed petitions with their supporters, the government response (from 10,000 supporters) and the debate (from 100,000). The site takes one snapshot a day and keeps all of them, so a drop in supporters can be shown; it is never explained, because the source gives no cause. Petitions rejected before publication are not imported; the history starts on the day of the first import.</li>
         <li>Automatic update: divisions less than seven days old are read again, because the source corrects its lists after publication. The <a href="https://github.com/rebisway/ilsontvote">code is free software</a> (GPL-3.0).</li>
     </ul>
 </section>
@@ -43,7 +44,7 @@
     <ul>
         <li><strong>Incomplete lists</strong>: in most divisions the source names a few members fewer than its own official count (2.5 fewer on average). Such divisions are marked “incomplete count” and excluded from participation rates, because their absentees are not reliable.</li>
         <li><strong>Divisions only</strong>: votes without a recorded division (on the voices) leave no individual vote and do not appear.</li>
-        <li><strong>History</strong>: only the current Parliament is loaded for now. Bills and petitions are not linked to the divisions yet.</li>
+        <li><strong>History</strong>: only the current Parliament is loaded for now. Bills are not linked to the divisions yet.</li>
         <li>To report an error, write to <a href="mailto:contact@rebisway.com">contact@rebisway.com</a>.</li>
     </ul>
 </section>

@@ -25,6 +25,9 @@ public static class ExportDonnees
     /// Filtre commun aux jeux qui portent sur des chambres : seules les chambres PUBLIÉES (<c>chambres.actif</c>) sont exportées. Une chambre en préparation
     /// (Communes avant l'ouverture du site britannique) ne doit pas apparaître dans les données ouvertes publiques.
     /// </summary>
+    /// <summary>Plateformes de pétitions publiées : les françaises toujours ; celle du Parlement britannique (UK) seulement quand le pays GB est actif (/Admin/Pays).</summary>
+    private const string PlateformesPubliees = "(chambre IN ('AN', 'SENAT') OR (chambre = 'UK' AND EXISTS (SELECT 1 FROM pays WHERE code = 'GB' AND actif)))";
+
     private const string ChambresActives = "chambre IN (SELECT code FROM chambres WHERE actif)";
 
     public static readonly IReadOnlyList<JeuDonnees> Jeux =
@@ -54,12 +57,12 @@ public static class ExportDonnees
                    url_dossier_senat, url_dossier_an, saisine_cc_date, saisine_cc_par, decision_cc_numero, decision_cc_date, decision_cc_libelle, decision_cc_url
               FROM textes ORDER BY id
             """),
-        new("petitions", "Pétitions déposées sur petitions.senat.fr et petitions.assemblee-nationale.fr : titre, statut publié par la source, commission et décision (Assemblée), nombre de soutiens de citoyens.",
-            "SELECT id, chambre, titre, type, statut, commission, decision_commission, legislature, date_publication, date_limite_vote, nb_votes, url FROM petitions ORDER BY chambre, date_publication, id"),
+        new("petitions", "Pétitions déposées sur petitions.senat.fr, petitions.assemblee-nationale.fr et petition.parliament.uk (plateforme UK, si publiée) : titre, statut publié par la source, commission et décision (Assemblée), étapes du Parlement britannique (réponse du gouvernement, débat), nombre de soutiens de citoyens.",
+            "SELECT id, chambre, titre, type, statut, commission, decision_commission, legislature, date_publication, date_limite_vote, nb_votes, seuil_reponse_le, reponse_le, seuil_debat_le, debat_prevu_le, debat_le, debat_url, url FROM petitions WHERE " + PlateformesPubliees + " ORDER BY chambre, date_publication, id"),
         new("petitions_historique", "Relevés successifs du nombre de soutiens et du statut de chaque pétition du Sénat (ajout seul, un relevé par import).",
-            "SELECT petition_id, releve_le, nb_votes, statut FROM petitions_historique ORDER BY petition_id, releve_le"),
+            "SELECT petition_id, releve_le, nb_votes, statut FROM petitions_historique WHERE petition_id IN (SELECT id FROM petitions WHERE " + PlateformesPubliees + ") ORDER BY petition_id, releve_le"),
         new("petitions_anomalies", "Constats entre deux relevés : baisse du nombre de soutiens, disparition ou réapparition d'une pétition dans le fichier source. Sans cause connue.",
-            "SELECT petition_id, type, detecte_le, releve_precedent, valeur_avant, valeur_apres FROM petitions_anomalies ORDER BY detecte_le, petition_id"),
+            "SELECT petition_id, type, detecte_le, releve_precedent, valeur_avant, valeur_apres FROM petitions_anomalies WHERE petition_id IN (SELECT id FROM petitions WHERE " + PlateformesPubliees + ") ORDER BY detecte_le, petition_id"),
         new("amendements_dossiers", "Amendements déposés à l'Assemblée nationale par dossier législatif (référence DLR…) : nombre déposé et sort publié (adopté, rejeté, tombé, non soutenu, retiré, irrecevable). Source : jeu « Amendements » de data.assemblee-nationale.fr (16e et 17e législatures).",
             "SELECT dossier_an, legislature, deposes, adoptes, rejetes, tombes, non_soutenus, retires, irrecevables, releve_le FROM amendements_dossiers ORDER BY dossier_an"),
         new("texte_etapes", "Décisions de séance sur un texte (Assemblée et Sénat), avec ou sans scrutin public.",
