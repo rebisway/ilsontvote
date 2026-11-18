@@ -1,0 +1,77 @@
+@page
+@model IlsOntVote.Web.Pages.Admin.ServeurModel
+@using IlsOntVote.Web.Pages.Admin
+@{
+    ViewData["Title"] = "Serveur";
+    ViewData["NoIndex"] = true;
+    var fr = ImportAffichage.Fr;
+}
+<partial name="_AdminNav" />
+<h1 class="titre-page">Serveur et base</h1>
+<p class="chapo">État au moment de l'affichage (aucun historique conservé). Actualiser la page pour relever de nouvelles valeurs.</p>
+
+<h2>Base de données</h2>
+@if (Model.ErreurBase is not null) { <p class="vide">Base inaccessible : @Model.ErreurBase</p> }
+else
+{
+    <div class="chiffres">
+        <div><b>@ServeurModel.Taille(Model.TailleBase)</b><span>taille de la base</span></div>
+        <div><b>@Model.Connexions</b><span>connexion@(Model.Connexions > 1 ? "s" : "") ouverte@(Model.Connexions > 1 ? "s" : "") à cette base</span></div>
+        @* Ubuntu renvoie « 17.7 (Ubuntu 17.7-0ubuntu0.25.04.1) » : seul le numéro est affiché, la chaîne complète est en infobulle. *@
+        <div title="@Model.Version"><b>@(Model.Version.Split(' ')[0])</b><span>version de PostgreSQL</span></div>
+    </div>
+    <h3>Plus grosses tables</h3>
+    <p class="note-source">Données + index. Nombre de lignes : estimation de PostgreSQL (mise à jour par l'ANALYZE automatique).</p>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Table</th><th class="num">Taille</th><th class="num">Part de la base</th><th class="num">Lignes (≈)</th></tr></thead>
+            <tbody>
+            @foreach (var t in Model.Tables)
+            {
+                <tr>
+                    <td>@t.Nom</td>
+                    <td class="num">@ServeurModel.Taille(t.Octets)</td>
+                    <td class="num">@((Model.TailleBase == 0 ? 0 : (double)t.Octets / Model.TailleBase).ToString("P0", fr))</td>
+                    <td class="num">@t.Lignes.ToString("N0", fr)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+<h2>Espace disque</h2>
+@if (Model.Volumes.Count == 0) { <p class="vide">Aucun dossier du site lisible.</p> }
+else
+{
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Dossier</th><th>Chemin</th><th>Volume</th><th class="num">Total</th><th class="num">Libre</th><th class="num">% libre</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var v in Model.Volumes)
+            {
+                <tr>
+                    <td>@v.Role</td>
+                    <td class="note-cell">@v.Chemin</td>
+                    <td>@v.Racine</td>
+                    <td class="num">@ServeurModel.Taille(v.Total)</td>
+                    <td class="num">@ServeurModel.Taille(v.Libre)</td>
+                    <td class="num">@v.PartLibre.ToString("P0", fr)</td>
+                    <td>@if (v.Alerte) { <span class="badge b-ko">Peu d'espace</span> } else { <span class="badge b-ok">OK</span> }</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <p class="note-source">Alerte sous 15 % ou 5 Go libres : un import télécharge plusieurs centaines de Mo (par exemple ~365 Mo pour les amendements) et les extrait. Le disque des données PostgreSQL n'est pas lisible par le site : s'il est séparé de ceux-ci, le contrôler sur la machine (<code>df -h</code>).</p>
+}
+
+<h2>Machine et site</h2>
+<div class="chiffres">
+    <div><b>@(Model.MemoireDisponible is { } md && Model.MemoireTotale is { } mt ? ServeurModel.Taille(md) + " / " + ServeurModel.Taille(mt) : "—")</b><span>mémoire disponible / totale</span></div>
+    <div><b>@ServeurModel.Taille(Model.MemoireSite)</b><span>mémoire utilisée par le site</span></div>
+    <div><b>@(Model.Charge ?? "—")</b><span>charge (1 · 5 · 15 min, @Model.Processeurs cœur@(Model.Processeurs > 1 ? "s" : ""))</span></div>
+    <div><b>@ServeurModel.Duree(Model.UptimeMachine)</b><span>machine allumée depuis</span></div>
+    <div><b>@ServeurModel.Duree(Model.UptimeSite)</b><span>site démarré depuis</span></div>
+</div>
+<p class="note-source">@Model.Systeme</p>

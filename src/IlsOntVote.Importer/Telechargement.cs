@@ -78,44 +78,87 @@ public static class Telechargement
 
     private const int Tranche = 1 << 20; // 1 Mo
 
+    /// <summary>Au-delà de cette taille, les tranches passent à <see cref="GrosseTranche"/> : 365 Mo en tranches de 1 Mo font 365 requêtes, assez pour que le serveur de l'Assemblée en coupe.</summary>
+    private const long SeuilGrosFichier = 50L << 20;
+    private const int GrosseTranche = 4 << 20; // 4 Mo
+
     /// <summary>
-    /// Téléchargement par tranches de 1 Mo (requêtes <c>Range</c>), chaque tranche réessayée seule. Pourquoi : le serveur de l'Assemblée
+    /// Essais par tranche avant de renoncer aux tranches pour le flux continu. Raison : le fichier « Amendements » de la 16e législature (346 Mo) répond
+    /// « 206 Partial Content » avec un CORPS VIDE à toute plage au-delà des premiers Mo (constaté avec curl, hors de notre code) alors que le flux
+    /// continu fonctionne ; insister 10 fois par tranche ne sert à rien, on bascule vite.
+    /// </summary>
+    private const int EssaisTranche = 4;
+
+    /// <summary>Attente avant le nouvel essai d'une tranche : 5 s, 10 s, 15 s… plafonnée à 60 s (observé : un blocage de quelques dizaines de secondes sur la VM).</summary>
+    private static TimeSpan AttenteTranche(int essai) => TimeSpan.FromSeconds(Math.Min(60, 5 * essai));
+
+    /// <summary>
+    /// Téléchargement par tranches (requêtes <c>Range</c>), chaque tranche réessayée seule. Pourquoi : le serveur de l'Assemblée
     /// sert parfois un fichier en flux continu à ~2 Ko/s (le « Dossiers législatifs » de 11 Mo mettait plus d'une heure) ou coupe
-    /// la connexion en route (« The response ended prematurely »), alors que les tranches arrivent à ~1 Mo/s. Renvoie false (sans rien
-    /// écrire de définitif) si le serveur ne gère pas les tranches : l'appelant retombe sur le flux continu.
+    /// la connexion en route (« The response ended prematurely », « Error while copying content to a stream »), alors que les tranches
+    /// arrivent à ~1 Mo/s. Les fichiers de plus de 50 Mo (amendements, ~365 Mo) utilisent des tranches de 4 Mo.
+    /// REPRISE : le fichier est écrit dans <c>destination + ".part"</c> ; si le processus s'arrête en route (redémarrage, arrêt depuis /Admin), ce fichier
+    /// est conservé avec l'ETag et la taille du fichier distant (<c>.part.meta</c>) et le prochain essai reprend après le dernier octet reçu, tant que
+    /// le fichier distant n'a pas changé. Renvoie false (sans rien écrire de définitif) si le serveur ne gère pas les tranches : l'appelant retombe sur le flux continu.
     /// </summary>
     private static async Task<bool> EssayerParTranchesAsync(HttpClient http, string url, string destination)
     {
+        var part = destination + ".part";
+        var meta = destination + ".part.meta";
         try
         {
             using var tete = await http.SendAsync(new HttpRequestMessage(HttpMethod.Head, url));
             if (!tete.IsSuccessStatusCode || tete.Content.Headers.ContentLength is not long total || total <= Tranche) return false;
+            var taille = total > SeuilGrosFichier ? GrosseTranche : Tranche;
+            var signature = $"{total}|{tete.Headers.ETag?.Tag}";
 
-            await using var fs = File.Create(destination);
-            for (long debut = 0; debut < total; debut += Tranche)
+            // Reprise seulement si le fichier distant est le même (taille + ETag) que celui du téléchargement interrompu.
+            long debut = 0;
+            if (File.Exists(part) && File.Exists(meta) && File.ReadAllText(meta).Trim() == signature)
             {
-                var fin = Math.Min(debut + Tranche, total) - 1;
-                byte[]? donnees = null;
-                for (var essai = 1; essai <= EssaisMax && donnees is null; essai++)
-                {
-                    try
-                    {
-                        using var req = new HttpRequestMessage(HttpMethod.Get, url);
-                        req.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(debut, fin);
-                        using var rep = await http.SendAsync(req);
-                        if (rep.StatusCode != System.Net.HttpStatusCode.PartialContent) return false; // tranches non gérées : flux continu
-                        var octets = await rep.Content.ReadAsByteArrayAsync();
-                        if (octets.Length == fin - debut + 1) donnees = octets;
-                    }
-                    catch (Exception ex) when (ex is HttpRequestException or IOException or TaskCanceledException)
-                    {
-                        Console.Error.WriteLine($"  tranche {debut / Tranche}: échec ({ex.Message}), essai {essai}/{EssaisMax}");
-                    }
-                    if (donnees is null) await Task.Delay(TimeSpan.FromSeconds(2 * essai));
-                }
-                if (donnees is null) throw new IOException($"Tranche {debut / Tranche} introuvable après {EssaisMax} essais : {url}");
-                await fs.WriteAsync(donnees);
+                debut = new FileInfo(part).Length;
+                if (debut >= total) debut = 0;
+                else Console.WriteLine($"  reprise du téléchargement à {debut / 1048576.0:0.0} Mo sur {total / 1048576.0:0.0} Mo.");
             }
+            File.WriteAllText(meta, signature);
+
+            await using (var fs = new FileStream(part, debut == 0 ? FileMode.Create : FileMode.Open, FileAccess.Write))
+            {
+                fs.Seek(debut, SeekOrigin.Begin);
+                for (; debut < total; debut += taille)
+                {
+                    var fin = Math.Min(debut + taille, total) - 1;
+                    byte[]? donnees = null;
+                    for (var essai = 1; essai <= EssaisTranche && donnees is null; essai++)
+                    {
+                        try
+                        {
+                            using var req = new HttpRequestMessage(HttpMethod.Get, url);
+                            req.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(debut, fin);
+                            using var rep = await http.SendAsync(req);
+                            if (rep.StatusCode != System.Net.HttpStatusCode.PartialContent) return false; // tranches non gérées : flux continu
+                            var octets = await rep.Content.ReadAsByteArrayAsync();
+                            if (octets.Length == fin - debut + 1) donnees = octets;
+                        }
+                        catch (Exception ex) when (ex is HttpRequestException or IOException or TaskCanceledException)
+                        {
+                            Console.Error.WriteLine($"  tranche à {debut / 1048576.0:0.0} Mo : échec ({ex.Message}), essai {essai}/{EssaisTranche}");
+                        }
+                        if (donnees is null) await Task.Delay(AttenteTranche(essai));
+                    }
+                    // Échec persistant des tranches : on abandonne CETTE méthode (le .part est supprimé) et l'appelant télécharge en flux continu.
+                    if (donnees is null)
+                    {
+                        Console.Error.WriteLine($"  tranche à {debut / 1048576.0:0.0} Mo toujours en échec après {EssaisTranche} essais : bascule en téléchargement continu.");
+                        fs.Close();
+                        File.Delete(part); File.Delete(meta);
+                        return false;
+                    }
+                    await fs.WriteAsync(donnees);
+                }
+            }
+            File.Move(part, destination, overwrite: true);
+            File.Delete(meta);
             Console.WriteLine($"  (téléchargé par tranches : {total / 1048576.0:0.0} Mo)");
             return true;
         }

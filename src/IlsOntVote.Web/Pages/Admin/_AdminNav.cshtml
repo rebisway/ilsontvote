@@ -6,6 +6,7 @@
     <a href="/Admin" @Html.Raw(chemin.Equals("/Admin", StringComparison.OrdinalIgnoreCase) ? "aria-current=\"page\"" : "")>Tableau de bord</a>
     <a href="/Admin/Stats" @Html.Raw(Actif("/Admin/Stats"))>Fréquentation</a>
     <a href="/Admin/Imports" @Html.Raw(Actif("/Admin/Imports"))>Imports</a>
+    <a href="/Admin/Serveur" @Html.Raw(Actif("/Admin/Serveur"))>Serveur</a>
     <a href="/Admin/Qualite" @Html.Raw(Actif("/Admin/Qualite"))>Qualité</a>
     <a href="/Admin/Corrections" @Html.Raw(Actif("/Admin/Corrections"))>Corrections</a>
     <a href="/Admin/Unes" @Html.Raw(Actif("/Admin/Unes"))>Textes à la une</a>
