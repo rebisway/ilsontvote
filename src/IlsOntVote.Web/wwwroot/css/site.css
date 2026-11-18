@@ -670,8 +670,15 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
 /* Nombre d'amendements sous le statut d'une loi (/lois) : petite ligne, sans colonne dédiée. */
 .liste-textes .amdts { margin-top: 4px; font-size: 0.8rem; color: var(--ink-soft); white-space: nowrap; }
 
-/* Choix du pays (en-tête), affiché quand plusieurs pays sont publiés. */
-.select-pays { font: inherit; font-size: 0.85rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+/* Choix du pays (en-tête) : menu déroulant natif (<details>) avec drapeau en image, affiché quand plusieurs pays sont publiés. */
+.pays-choix { position: relative; }
+.pays-choix summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; }
+.pays-choix summary::-webkit-details-marker { display: none; }
+.pays-choix summary::after { content: "▾"; font-size: 0.8em; color: var(--ink-soft); }
+.pays-choix img { width: 20px; height: 14px; border-radius: 2px; object-fit: cover; box-shadow: 0 0 0 1px rgba(128, 128, 128, 0.35); flex: none; }
+.pays-liste { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 190px; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 4px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18); }
+.pays-liste a { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; text-decoration: none; color: var(--ink); font-size: 0.9rem; }
+.pays-liste a:hover, .pays-liste a[aria-current="true"] { background: var(--line); }
 
 /* Chambre des Communes : étiquette de chambre, fauteuil du président et bandes de groupes en bancs face à face (même rendu que les arcs de l'hémicycle). */
 .tag-ch.ch-commons, .ch-commons { --ch: #c8102e; }

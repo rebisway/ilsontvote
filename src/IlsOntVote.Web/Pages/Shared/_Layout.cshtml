@@ -133,10 +133,19 @@
             @* Choix du pays : affiché seulement quand au moins un pays autre que la France est publié. ?pays= mémorise le choix (cookie) et mène à l'accueil du pays. *@
             @if (SitePays.Actifs.Count > 0)
             {
-                <select class="select-pays" aria-label="@L.T("Pays", "Country")" onchange="location.href = this.value">
-                    <option value="/?pays=fr" selected="@(L.Pays is null)">@L.T("France", "France")</option>
-                    @foreach (var p in SitePays.Actifs) { <option value="/?pays=@p.Prefixe" selected="@(L.Pays == p.Code)">@L.T(p.NomFr, p.NomEn)</option> }
-                </select>
+                @* Menu de pays avec drapeau (image : les émojis de drapeau s'affichent en lettres sous Windows). Fichier /img/flags/{iso}.svg ; absent : image retirée, le nom reste. *@
+                var paysCode = (L.Pays ?? "FR").ToLowerInvariant();
+                var paysNom = L.Pays is null ? "France" : L.T(SitePays.Actifs.FirstOrDefault(x => x.Code == L.Pays)?.NomFr ?? L.Pays, SitePays.Actifs.FirstOrDefault(x => x.Code == L.Pays)?.NomEn ?? L.Pays);
+                <details class="pays-choix">
+                    <summary aria-label="@L.T("Pays", "Country")"><img src="/img/flags/@(paysCode).svg" alt="" width="20" height="14" onerror="this.remove()" /> <span>@paysNom</span></summary>
+                    <div class="pays-liste">
+                        <a href="/?pays=fr" @Html.Raw(L.Pays is null ? "aria-current=\"true\"" : "")><img src="/img/flags/fr.svg" alt="" width="20" height="14" onerror="this.remove()" /> France</a>
+                        @foreach (var p in SitePays.Actifs)
+                        {
+                            <a href="/?pays=@p.Prefixe" @Html.Raw(L.Pays == p.Code ? "aria-current=\"true\"" : "")><img src="/img/flags/@(p.Code.ToLowerInvariant()).svg" alt="" width="20" height="14" onerror="this.remove()" /> @L.T(p.NomFr, p.NomEn)</a>
+                        }
+                    </div>
+                </details>
             }
             @if (L.Pays is null)
             {
@@ -207,6 +216,7 @@
         (function () { var mq = window.matchMedia("(max-width: 720px)"), ds = document.querySelectorAll("details.plus");
             function maj() { ds.forEach(function (d) { if (mq.matches) d.setAttribute("open", ""); else d.removeAttribute("open"); }); }
             maj(); if (mq.addEventListener) mq.addEventListener("change", maj); })();
+        document.addEventListener("click", function (e) { document.querySelectorAll("details.pays-choix[open]").forEach(function (d) { if (!d.contains(e.target)) d.removeAttribute("open"); }); });
         document.addEventListener("click", function (e) { if (window.matchMedia("(max-width: 720px)").matches) return; document.querySelectorAll("details.plus[open]").forEach(function (d) { if (!d.contains(e.target)) d.removeAttribute("open"); }); });
         var b = document.getElementById("menu-btn"), m = document.getElementById("menu-principal");
         if (!b || !m) return;
