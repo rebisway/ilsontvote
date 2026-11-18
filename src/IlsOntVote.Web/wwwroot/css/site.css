@@ -666,3 +666,6 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
 .b-attente { background: var(--ink-soft); }
 
 .journal-sortie { max-height: 70vh; overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; font-size: 0.8rem; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+
+/* Nombre d'amendements sous le statut d'une loi (/lois) : petite ligne, sans colonne dédiée. */
+.liste-textes .amdts { margin-top: 4px; font-size: 0.8rem; color: var(--ink-soft); white-space: nowrap; }
