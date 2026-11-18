@@ -111,6 +111,8 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AddPageRoute("/Parlementaire", "/senateur/{slug}");
     options.Conventions.AddPageRoute("/Parlementaires", "/eurodeputes");
     options.Conventions.AddPageRoute("/Parlementaire", "/eurodepute/{slug}");
+    options.Conventions.AddPageRoute("/Parlementaires", "/members");
+    options.Conventions.AddPageRoute("/Parlementaire", "/member/{slug}");
 });
 
 // Les données ne changent qu'après un import : un cache de quelques minutes suffit. JAMAIS de cache

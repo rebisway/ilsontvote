@@ -75,6 +75,17 @@ public class CommonsTests
         Assert.Equal(135, CommonsSource.OrdreParti(m.PartiSigle));
     }
 
+    [Fact]
+    public void Prenom_sans_titre_de_courtoisie()
+    {
+        // « Name » = « Diane Abbott », « ListAs » = « Abbott, Ms Diane » : le prénom est « Diane » (adresse diane-abbott, pas ms-diane-abbott).
+        var json = """{"DivisionId":1,"Number":1,"Date":"2026-11-18T10:00:00","Title":"T","AyeCount":0,"NoCount":0,"Ayes":[],"Noes":[],"AyeTellers":[],"NoTellers":[],"NoVoteRecorded":[{"MemberId":1,"Name":"Diane Abbott","Party":"Labour","PartyAbbreviation":"Lab","PartyColour":"d50000","MemberFrom":"X","ListAs":"Abbott, Ms Diane","ProxyName":null},{"MemberId":2,"Name":"Sir Bernard Jenkin","Party":"Conservative","PartyAbbreviation":"Con","PartyColour":"0063ba","MemberFrom":"Y","ListAs":"Jenkin, Sir Bernard","ProxyName":null},{"MemberId":3,"Name":"Zzz","Party":"Labour","PartyAbbreviation":"Lab","PartyColour":"d50000","MemberFrom":"Z","ListAs":"Smith, Dame Angela","ProxyName":null}]}""";
+        var m = CommonsSource.Analyser(json).SansVote;
+        Assert.Equal(("Abbott", "Diane"), (m[0].Nom, m[0].Prenom));
+        Assert.Equal(("Jenkin", "Sir Bernard"), (m[1].Nom, m[1].Prenom));   // « Name » contient le titre : il n'est pas retiré ici (cas rare, aucun nom de l'API ne le fait)
+        Assert.Equal(("Smith", "Angela"), (m[2].Nom, m[2].Prenom));        // « Name » inutilisable : repli sur ListAs sans le titre
+    }
+
     [Theory]
     [InlineData("Con", 90)]
     [InlineData("Lab", 40)]

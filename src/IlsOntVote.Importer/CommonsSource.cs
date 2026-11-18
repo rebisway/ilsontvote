@@ -84,17 +84,22 @@ public sealed class CommonsSource : IDisposable
         if (!division.TryGetProperty(liste, out var tab) || tab.ValueKind != JsonValueKind.Array) yield break;
         foreach (var m in tab.EnumerateArray())
         {
-            // « ListAs » : « Nom de famille, Titre Prénom » (ex. « Jenkin, Sir Bernard ») ; à défaut, « Name » (« Bernard Jenkin »).
+            // « ListAs » : « Nom de famille, Titre Prénom » (« Abbott, Ms Diane ») ; « Name » : « Diane Abbott », sans titre. Le prénom est « Name » privé du nom de famille
+            // (sans « Ms », « Sir »…), ce qui donne aussi des adresses propres (diane-abbott, pas ms-diane-abbott). Repli : le reste de « ListAs » sans le titre.
             var listAs = Texte(m, "ListAs");
+            var name = Texte(m, "Name");
             string nom, prenom;
             if (listAs.Contains(','))
             {
                 var p = listAs.Split(',', 2);
-                nom = p[0].Trim(); prenom = p[1].Trim();
+                nom = p[0].Trim();
+                prenom = name.Length > nom.Length && name.EndsWith(nom, StringComparison.OrdinalIgnoreCase)
+                    ? name[..^nom.Length].Trim()
+                    : SansTitre(p[1].Trim());
             }
             else
             {
-                var p = Texte(m, "Name").Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                var p = name.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
                 prenom = p.Length > 0 ? p[0] : ""; nom = p.Length > 1 ? p[1] : listAs;
             }
             var couleur = Texte(m, "PartyColour");
@@ -105,6 +110,12 @@ public sealed class CommonsSource : IDisposable
                 m.TryGetProperty("ProxyName", out var px) && px.ValueKind == JsonValueKind.String ? px.GetString() : null);
         }
     }
+
+    /// <summary>Titres de courtoisie ou de noblesse en tête d'un prénom (« Ms Diane », « Sir Bernard », « Rt Hon Dame Maria ») : retirés quand « Name » ne permet pas de les écarter.</summary>
+    private static readonly System.Text.RegularExpressions.Regex Titres =
+        new(@"^(?:(?:Rt\.? Hon\.?|Sir|Dame|Dr|Mr|Mrs|Ms|Miss|Lord|Lady|Prof|Reverend|Rev)\s+)+", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    private static string SansTitre(string prenom) => Titres.Replace(prenom, "").Trim() is { Length: > 0 } net ? net : prenom;
 
     private static string Texte(JsonElement e, string nom) =>
         e.TryGetProperty(nom, out var v) && v.ValueKind == JsonValueKind.String ? (v.GetString() ?? "").Trim() : "";

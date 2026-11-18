@@ -28,19 +28,20 @@ public static class Chambres
     /// <summary>Valeur du filtre d'URL (?chambre=) pour cette chambre.</summary>
     public static string Filtre(string chambre) => chambre switch { Senat => "senat", UE => "ue", Commons => "commons", _ => "an" };
 
-    /// <summary>Vrai si la chambre a des fiches d'élus et une liste d'élus (pas encore pour les Communes : les liens ne doivent pas pointer vers une page absente).</summary>
-    public static bool AUneFiche(string chambre) => chambre != Commons;
+    /// <summary>Vrai si la chambre a des fiches d'élus et une liste d'élus (toutes, depuis les pages /members et /member/{slug} des Communes).</summary>
+    public static bool AUneFiche(string chambre) => true;
     /// <summary>Mot qui désigne un scrutin de la chambre (« scrutin », « division » aux Communes).</summary>
     public static string Terme(string chambre, bool en = false) => chambre == Commons ? (en ? "division" : "division") : (en ? "vote" : "scrutin");
 
     /// <summary>Préfixe d'URL des fiches : /depute/{slug}, /senateur/{slug} ou /eurodepute/{slug}.</summary>
-    public static string Fiche(string chambre) => chambre switch { Senat => "senateur", UE => "eurodepute", _ => "depute" };
+    public static string Fiche(string chambre) => chambre switch { Senat => "senateur", UE => "eurodepute", Commons => "member", _ => "depute" };
     /// <summary>Adresse de la liste des élus de la chambre.</summary>
-    public static string Liste(string chambre) => chambre switch { Senat => "senateurs", UE => "eurodeputes", _ => "deputes" };
+    public static string Liste(string chambre) => chambre switch { Senat => "senateurs", UE => "eurodeputes", Commons => "members", _ => "deputes" };
     /// <summary>Chambre d'après le début d'une adresse (/senateurs, /eurodepute/x…) ; AN par défaut.</summary>
     public static string DepuisChemin(string chemin) =>
         chemin.StartsWith("/senateur", StringComparison.OrdinalIgnoreCase) ? Senat :
-        chemin.StartsWith("/eurodepute", StringComparison.OrdinalIgnoreCase) ? UE : AN;
+        chemin.StartsWith("/eurodepute", StringComparison.OrdinalIgnoreCase) ? UE :
+        chemin.StartsWith("/member", StringComparison.OrdinalIgnoreCase) ? Commons : AN;
 }
 
 /// <summary>Valeurs de <c>Position</c> d'un parlementaire pour un scrutin.</summary>

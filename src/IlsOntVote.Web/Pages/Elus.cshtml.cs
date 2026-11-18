@@ -10,7 +10,7 @@ namespace IlsOntVote.Web.Pages;
 /// absence), avec rang dans le tri, filtres, tri par colonne et export. Aucun seuil de scrutins : le nombre de scrutins est affiché pour que
 /// le lecteur juge lui-même du poids de chaque taux. Chiffres calculés par le site (cf. migration 019), jamais présentés comme officiels.
 /// </summary>
-public class ElusModel(IStatistiquesRepository stats, Langue langue) : ListePageModel
+public class ElusModel(IStatistiquesRepository stats, Langue langue, PaysSite site) : ListePageModel
 {
     [BindProperty(SupportsGet = true)] public string? Chambre { get; set; }
     [BindProperty(SupportsGet = true)] public string? Periode { get; set; }
@@ -20,7 +20,9 @@ public class ElusModel(IStatistiquesRepository stats, Langue langue) : ListePage
     [BindProperty(SupportsGet = true, Name = "q")] public string? Recherche { get; set; }
 
     public bool EnsembleSeul => Ensemble == "1";
-    public string ChambreCode => Chambre switch { "senat" => Chambres.Senat, "ue" => Chambres.UE, _ => Chambres.AN };
+    /// <summary>Sur le site d'un pays (/uk) : sa seule chambre, quel que soit le paramètre « chambre ».</summary>
+    public string ChambreCode => langue.Pays == "GB" ? Chambres.Commons
+        : Chambre switch { "senat" => Chambres.Senat, "ue" => Chambres.UE, "commons" => Chambres.Commons, _ => Chambres.AN };
     public string ChambreCle => Chambres.Filtre(ChambreCode);
     /// <summary>« perso » si une date est saisie, sinon « 12m » (défaut), « annee » ou « tout ».</summary>
     public string PeriodeCle => !string.IsNullOrEmpty(Du) || !string.IsNullOrEmpty(Au) ? "perso" : Periode is "annee" or "tout" ? Periode : "12m";
@@ -60,6 +62,8 @@ public class ElusModel(IStatistiquesRepository stats, Langue langue) : ListePage
 
     public async Task<IActionResult> OnGetAsync()
     {
+        // Chambres du site courant seulement (statistiques des Communes sous /uk, des chambres françaises sur le site français).
+        if (!site.ChambresVisibles(langue.Pays).Contains(ChambreCode)) return NotFound();
         var fr = langue.Culture;
         DateTime? du, au;
         var aujourdhui = DateTime.UtcNow.Date;

@@ -105,6 +105,8 @@
                 {
                     @* Site d'un pays (Communes) : seulement ce qui existe pour lui. *@
                     <a href="@L.Lien("/textes")" @Html.Raw(Actif("/textes") + Actif("/scrutin"))>Divisions</a>
+                    <a href="@L.Lien("/members")" @Html.Raw(Actif("/member"))>MPs</a>
+                    <a href="@L.Lien("/elus")" @Html.Raw(Actif("/elus"))>Attendance</a>
                 }
                 else
                 {

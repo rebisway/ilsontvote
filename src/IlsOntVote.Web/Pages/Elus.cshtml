@@ -27,11 +27,14 @@
 
 <form class="filtres filtres-auto filtres-liste" method="get" action="@L.Lien("/elus")">
     <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("Chercher un nom ou un groupe…", "Search a name or a group…")" aria-label="@L.T("Chercher un élu", "Search an official")" />
+    @if (L.Pays is null)
+    {
     <select name="chambre" aria-label="@L.T("Chambre", "Chamber")">
         <option value="an" selected="@(Model.ChambreCle == "an")">@L.T("Assemblée nationale", "National Assembly")</option>
         <option value="senat" selected="@(Model.ChambreCle == "senat")">@L.T("Sénat", "Senate")</option>
         <option value="ue" selected="@(Model.ChambreCle == "ue")">@L.T("Parlement européen", "European Parliament")</option>
     </select>
+    }
     <select name="periode" aria-label="@L.T("Période", "Period")">
         <option value="12m" selected="@(Model.PeriodeCle == "12m")">@L.T("12 derniers mois", "Last 12 months")</option>
         <option value="annee" selected="@(Model.PeriodeCle == "annee")">@L.T("Année en cours", "Current year")</option>

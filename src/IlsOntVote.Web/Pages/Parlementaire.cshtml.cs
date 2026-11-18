@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace IlsOntVote.Web.Pages;
 
 /// <summary>Fiche d'un élu : /depute/{slug} ou /senateur/{slug}.</summary>
-public class ParlementaireModel(IParlementaireRepository parlementaires) : PageModel
+public class ParlementaireModel(IParlementaireRepository parlementaires, PaysSite site, Langue langue) : PageModel
 {
     // 40 votes par page dans l'historique d'un élu.
     private const int ParPage = 40;
@@ -43,11 +43,20 @@ public class ParlementaireModel(IParlementaireRepository parlementaires) : PageM
     public static readonly string[] ChoixVote = ["pour", "contre", "abstention", "absent", "non_votant", "delegation", "mise_au_point"];
     public bool FiltreActif => !string.IsNullOrWhiteSpace(Q) || !string.IsNullOrEmpty(Vote) || !string.IsNullOrEmpty(Du) || !string.IsNullOrEmpty(Au) || ToutAfficher;
 
-    public bool ToutAfficher => Portee == "tout";
+    /// <summary>Chambre de la fiche (déduite de l'adresse).</summary>
+    public string Chambre { get; private set; } = Chambres.AN;
+    /// <summary>
+    /// Aux Communes, aucun vote n'est rattaché à un texte « sur l'ensemble » : le filtre par défaut viderait l'historique, donc toutes les divisions sont listées
+    /// (et la case « amendements et articles » est masquée). Ailleurs : selon la case.
+    /// </summary>
+    public bool ToutAfficher => Portee == "tout" || Chambre == Chambres.Commons;
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {
         var chambre = Chambres.DepuisChemin(Request.Path.Value ?? "");
+        Chambre = chambre;
+        // Fiches des chambres du site courant seulement (une fiche britannique n'existe pas côté français, ni l'inverse).
+        if (!site.ChambresVisibles(langue.Pays).Contains(chambre)) return NotFound();
 
         // Le slug n'est unique que par chambre : un sénateur et un député peuvent porter le même nom.
         var elu = await parlementaires.GetParSlugAsync(chambre, slug);
