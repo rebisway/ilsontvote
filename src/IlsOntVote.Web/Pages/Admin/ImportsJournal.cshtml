@@ -16,6 +16,11 @@
         <option value="">Tous les imports</option>
         @foreach (var t in Model.Taches) { <option value="@t.Code" selected="@(Model.Tache == t.Code)">@t.Libelle</option> }
     </select>
+    <select name="pays" aria-label="Pays">
+        <option value="">Tous les pays</option>
+        @foreach (var c in Model.PaysChoix) { <option value="@c.Code" selected="@(Model.Pays == c.Code)">@c.Nom</option> }
+        <option value="commun" selected="@(Model.Pays == "commun")">Commun</option>
+    </select>
     <select name="etat" aria-label="État">
         <option value="">Tous les états</option>
         @foreach (var e in ImportsJournalModel.Etats) { <option value="@e" selected="@(Model.Etat == e)">@e</option> }

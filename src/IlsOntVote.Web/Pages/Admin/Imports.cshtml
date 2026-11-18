@@ -38,6 +38,14 @@
     <form method="post" asp-page-handler="AnnulerDemandes"><button type="submit" class="bouton petit secondaire" disabled="@(Model.DemandesEnAttente == 0)">Annuler les demandes en attente (@Model.DemandesEnAttente)</button></form>
 </div>
 
+@* Onglets par pays : liens (sans JavaScript), choix mémorisé. Ils ne filtrent que l'affichage : l'ordre d'exécution (dépendances) ne change pas. *@
+<nav class="onglets" aria-label="Pays des imports">
+    @foreach (var o in Model.Onglets)
+    {
+        <a href="/Admin/Imports?pays=@o.Cle" aria-current="@((Model.Pays ?? "") == o.Cle ? "page" : null)">@o.Libelle <span class="note-source">@o.Nombre</span>@if (o.Echec) { <span class="badge b-ko" title="Dernière exécution en échec">!</span> }</a>
+    }
+</nav>
+
 <h2>Imports disponibles</h2>
 <div class="table-wrap">
     <table>

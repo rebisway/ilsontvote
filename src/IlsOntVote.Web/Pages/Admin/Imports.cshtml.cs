@@ -11,6 +11,8 @@ public sealed class TacheImport
     public string Code { get; set; } = "";
     public string Libelle { get; set; } = "";
     public string Description { get; set; } = "";
+    /// <summary>Pays de la tâche (FR, GB, EU) ; NULL = tâche commune (traductions, statistiques, export).</summary>
+    public string? Pays { get; set; }
     public int Ordre { get; set; }
     public bool Ponctuelle { get; set; }
     public long? DerniereId { get; set; }
@@ -25,6 +27,7 @@ public sealed class TacheImport
 public sealed class CreneauImport
 {
     public int Id { get; set; }
+    public string? Pays { get; set; }
     public string Tache { get; set; } = "";
     public string Libelle { get; set; } = "";
     public short[] Jours { get; set; } = [];
@@ -36,6 +39,7 @@ public sealed class CreneauImport
 public sealed class ExecutionTache
 {
     public long Id { get; set; }
+    public string? Pays { get; set; }
     public string Tache { get; set; } = "";
     public string Libelle { get; set; } = "";
     public string Declencheur { get; set; } = "";
@@ -51,6 +55,9 @@ public sealed class ExecutionTache
     public TimeSpan? Duree => Fin is null ? null : Fin - Debut;
     public string Etat => ImportAffichage.Etat(Fin, Ok);
 }
+
+/// <summary>Un onglet de la page Imports : clé d'adresse (« » = tous, « FR », « GB », « commun »…), libellé, nombre de tâches, et vrai si une dernière exécution a échoué.</summary>
+public sealed record OngletImport(string Cle, string Libelle, int Nombre, bool Echec);
 
 /// <summary>Présentation commune aux pages d'imports : heure de Paris, durées, libellés de jours et d'états.</summary>
 public static class ImportAffichage
@@ -115,6 +122,14 @@ public class ImportsModel(DapperContext db) : PageModel
     public IReadOnlyList<ExecutionTache> Dernieres { get; private set; } = [];
     /// <summary>Dernier passage du planificateur (import_etat) ; NULL = jamais : il n'est pas installé ou pas démarré.</summary>
     public DateTime? DernierPassage { get; private set; }
+    /// <summary>
+    /// Onglet de pays choisi : « » = tous, un code pays (FR, GB, EU) ou « commun ». Mémorisé dans un cookie (les actions de la page rechargent sans paramètre) ;
+    /// sans effet sur l'exécution : l'ordre des dépendances reste celui du catalogue, un onglet ne filtre que l'affichage.
+    /// </summary>
+    [BindProperty(SupportsGet = true)] public string? Pays { get; set; }
+    public IReadOnlyList<OngletImport> Onglets { get; private set; } = [];
+    private const string CookiePays = "admin_imports_pays";
+
     /// <summary>Exécutions sans fin et demandes non prises : ce que les boutons de réinitialisation concernent.</summary>
     /// <summary>Pause demandée : le planificateur ne lance plus rien (l'import en cours va à son terme, sauf « Arrêter »).</summary>
     public bool EnPause { get; private set; }
@@ -131,7 +146,7 @@ public class ImportsModel(DapperContext db) : PageModel
         using var cx = db.CreateConnection();
         Taches = (await cx.QueryAsync<TacheImport>(
             """
-            SELECT t.code, t.libelle, t.description, t.ordre, t.ponctuelle,
+            SELECT t.code, t.libelle, t.description, t.pays, t.ordre, t.ponctuelle,
                    e.id AS derniere_id, e.debut AS dernier_debut, e.fin AS derniere_fin, e.ok AS dernier_ok,
                    (SELECT count(*) FROM import_demandes d WHERE d.tache = t.code AND d.prise_le IS NULL)::int AS en_attente
               FROM import_taches t
@@ -140,8 +155,13 @@ public class ImportsModel(DapperContext db) : PageModel
              ORDER BY t.ordre
             """)).ToList();
         Planning = (await cx.QueryAsync<CreneauImport>(
-            "SELECT p.id, p.tache, t.libelle, p.jours, p.heure, p.actif FROM import_planning p JOIN import_taches t ON t.code = p.tache ORDER BY t.ordre, p.heure, p.id")).ToList();
-        Dernieres = await ImportsRequetes.ExecutionsAsync(cx, 10);
+            "SELECT p.id, p.tache, t.libelle, t.pays, p.jours, p.heure, p.actif FROM import_planning p JOIN import_taches t ON t.code = p.tache ORDER BY t.ordre, p.heure, p.id")).ToList();
+        // Onglet : paramètre d'adresse (même vide = « tous », choix explicite), sinon cookie.
+        var paysOrdre = (await cx.QueryAsync<(string Code, string Nom, int Ordre)>("SELECT code, nom_fr, ordre FROM pays")).ToList();
+        var noms = paysOrdre.ToDictionary(x => x.Code, x => x.Nom);
+        if (Request.Query.ContainsKey("pays")) Response.Cookies.Append(CookiePays, Pays ?? "", new CookieOptions { MaxAge = TimeSpan.FromDays(365), HttpOnly = true, SameSite = SameSiteMode.Lax });
+        else Pays = Request.Cookies.TryGetValue(CookiePays, out var memo) ? memo : "";
+        Dernieres = await ImportsRequetes.ExecutionsAsync(cx, 120, null);   // assez large pour que chaque onglet garde ses 10 dernières : le filtre s'applique plus bas
         EnPause = await cx.ExecuteScalarAsync<bool>("SELECT EXISTS (SELECT 1 FROM import_etat WHERE cle = 'pause')");
         TacheEnCours = await cx.QueryFirstOrDefaultAsync<(string Libelle, DateTime Debut)?>(
             "SELECT COALESCE(t.libelle, e.tache), e.debut FROM import_executions e LEFT JOIN import_taches t ON t.code = e.tache WHERE e.fin IS NULL ORDER BY e.id DESC LIMIT 1");
@@ -151,6 +171,25 @@ public class ImportsModel(DapperContext db) : PageModel
         EnCours = await cx.ExecuteScalarAsync<int>("SELECT count(*) FROM import_executions WHERE fin IS NULL");
         DemandesEnAttente = await cx.ExecuteScalarAsync<int>("SELECT count(*) FROM import_demandes WHERE prise_le IS NULL");
         DernierPassage = await cx.ExecuteScalarAsync<DateTime?>("SELECT valeur FROM import_etat WHERE cle = 'planificateur'");
+
+        // Onglets : « Tous », puis un par pays ayant des tâches (ordre du catalogue), puis « Commun ». Pastille d'échec : dernière exécution de la tâche en échec.
+        string Cle(string? pays) => pays ?? "commun";
+        bool Echec(TacheImport t) => t.DerniereFin is not null && t.DernierOk == false;
+        var onglets = new List<OngletImport> { new("", "Tous", Taches.Count, Taches.Any(Echec)) };
+        // Ordre des pays de la table pays (France, Royaume-Uni, Union européenne), « Commun » en dernier.
+        foreach (var g in Taches.GroupBy(t => Cle(t.Pays)).OrderBy(g => g.Key == "commun" ? int.MaxValue : paysOrdre.FirstOrDefault(x => x.Code == g.Key).Ordre))
+            onglets.Add(new OngletImport(g.Key, g.Key == "commun" ? "Commun" : noms.GetValueOrDefault(g.Key, g.Key), g.Count(), g.Any(Echec)));
+        Onglets = onglets;
+        if (!Onglets.Any(o => o.Cle == (Pays ?? ""))) Pays = "";   // cookie d'un pays qui n'a plus de tâche : retour à « Tous »
+
+        // Filtre d'affichage (le prochain créneau et l'état du planificateur ci-dessus restent calculés sur TOUT le planning).
+        if (Pays is { Length: > 0 } choix)
+        {
+            Taches = Taches.Where(t => Cle(t.Pays) == choix).ToList();
+            Planning = Planning.Where(c => Cle(c.Pays) == choix).ToList();
+            Dernieres = Dernieres.Where(e => Cle(e.Pays) == choix).ToList();
+        }
+        Dernieres = Dernieres.Take(10).ToList();
     }
 
     /// <summary>« Lancer maintenant » : une demande par tâche à la fois (déjà en attente ou en cours = refus explicite, pas de doublon silencieux).</summary>
@@ -245,10 +284,10 @@ public class ImportsModel(DapperContext db) : PageModel
 public static class ImportsRequetes
 {
     /// <summary>Les dernières exécutions (sans leur sortie console, volumineuse).</summary>
-    public static async Task<IReadOnlyList<ExecutionTache>> ExecutionsAsync(System.Data.IDbConnection cx, int max) =>
+    public static async Task<IReadOnlyList<ExecutionTache>> ExecutionsAsync(System.Data.IDbConnection cx, int max, string? pays) =>
         (await cx.QueryAsync<ExecutionTache>(
             """
-            SELECT e.id, e.tache, COALESCE(t.libelle, e.tache) AS libelle, e.declencheur, e.demande_par, e.debut, e.fin, e.code_sortie, e.ok, e.ajouts, e.nb_erreurs
+            SELECT e.id, e.tache, COALESCE(t.libelle, e.tache) AS libelle, t.pays, e.declencheur, e.demande_par, e.debut, e.fin, e.code_sortie, e.ok, e.ajouts, e.nb_erreurs
               FROM import_executions e LEFT JOIN import_taches t ON t.code = e.tache
              ORDER BY e.id DESC LIMIT @max
             """, new { max })).ToList();
