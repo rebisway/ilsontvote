@@ -1,0 +1,6 @@
+@model string
+@* Pastille d'état d'une exécution : ok, échec, en cours, interrompue (le planificateur s'est arrêté avant la fin). *@
+@if (Model == "ok") { <span class="badge b-ok">OK</span> }
+else if (Model == "echec") { <span class="badge b-ko">Échec</span> }
+else if (Model == "en cours") { <span class="badge b-attente">En cours…</span> }
+else { <span class="badge b-attente">Interrompue</span> }

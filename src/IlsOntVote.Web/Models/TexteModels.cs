@@ -79,6 +79,17 @@ public class Texte
     /// <summary>Le texte a été adopté (au moins en partie) sans vote, par l'article 49, alinéa 3.</summary>
     public bool Adopte493 { get; set; }
     public int NbScrutinsSenat { get; set; }
+    /// <summary>
+    /// Amendements déposés à l'Assemblée sur ce texte, effectif OFFICIEL (jeu « Amendements », 16e et 17e législatures). NULL = pas de donnée :
+    /// texte sans dossier à l'Assemblée (« non applicable ») ou législature non couverte (« manquant », cf. <see cref="AmendementsManquants"/>).
+    /// </summary>
+    public int? NbAmendements { get; set; }
+    public int? NbAmendementsAdoptes { get; set; }
+    public int? NbAmendementsRejetes { get; set; }
+    /// <summary>Scrutins publics (tous rattachés au texte) dont le titre porte sur un amendement : CALCULÉ par nous, pas un chiffre officiel.</summary>
+    public int NbAmendementsScrutins { get; set; }
+    /// <summary>Le texte a un dossier à l'Assemblée mais sans effectif d'amendements (législature antérieure à la 16e) : à signaler « ? », pas « 0 ».</summary>
+    public bool AmendementsManquants => NbAmendements is null && NbEtapesAn > 0;
     /// <summary>Décisions de séance du Sénat connues (avec ou sans scrutin public).</summary>
     public int NbEtapesSenat { get; set; }
     public DateTime? DateAdoptionAn { get; set; }

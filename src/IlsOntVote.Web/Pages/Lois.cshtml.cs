@@ -39,7 +39,7 @@ public class LoisModel(ITexteRepository textes) : ListePageModel
     protected override string TriDefaut => "vote";
     protected override IReadOnlyCollection<string> ClesTri { get; } = [.. TexteRepository.ClesTri];
     // Dates et compteurs : le premier clic doit montrer le plus récent / le plus grand d'abord.
-    protected override bool DecroissantInitial(string cle) => cle is "vote" or "promulgation" or "jo" or "scrutins";
+    protected override bool DecroissantInitial(string cle) => cle is "vote" or "promulgation" or "jo" or "scrutins" or "amendements";
 
     protected override IEnumerable<(string Nom, string? Valeur)> Filtres =>
         [("q", Recherche), ("statut", Statut), ("chambre", Chambre), ("du", Du), ("au", Au)];
@@ -53,6 +53,10 @@ public class LoisModel(ITexteRepository textes) : ListePageModel
         new("Type", t => t.TypeLibelle),
         new("Statut", t => t.Statut.Libelle),
         new("Scrutins", t => t.NbScrutins),
+        new("Amendements déposés (officiel)", t => t.NbAmendements),
+        new("Amendements adoptés (officiel)", t => t.NbAmendementsAdoptes),
+        new("Amendements rejetés (officiel)", t => t.NbAmendementsRejetes),
+        new("Amendements au scrutin public (calculé)", t => t.NbAmendementsScrutins),
         new("Adopté par l'Assemblée", t => t.AdopteAn),
         new("Adopté par le Sénat", t => t.AdopteSenat),
         new("Numéro de loi", t => t.NumeroLoi),

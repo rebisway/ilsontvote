@@ -48,6 +48,17 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
          OR EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id AND e.chambre = 'AN' AND e.resultat ILIKE ANY (ARRAY['adopt%', 'modifi%', 'consid%']))) AS adopte_an,
         (COALESCE(bool_or(s.chambre = 'SENAT' AND s.sort LIKE 'adopt%'), false)
          OR EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id AND e.chambre = 'SENAT' AND e.resultat ILIKE 'adopt%')) AS adopte_senat,
+        -- Amendements (table amendements_dossiers, import officiel) : somme sur les dossiers AN du texte. Un dossier d'une législature COUVERTE
+        -- (des lignes existent pour elle) sans ligne propre a zéro amendement ; une législature non couverte ou un texte sans dossier AN donne NULL
+        -- (donnée manquante / non applicable), jamais un 0 inventé.
+        (SELECT CASE WHEN bool_or(EXISTS (SELECT 1 FROM amendements_dossiers x WHERE x.legislature = substring(d.dossier_an from '^DLR5L([0-9]+)N')::smallint))
+                     THEN COALESCE(sum(a.deposes), 0) END
+           FROM (SELECT DISTINCT e.dossier_an FROM texte_etapes e WHERE e.texte_id = t.id AND e.chambre = 'AN') d
+           LEFT JOIN amendements_dossiers a ON a.dossier_an = d.dossier_an)::int AS nb_amendements,
+        (SELECT sum(a.adoptes) FROM amendements_dossiers a WHERE a.dossier_an IN (SELECT e.dossier_an FROM texte_etapes e WHERE e.texte_id = t.id AND e.chambre = 'AN'))::int AS nb_amendements_adoptes,
+        (SELECT sum(a.rejetes) FROM amendements_dossiers a WHERE a.dossier_an IN (SELECT e.dossier_an FROM texte_etapes e WHERE e.texte_id = t.id AND e.chambre = 'AN'))::int AS nb_amendements_rejetes,
+        -- Calculé : scrutins publics rattachés au texte (texte_lie_id, index partiel) dont le titre vise un amendement.
+        (SELECT count(*) FROM scrutins x WHERE x.texte_lie_id = t.id AND x.titre ILIKE '%amendement%')::int AS nb_amendements_scrutins,
         (count(s.id) FILTER (WHERE s.chambre = 'AN'))::int AS nb_scrutins_an,
         (count(s.id) FILTER (WHERE s.chambre = 'SENAT'))::int AS nb_scrutins_senat,
         GREATEST(max(s.date_scrutin) FILTER (WHERE s.chambre = 'AN' AND s.sort LIKE 'adopt%'),
@@ -66,6 +77,7 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
         ["jo"] = "date_jo",
         ["numero"] = "numero_loi",
         ["scrutins"] = "nb_scrutins",
+        ["amendements"] = "nb_amendements",
         ["statut"] = "statut_rang",
     };
 

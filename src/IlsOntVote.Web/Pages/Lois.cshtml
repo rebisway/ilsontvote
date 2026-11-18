@@ -33,6 +33,7 @@
         <option value="statut" selected="@(Model.TriEffectif == "statut")">@L.T("Trier : statut", "Sort: status")</option>
         <option value="promulgation" selected="@(Model.TriEffectif == "promulgation")">@L.T("Trier : promulgation", "Sort: promulgation")</option>
         <option value="jo" selected="@(Model.TriEffectif == "jo")">@L.T("Trier : parution au JO", "Sort: Official Journal")</option>
+        <option value="amendements" selected="@(Model.TriEffectif == "amendements")">@L.T("Trier : amendements", "Sort: amendments")</option>
         <option value="scrutins" selected="@(Model.TriEffectif == "scrutins")">@L.T("Trier : nombre de votes", "Sort: number of votes")</option>
     </select>
     <select name="sens" class="tri-mobile" aria-label="@L.T("Sens du tri", "Sort order")">
@@ -70,6 +71,7 @@ else
                     @Model.Th("vote", L.T("Dernier vote", "Last vote"), "col-date")
                     @Model.Th("titre", L.T("Loi", "Law"), "col-titre")
                     @Model.Th("statut", L.T("Statut", "Status"), "col-statut")
+                    @Model.Th("amendements", L.T("Amendements", "Amendments"), "num col-date")
                     @Model.Th("promulgation", L.T("Promulgation", "Promulgation"), "col-date")
                     @Model.Th("jo", L.T("Parution JO", "Official Journal"), "col-date")
                     <th scope="col" class="col-liens">@L.T("Liens", "Links")</th>
@@ -88,6 +90,21 @@ else
                         {
                             <span class="tag-ch @c.Classe" title="@c.Infobulle" tabindex="0">@c.Etiquette @c.Symbole</span>
                         }
+                    </td>
+                    <td class="num col-date" data-label="@L.T("Amendements", "Amendments")">
+                        @if (t.NbAmendements is { } na)
+                        {
+                            // Officiel : effectif publié par l'Assemblée. L'infobulle donne le sort ; la dernière ligne est le seul chiffre calculé par nous.
+                            var detail = L.T($"{na:N0} déposés à l'Assemblée (source officielle) : {t.NbAmendementsAdoptes:N0} adoptés, {t.NbAmendementsRejetes:N0} rejetés ; les autres sont tombés, non soutenus, retirés, irrecevables ou sans sort publié.",
+                                             $"{na:N0} tabled in the National Assembly (official source): {t.NbAmendementsAdoptes:N0} adopted, {t.NbAmendementsRejetes:N0} rejected; the rest fell, were not moved, withdrawn, inadmissible or have no published outcome.")
+                                     + (t.NbAmendementsScrutins > 0 ? L.T($" {t.NbAmendementsScrutins:N0} ont fait l'objet d'un scrutin public (calculé d'après les titres des scrutins).", $" {t.NbAmendementsScrutins:N0} went to a recorded vote (computed from the vote titles).") : "");
+                            <span title="@detail">@na.ToString("N0", fr)</span>
+                        }
+                        else if (t.AmendementsManquants)
+                        {
+                            <span class="doute doute-manquant" title="@L.T("Texte examiné à l'Assemblée avant la 16e législature : le jeu officiel des amendements ne le couvre pas.", "Text examined in the National Assembly before the 16th legislature: the official amendments dataset does not cover it.")">?</span>
+                        }
+                        else { <span class="note-source" title="@L.T("Pas de dossier à l'Assemblée dans nos données : pas d'amendements à l'Assemblée à compter.", "No National Assembly file in our data: no National Assembly amendments to count.")">—</span> }
                     </td>
                     <td class="nowrap col-date" data-label="Promulgation" title="@(string.IsNullOrEmpty(t.NumeroLoi) ? "" : L.T("Loi n° ", "Law no. ") + t.NumeroLoi)">@(t.DatePromulgation?.ToString("d MMM yy", fr))</td>
                     <td class="nowrap col-date" data-label="@L.T("Parution au JO", "Official Journal")">@(t.DateJo?.ToString("d MMM yy", fr))</td>

@@ -1,0 +1,69 @@
+@page
+@model IlsOntVote.Web.Pages.Admin.ImportExecutionModel
+@using IlsOntVote.Web.Pages.Admin
+@{
+    var e = Model.Execution!;
+    ViewData["Title"] = "Exécution n° " + e.Id;
+    ViewData["NoIndex"] = true;
+}
+<partial name="_AdminNav" />
+<p><a href="/Admin/ImportsJournal">← Journal des imports</a> · <a href="/Admin/Imports">Imports et planning</a></p>
+<h1 class="titre-page">@e.Libelle</h1>
+<p>
+    <partial name="_EtatImport" model="e.Etat" />
+    <span class="note-source">exécution n° @e.Id · début @ImportAffichage.Date(e.Debut) · durée @ImportAffichage.Duree(e.Duree ?? (DateTime.UtcNow - DateTime.SpecifyKind(e.Debut, DateTimeKind.Utc))) @(e.Fin is null ? "(en cours, page actualisée toutes les 10 s)" : "")
+        · @(e.Declencheur == "admin" ? "lancée à la main" + (e.DemandePar is null ? "" : " par " + e.DemandePar) : "lancée par le planning")@(e.CodeSortie is { } code ? " · code de sortie " + code : "")</span>
+</p>
+
+<h2>Enregistrements</h2>
+@if (Model.Bilan.Count == 0) { <p class="vide">@(e.Fin is null ? "Bilan disponible à la fin de l'exécution." : "Aucun bilan pour cette exécution (antérieure au bilan, ou interrompue).")</p> }
+else
+{
+    <p class="note-source"><strong>@((e.Ajouts ?? 0).ToString("N0", ImportAffichage.Fr))</strong> enregistrement@((e.Ajouts ?? 0) > 1 ? "s" : "") ajouté@((e.Ajouts ?? 0) > 1 ? "s" : ""). Effectif de chaque table avant et après l'exécution : la mise à jour d'une ligne existante ne change pas l'effectif.</p>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Table</th><th class="num">Avant</th><th class="num">Après</th><th class="num">Variation</th></tr></thead>
+            <tbody>
+            @foreach (var l in Model.Bilan)
+            {
+                <tr>
+                    <td>@l.Table</td>
+                    <td class="num">@l.Avant.ToString("N0", ImportAffichage.Fr)</td>
+                    <td class="num">@l.Apres.ToString("N0", ImportAffichage.Fr)</td>
+                    <td class="num">@(l.Variation == 0 ? "—" : (l.Variation > 0 ? "+" : "") + l.Variation.ToString("N0", ImportAffichage.Fr))</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+<h2>Erreurs</h2>
+@if (e.Fin is not null && e.NbErreurs == 0) { <p class="vide">Aucune erreur signalée dans la sortie.</p> }
+else if (e.NbErreurs > 0) { <p class="note-source">@e.NbErreurs.ToString("N0", ImportAffichage.Fr) ligne@(e.NbErreurs > 1 ? "s" : "") (sortie d'erreur du processus et lignes mentionnant une erreur ou une exception).</p><pre class="journal-sortie">@Model.Erreurs</pre> }
+else { <p class="vide">Relevé à la fin de l'exécution.</p> }
+
+@if (Model.Compteurs.Count > 0)
+{
+    <h2>Compteurs par source</h2>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Source</th><th>État</th><th>Scrutins</th><th>Votes</th><th>Message</th></tr></thead>
+            <tbody>
+            @foreach (var c in Model.Compteurs)
+            {
+                <tr>
+                    <td>@c.Source</td>
+                    <td><partial name="_EtatImport" model="ImportAffichage.Etat(c.Ok is null ? null : DateTime.UtcNow, c.Ok)" /></td>
+                    <td>@c.Scrutins</td><td>@c.Votes</td><td class="note-cell">@c.Message</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+<h2>Sortie console</h2>
+@if (string.IsNullOrWhiteSpace(Model.Sortie)) { <p class="vide">Aucune sortie enregistrée.</p> }
+else { <pre class="journal-sortie">@Model.Sortie</pre> }
+@if (e.Fin is null) { <script>setTimeout(function () { location.reload(); }, 10000);</script> }

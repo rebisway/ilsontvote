@@ -11,8 +11,10 @@ public sealed class ImportRepository(string connectionString)
     public async Task<long> DemarrerAsync(string source)
     {
         await using var conn = new NpgsqlConnection(connectionString);
+        // Lancé par le planificateur, l'import reçoit le numéro de son exécution : /Admin y rattache les compteurs par source.
+        long? execution = long.TryParse(Environment.GetEnvironmentVariable("ILSONVOTE_EXECUTION_ID"), out var e) ? e : null;
         return await conn.ExecuteScalarAsync<long>(
-            "INSERT INTO import_runs (source) VALUES (@source) RETURNING id", new { source });
+            "INSERT INTO import_runs (source, execution_id) VALUES (@source, @execution) RETURNING id", new { source, execution });
     }
 
     /// <summary>Vrai si un relevé de cette source et de cette date est déjà traité (évite de retélécharger une archive).</summary>
@@ -131,6 +133,25 @@ public sealed class ImportRepository(string connectionString)
 
         await tx.CommitAsync();
         return (ecrites, anomalies);
+    }
+
+    /// <summary>
+    /// Remplace les effectifs d'amendements d'une législature (une transaction : le site ne voit jamais un état à moitié écrit). Les effectifs sont
+    /// recalculés en entier à chaque import (le zip contient tous les amendements) : rejouer est idempotent.
+    /// </summary>
+    public async Task EcrireAmendementsAsync(IReadOnlyList<AmendementsDossier> dossiers, int legislature)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+        await using var tx = await conn.BeginTransactionAsync();
+        await conn.ExecuteAsync("DELETE FROM amendements_dossiers WHERE legislature = @legislature", new { legislature }, tx);
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO amendements_dossiers (dossier_an, legislature, deposes, adoptes, rejetes, tombes, non_soutenus, retires, irrecevables)
+            VALUES (@DossierAn, @legislature, @Deposes, @Adoptes, @Rejetes, @Tombes, @NonSoutenus, @Retires, @Irrecevables)
+            """,
+            dossiers.Select(d => new { d.DossierAn, legislature = (short)legislature, d.Deposes, d.Adoptes, d.Rejetes, d.Tombes, d.NonSoutenus, d.Retires, d.Irrecevables }), tx);
+        await tx.CommitAsync();
     }
 
     /// <summary>Clôt la ligne du journal avec le résultat (succès, compteurs, message d'erreur éventuel).</summary>

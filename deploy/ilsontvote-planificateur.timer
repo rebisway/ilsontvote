@@ -1,0 +1,12 @@
+# IlsOntVote - réveille le planificateur d'imports chaque minute (les heures du planning se règlent dans /Admin/Imports, pas ici).
+# État : systemctl list-timers ilsontvote-planificateur.timer
+[Unit]
+Description=IlsOntVote (planificateur d'imports, chaque minute)
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+# Pas de Persistent : le planificateur rattrape lui-même les créneaux manqués (12 h maximum), d'après la base.
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

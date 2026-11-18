@@ -18,11 +18,15 @@ using Microsoft.Extensions.Configuration;
 const int LegislatureEnCours = 17;
 int[] LegislaturesCompletes = [15, 16, 17];
 
+// Sortie en UTF-8 : le planificateur capture la console de chaque tâche pour le journal de /Admin (sinon accents illisibles sous Windows).
+Console.OutputEncoding = System.Text.Encoding.UTF8;
+
 var argv = args.ToList();
-if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions"))
+if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements"))
 {
     Console.Error.WriteLine("Usage : IlsOntVote.Importer an [--legislature 17|15,16,17|all] [--scrutins-dir D --amo-dir D]");
     Console.Error.WriteLine("        IlsOntVote.Importer senat [--senateurs-dir D --dosleg-sql F]");
+    Console.Error.WriteLine("        IlsOntVote.Importer planificateur   (exécute les demandes de /Admin et le planning ; lancé chaque minute par systemd)");
     Console.Error.WriteLine("        IlsOntVote.Importer textes [--dosleg-sql F]   (cycle de vie des textes + rattachement des scrutins)");
     return 2;
 }
@@ -63,6 +67,8 @@ return argv[0] switch
     "traductions" => await TraduireTitresAsync(),
     "export" => await ExporterDonneesAsync(),
     "petitions" => await ImporterPetitionsAsync(),
+    "planificateur" => await new Planificateur(connectionString).PasserAsync(),
+    "amendements" => await ImporterAmendementsAsync(),
     _ => await ImporterTextesAsync(),
 };
 
@@ -360,6 +366,60 @@ async Task<IReadOnlyList<(string Source, string Cible)>> LancerScriptTraductionA
             .ToList();
     }
     finally { try { Directory.Delete(dossier, true); } catch (IOException) { } }
+}
+
+/// <summary>
+/// Amendements déposés à l'Assemblée, par dossier législatif (jeu officiel « Amendements », ~365 Mo par législature). Par défaut la législature
+/// en cours ; <c>--legislature 16,17</c> ou <c>all</c> pour les deux. Le fichier n'est retéléchargé que si son ETag a changé (planning plusieurs
+/// fois par jour sans coût) ; <c>--force</c> ignore l'ETag. Après traitement le zip est remplacé par un fichier vide : seul l'ETag compte, le disque
+/// ne garde pas 365 Mo de plus.
+/// </summary>
+async Task<int> ImporterAmendementsAsync()
+{
+    var option = Option("--legislature") ?? LegislatureEnCours.ToString();
+    int[] legislatures = option == "all" ? AmendementsSource.LegislaturesDisponibles
+        : option.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(int.Parse).ToArray();
+    var force = argv.Contains("--force");
+    var codeRetour = 0;
+    foreach (var legislature in legislatures)
+    {
+        Console.WriteLine($"=== Amendements — législature {legislature} ===");
+        var runId = await repo.DemarrerAsync($"AMENDEMENTS-L{legislature}");
+        try
+        {
+            if (!AmendementsSource.LegislaturesDisponibles.Contains(legislature))
+                throw new InvalidOperationException($"Législature {legislature} absente du jeu « Amendements » (publié pour la 16e et la 17e).");
+            var url = AmendementsSource.Url(legislature);
+            var zip = Path.Combine(Directory.GetCurrentDirectory(), "data", "an", $"amendements-L{legislature}", "Amendements.json.zip");
+            var (modifie, etag) = force ? (true, null) : await Telechargement.VerifierEtagAsync(url, zip);
+            if (!modifie)
+            {
+                Console.WriteLine("  fichier inchangé (ETag) : rien à télécharger.");
+                await repo.TerminerAsync(runId, true, 0, 0, "fichier source inchangé (ETag)");
+                continue;
+            }
+            Console.WriteLine("  téléchargement (~365 Mo)…");
+            await Telechargement.TelechargerFichierAsync(url, zip);
+            var dossiers = AmendementsSource.Lire(zip, out var sansDossier, out var illisibles);
+            var deposes = dossiers.Sum(d => d.Deposes);
+            await repo.EcrireAmendementsAsync(dossiers, legislature);
+            var message = $"{deposes:N0} amendements, {dossiers.Count} dossiers" +
+                          (sansDossier > 0 ? $" ; {sansDossier} fichiers ignorés (rangés par la source dans « incorrect_data », sans dossier)" : "") +
+                          (illisibles > 0 ? $" ; {illisibles} fichiers illisibles ignorés" : "");
+            Console.WriteLine("  " + message + ".");
+            // Le zip est remplacé par un fichier vide (voir le résumé de la méthode) puis l'ETag est enregistré : seulement après un succès.
+            File.WriteAllBytes(zip, []);
+            Telechargement.EnregistrerEtag(zip, etag ?? (await Telechargement.VerifierEtagAsync(url, zip)).Etag);
+            await repo.TerminerAsync(runId, true, 0, 0, message);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
+            codeRetour = 1;
+        }
+    }
+    return codeRetour;
 }
 
 /// <summary>

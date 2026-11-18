@@ -49,8 +49,13 @@ vide, aucun administrateur, import ancien… et `NON CONFIGURÉ` si quelque chos
 
 ## Imports (chaque nuit à 4 h 30)
 
-`ilsontvote-import.timer` lance `import-all.sh` : Assemblée nationale (législature en cours), Sénat, textes de loi. Journal :
-`journalctl -u ilsontvote-import.service`, ou `/Admin/Imports`. À la main : `sudo systemctl start ilsontvote-import.service`.
+`ilsontvote-planificateur.timer` réveille chaque minute `IlsOntVote.Importer planificateur`, qui exécute les demandes faites dans
+`/Admin/Imports` (bouton « Lancer maintenant ») et les créneaux du planning (jours + heure de Paris, plusieurs créneaux par import). Les imports
+disponibles, leur description, le planning et le journal (avec la sortie console de chaque exécution) sont dans `/Admin/Imports` et
+`/Admin/ImportsJournal`. Le planning initial (migration 026) reproduit l'ancien import nocturne : tout à 04:30, dans l'ordre des dépendances.
+État : `systemctl list-timers ilsontvote-planificateur.timer` · journal système : `journalctl -u ilsontvote-planificateur.service`.
+L'ancien `ilsontvote-import.timer` est désactivé par `update-ilsontvote.sh` (le laisser actif doublerait les imports). `import-all.sh` reste
+utilisable à la main pour le premier remplissage (`historique`).
 Équivalent crontab : `30 4 * * * www-data ...import-all.sh` (le timer évite d'avoir à le faire).
 
 ## Exploitation
@@ -60,7 +65,7 @@ vide, aucun administrateur, import ancien… et `NON CONFIGURÉ` si quelque chos
 | Sauvegarde (14 jours gardés, dans `/home/ubuntu/backups/ilsontvote`) | `sudo bash deploy/backup-db.sh` (à mettre en crontab : `15 3 * * *`) |
 | Remise à zéro des statistiques | `deploy/reset-stats.sh [AAAA-MM-JJ] [--yes]` |
 | Migrations seules | `sudo bash deploy/migrate.sh` |
-| État | `systemctl status ilsontvote ilsontvote-import.timer` · `journalctl -u ilsontvote -n 50` |
+| État | `systemctl status ilsontvote ilsontvote-planificateur.timer` · `journalctl -u ilsontvote -n 50` |
 
 ## Règles
 

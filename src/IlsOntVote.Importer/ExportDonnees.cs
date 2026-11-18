@@ -54,6 +54,8 @@ public static class ExportDonnees
             "SELECT petition_id, releve_le, nb_votes, statut FROM petitions_historique ORDER BY petition_id, releve_le"),
         new("petitions_anomalies", "Constats entre deux relevés : baisse du nombre de soutiens, disparition ou réapparition d'une pétition dans le fichier source. Sans cause connue.",
             "SELECT petition_id, type, detecte_le, releve_precedent, valeur_avant, valeur_apres FROM petitions_anomalies ORDER BY detecte_le, petition_id"),
+        new("amendements_dossiers", "Amendements déposés à l'Assemblée nationale par dossier législatif (référence DLR…) : nombre déposé et sort publié (adopté, rejeté, tombé, non soutenu, retiré, irrecevable). Source : jeu « Amendements » de data.assemblee-nationale.fr (16e et 17e législatures).",
+            "SELECT dossier_an, legislature, deposes, adoptes, rejetes, tombes, non_soutenus, retires, irrecevables, releve_le FROM amendements_dossiers ORDER BY dossier_an"),
         new("texte_etapes", "Décisions de séance sur un texte (Assemblée et Sénat), avec ou sans scrutin public.",
             """
             SELECT id, texte_id, chambre, code_acte, date_acte, resultat, scrutin_id, sans_scrutin_public, article_49_3

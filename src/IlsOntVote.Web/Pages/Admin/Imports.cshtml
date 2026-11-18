@@ -1,37 +1,153 @@
 @page
 @model IlsOntVote.Web.Pages.Admin.ImportsModel
+@using IlsOntVote.Web.Pages.Admin
 @{
     ViewData["Title"] = "Imports";
     ViewData["NoIndex"] = true;
-    var fr = new System.Globalization.CultureInfo("fr-FR");
+    string[] jours = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+    var passage = Model.DernierPassage is { } p ? DateTime.UtcNow - DateTime.SpecifyKind(p, DateTimeKind.Utc) : (TimeSpan?)null;
+    var vivant = passage is { } v && v < TimeSpan.FromMinutes(3);
 }
 <partial name="_AdminNav" />
-<h1 class="titre-page">Journal des imports</h1>
-<p class="chapo">Chaque exécution d'une source de données (cron ou manuelle). Le déclenchement manuel et le test à blanc des sources arriveront avec la routine d'import.</p>
+<h1 class="titre-page">Imports</h1>
+<p class="chapo">Ce que le site peut importer, à quelle heure, et ce qui s'est passé. Le site n'exécute rien lui-même : « Lancer » inscrit une demande que le <strong>planificateur</strong> (passage chaque minute) prend en charge. Les heures sont celles de Paris.</p>
 
-@if (Model.Executions.Count == 0)
+@if (Model.Message is not null) { <p class="note" role="status">@Model.Message</p> }
+<h2>État du planificateur</h2>
+<div class="chiffres">
+    <div>
+        <b>@if (Model.EnPause) { <span class="badge b-ko">En pause</span> }
+           else if (!vivant) { <span class="badge b-ko">@(passage is null ? "Jamais lancé" : "Silencieux")</span> }
+           else if (Model.TacheEnCours is not null) { <span class="badge b-attente">Import en cours</span> }
+           else { <span class="badge b-ok">Actif</span> }</b>
+        <span>@if (Model.EnPause) { <text>aucune tâche ne démarre (planning et demandes suspendus)</text> }
+              else if (passage is null) { <text>aucun passage enregistré : timer non installé ou non démarré</text> }
+              else if (!vivant) { <text>plus de passage depuis plus de 3 min : timer arrêté ?</text> }
+              else { <text>réveillé chaque minute par systemd</text> }</span>
+    </div>
+    <div><b>@(passage is { } dp ? "il y a " + ImportAffichage.Duree(dp) : "—")</b><span>dernier passage</span></div>
+    <div><b>@(Model.TacheEnCours is { } tc ? tc.Libelle : "aucun")</b><span>@(Model.TacheEnCours is { } tc2 ? "depuis " + ImportAffichage.Date(tc2.Debut) : "import en cours")</span></div>
+    <div><b>@Model.DemandesEnAttente</b><span>demande@(Model.DemandesEnAttente > 1 ? "s" : "") manuelle@(Model.DemandesEnAttente > 1 ? "s" : "") en attente</span></div>
+    <div><b>@(Model.ProchainCreneau is { } pc ? ImportAffichage.Date(pc.Quand) : "—")</b><span>@(Model.ProchainCreneau is { } pc2 ? "prochain créneau : " + pc2.Libelle : "prochain créneau (aucun actif)")</span></div>
+</div>
+
+<div class="barre-liste">
+    <form method="post" asp-page-handler="BasculerPause"><button type="submit" class="bouton petit @(Model.EnPause ? "" : "secondaire")">@(Model.EnPause ? "Reprendre le planificateur" : "Mettre le planificateur en pause")</button></form>
+    <form method="post" asp-page-handler="ArreterEnCours" onsubmit="return confirm('Arrêter l\'import en cours ? Le processus est tué : les données déjà écrites restent, le reste est à relancer.');"><button type="submit" class="bouton petit secondaire" disabled="@(Model.EnCours == 0)">Arrêter l'import en cours</button></form>
+    <form method="post" asp-page-handler="ReinitialiserExecutions" onsubmit="return confirm('Marquer les exécutions en cours comme interrompues ? À faire seulement si plus rien ne tourne.');"><button type="submit" class="bouton petit secondaire" disabled="@(Model.EnCours == 0)">Réinitialiser les exécutions bloquées (@Model.EnCours)</button></form>
+    <form method="post" asp-page-handler="AnnulerDemandes"><button type="submit" class="bouton petit secondaire" disabled="@(Model.DemandesEnAttente == 0)">Annuler les demandes en attente (@Model.DemandesEnAttente)</button></form>
+</div>
+
+<h2>Imports disponibles</h2>
+<div class="table-wrap">
+    <table>
+        <thead><tr><th>Import</th><th>Dernière exécution</th><th>Planning</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var t in Model.Taches)
+        {
+            var creneaux = Model.Planning.Where(c => c.Tache == t.Code && c.Actif).ToList();
+            <tr>
+                <td>
+                    <strong>@t.Libelle</strong>@if (t.Ponctuelle) { <span class="note">ponctuel</span> }
+                    <br /><span class="note-source">@t.Description</span>
+                </td>
+                <td class="nowrap">
+                    @if (t.DerniereId is null) { <span class="note-source">jamais exécuté</span> }
+                    else
+                    {
+                        <partial name="_EtatImport" model="ImportAffichage.Etat(t.DerniereFin, t.DernierOk)" />
+                        <br /><a href="/Admin/ImportExecution?id=@t.DerniereId">@ImportAffichage.Date(t.DernierDebut)</a>
+                        <br /><span class="note-source">@ImportAffichage.Duree(t.DerniereFin - t.DernierDebut)</span>
+                    }
+                </td>
+                <td>
+                    @if (creneaux.Count == 0) { <span class="note-source">à la demande</span> }
+                    else { foreach (var c in creneaux) { <div>@ImportAffichage.JoursTexte(c.Jours) à @ImportAffichage.Heure(c.Heure)</div> } }
+                </td>
+                <td>
+                    @if (t.EnAttente > 0) { <span class="note">demandé…</span> }
+                    else if (t.DerniereId is not null && t.DerniereFin is null) { <span class="note">en cours…</span> }
+                    else
+                    {
+                        <form method="post" asp-page-handler="Lancer"><input type="hidden" name="tache" value="@t.Code" /><button type="submit" class="bouton petit">Lancer maintenant</button></form>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<h2>Planning</h2>
+<p class="note-source">Plusieurs créneaux possibles pour une même tâche (par exemple l'Assemblée le mercredi à 15 h, 18 h et 21 h). Des tâches dues en même temps s'exécutent l'une après l'autre dans l'ordre de la liste ci-dessus (les dépendances d'abord). Un créneau manqué (serveur éteint) est rattrapé jusqu'à 12 h après son heure, pas au-delà.</p>
+@if (Model.Planning.Count == 0)
 {
-    <p class="vide">Aucun import enregistré.</p>
+    <p class="vide">Aucun créneau : rien ne se lance sans demande manuelle.</p>
 }
 else
 {
     <div class="table-wrap">
         <table>
-            <thead><tr><th>#</th><th>Source</th><th>Début</th><th>Durée</th><th>État</th><th>Scrutins</th><th>Votes</th><th>Message</th></tr></thead>
+            <thead><tr><th>Import</th><th>Jours</th><th>Heure</th><th>État</th><th></th></tr></thead>
             <tbody>
-            @foreach (var i in Model.Executions)
+            @foreach (var c in Model.Planning)
             {
                 <tr>
-                    <td>@i.Id</td>
-                    <td>@i.Source</td>
-                    <td class="nowrap">@i.StartedAt.ToLocalTime().ToString("g", fr)</td>
-                    <td class="nowrap">@(i.Duree is { } d ? $"{(int)d.TotalMinutes} min {d.Seconds:00} s" : "—")</td>
-                    <td>@if (i.Ok is null) { <span class="note">interrompu</span> } else if (i.Ok == true) { <span class="badge b-ok">OK</span> } else { <span class="badge b-ko">Échec</span> }</td>
-                    <td>@i.Scrutins</td><td>@i.Votes</td>
-                    <td class="note-cell">@i.Message</td>
+                    <td>@c.Libelle</td>
+                    <td>@ImportAffichage.JoursTexte(c.Jours)</td>
+                    <td class="nowrap">@ImportAffichage.Heure(c.Heure)</td>
+                    <td>@(c.Actif ? "actif" : "suspendu")</td>
+                    <td class="nowrap">
+                        <form method="post" asp-page-handler="BasculerCreneau" style="display:inline"><input type="hidden" name="id" value="@c.Id" /><button type="submit" class="bouton petit secondaire">@(c.Actif ? "Suspendre" : "Réactiver")</button></form>
+                        <form method="post" asp-page-handler="SupprimerCreneau" style="display:inline"><input type="hidden" name="id" value="@c.Id" /><button type="submit" class="bouton petit secondaire">Supprimer</button></form>
+                    </td>
                 </tr>
             }
             </tbody>
         </table>
     </div>
 }
+
+<form method="post" asp-page-handler="AjouterCreneau" class="filtres">
+    <select name="tache" aria-label="Import" required>
+        @foreach (var t in Model.Taches) { <option value="@t.Code">@t.Libelle</option> }
+    </select>
+    <span class="periode">
+        @for (var i = 0; i < 7; i++)
+        {
+            <label class="champ-date"><input type="checkbox" name="jours" value="@(i + 1)" checked="@(i == 2)" /> @jours[i]</label>
+        }
+    </span>
+    <label class="champ-date">à <input type="time" name="heure" value="04:30" required /></label>
+    <button type="submit" class="bouton">Ajouter un créneau</button>
+</form>
+
+<h2>Dernières exécutions</h2>
+@if (Model.Dernieres.Count == 0)
+{
+    <p class="vide">Aucune exécution enregistrée.</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>#</th><th>Import</th><th>Début</th><th>Durée</th><th>Origine</th><th>État</th><th>Ajoutés</th><th>Erreurs</th></tr></thead>
+            <tbody>
+            @foreach (var e in Model.Dernieres)
+            {
+                <tr>
+                    <td><a href="/Admin/ImportExecution?id=@e.Id">@e.Id</a></td>
+                    <td>@e.Libelle</td>
+                    <td class="nowrap">@ImportAffichage.Date(e.Debut)</td>
+                    <td class="nowrap">@ImportAffichage.Duree(e.Duree)</td>
+                    <td>@(e.Declencheur == "admin" ? "manuel" + (e.DemandePar is null ? "" : " (" + e.DemandePar + ")") : "planning")</td>
+                    <td><partial name="_EtatImport" model="e.Etat" /></td>
+                    <td class="num">@(e.Ajouts is { } a ? a.ToString("N0", ImportAffichage.Fr) : "—")</td>
+                    <td class="num">@(e.Fin is null ? "—" : e.NbErreurs.ToString("N0", ImportAffichage.Fr))</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+<p><a href="/Admin/ImportsJournal">Journal complet des exécutions (filtres, tri, export) →</a></p>

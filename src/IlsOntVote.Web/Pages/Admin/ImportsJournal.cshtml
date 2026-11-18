@@ -1,0 +1,86 @@
+@page
+@model IlsOntVote.Web.Pages.Admin.ImportsJournalModel
+@using IlsOntVote.Web.Pages.Admin
+@using IlsOntVote.Web.Services
+@{
+    ViewData["Title"] = "Journal des imports";
+    ViewData["NoIndex"] = true;
+    var tri = Model.TriEffectif;
+}
+<partial name="_AdminNav" />
+<h1 class="titre-page">Journal des imports</h1>
+<p class="chapo">Toutes les exécutions, planifiées ou manuelles, avec leur sortie console. <a href="/Admin/Imports">Imports et planning</a>.</p>
+
+<form class="filtres filtres-auto filtres-liste" method="get">
+    <select name="tache" aria-label="Import">
+        <option value="">Tous les imports</option>
+        @foreach (var t in Model.Taches) { <option value="@t.Code" selected="@(Model.Tache == t.Code)">@t.Libelle</option> }
+    </select>
+    <select name="etat" aria-label="État">
+        <option value="">Tous les états</option>
+        @foreach (var e in ImportsJournalModel.Etats) { <option value="@e" selected="@(Model.Etat == e)">@e</option> }
+    </select>
+    <select name="origine" aria-label="Origine">
+        <option value="">Toutes les origines</option>
+        <option value="planning" selected="@(Model.Origine == "planning")">Planning</option>
+        <option value="admin" selected="@(Model.Origine == "admin")">Manuel</option>
+    </select>
+    <button type="submit" class="sans-js">Filtrer</button>
+    @if (Model.FiltreActif) { <a class="effacer" href="@Model.LienSansFiltre" title="Effacer le filtre" aria-label="Effacer le filtre">✕</a> }
+</form>
+
+<div class="barre-liste">
+    <p class="compte">@Model.Resultats.Total.ToString("N0", ImportAffichage.Fr) exécution@(Model.Resultats.Total > 1 ? "s" : "")</p>
+    <p class="export">Exporter ce tableau :
+        @foreach (var f in Exporteur.Formats) { <a href="@Model.Lien(format: f)" download>@f.ToUpperInvariant()</a> }
+    </p>
+</div>
+
+@if (Model.Resultats.Lignes.Count == 0)
+{
+    <p class="vide">@(Model.FiltreActif ? "Aucune exécution ne correspond à ces critères." : "Aucune exécution enregistrée.")</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    @Model.Th("tache", "Import")
+                    @Model.Th("debut", "Début", "nowrap")
+                    @Model.Th("duree", "Durée", "nowrap")
+                    @Model.Th("origine", "Origine")
+                    @Model.Th("etat", "État")
+                    @Model.Th("ajouts", "Ajoutés", "num")
+                    @Model.Th("erreurs", "Erreurs", "num")
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var e in Model.Resultats.Lignes)
+            {
+                <tr>
+                    <td><a href="/Admin/ImportExecution?id=@e.Id">@e.Id</a></td>
+                    <td>@e.Libelle</td>
+                    <td class="nowrap">@ImportAffichage.Date(e.Debut)</td>
+                    <td class="nowrap">@ImportAffichage.Duree(e.Duree)</td>
+                    <td>@(e.Declencheur == "admin" ? "manuel" + (e.DemandePar is null ? "" : " (" + e.DemandePar + ")") : "planning")</td>
+                    <td><partial name="_EtatImport" model="e.Etat" /></td>
+                    <td class="num">@(e.Ajouts is { } a ? a.ToString("N0", ImportAffichage.Fr) : "—")</td>
+                    <td class="num">@(e.Fin is null ? "—" : e.NbErreurs.ToString("N0", ImportAffichage.Fr))</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.Resultats.NbPages > 1)
+    {
+        <nav class="pagination" aria-label="Pagination">
+            @if (Model.Resultats.Page > 1) { <a href="@Model.Lien(page: Model.Resultats.Page - 1)" rel="prev">← Précédent</a> }
+            <span>Page @Model.Resultats.Page / @Model.Resultats.NbPages</span>
+            @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">Suivant →</a> }
+        </nav>
+    }
+    <partial name="_LignesParPage" model="Model" />
+}

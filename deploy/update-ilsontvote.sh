@@ -16,12 +16,14 @@ IMP=/var/www/ilsontvote_importer
 
 systemctl stop ilsontvote.service 2>/dev/null
 
-# Les fichiers de service déposés dans $SRC/deploy remplacent ceux installés ; le timer d'import est activé.
-for u in ilsontvote.service ilsontvote-import.service ilsontvote-import.timer; do
+# Les fichiers de service déposés dans $SRC/deploy remplacent ceux installés ; le planificateur d'imports (chaque minute) est activé.
+for u in ilsontvote.service ilsontvote-import.service ilsontvote-import.timer ilsontvote-planificateur.service ilsontvote-planificateur.timer; do
   [ -f "$SRC/deploy/$u" ] && cp "$SRC/deploy/$u" "/etc/systemd/system/$u"
 done
 systemctl daemon-reload
-systemctl enable ilsontvote.service ilsontvote-import.timer >/dev/null 2>&1
+# L'ancien timer nocturne est remplacé par le planning (migration 026 : mêmes tâches à 04:30) : le laisser actif doublerait les imports.
+systemctl disable --now ilsontvote-import.timer >/dev/null 2>&1
+systemctl enable ilsontvote.service ilsontvote-planificateur.timer >/dev/null 2>&1
 
 # Copie des programmes. rsync --delete : un fichier supprimé d'une version à l'autre (page, css) disparaît aussi du serveur.
 # Exclus (donc jamais touchés) : les secrets et ce que le site crée lui-même (clés des cookies, clé des statistiques).
@@ -42,7 +44,7 @@ chmod 700 "$APP/App_Data"
 bash "$SRC/deploy/migrate.sh" "$SRC/db" || { echo "!!!! MIGRATIONS EN ÉCHEC : le site n'est pas redémarré. Corriger puis relancer. !!!!"; exit 1; }
 
 systemctl start ilsontvote.service
-systemctl start ilsontvote-import.timer
+systemctl start ilsontvote-planificateur.timer
 
 sleep 3
 journalctl -u ilsontvote.service -n 30 --no-pager

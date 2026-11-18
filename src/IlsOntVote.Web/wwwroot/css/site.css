@@ -662,3 +662,7 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
 .puce-statut { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: 0.82rem; font-weight: 650; white-space: nowrap; color: var(--st); border: 1px solid var(--st); background: color-mix(in srgb, var(--st) 14%, transparent); }
 .grand-nombre { font-weight: 650; color: var(--st); font-variant-numeric: tabular-nums; }
 .titre-section { margin-top: 28px; }
+
+.b-attente { background: var(--ink-soft); }
+
+.journal-sortie { max-height: 70vh; overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; font-size: 0.8rem; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
