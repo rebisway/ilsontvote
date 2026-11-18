@@ -7,6 +7,14 @@ namespace IlsOntVote.Web.Repositories;
 // ----------------------------------------------------------------------------- statistiques
 
 /// <summary>Pas de l'axe du temps des statistiques (jour ou mois).</summary>
+/// <summary>Fréquentation d'une journée pour un pays : vues, visiteurs uniques, pages les plus vues.</summary>
+public sealed class JourPays
+{
+    public int Vues { get; set; }
+    public int Visiteurs { get; set; }
+    public IReadOnlyList<CompteVues> TopPages { get; set; } = [];
+}
+
 public enum Granularite { Jour, Mois }
 /// <summary>Source des visites : lecteurs (non-robots), robots déclarés, ou tous.</summary>
 public enum SourceVues { Humains, Bots, Tous }
@@ -31,6 +39,10 @@ public interface IPageViewRepository
 {
     Task RecordAsync(string path, string ipHash, bool isBot, string? pays);
     Task<ApercuStats> GetStatsAsync(DateTime depuis, DateTime? jusqua, Granularite granularite, SourceVues source);
+    /// <summary>Pays (code ISO, « ? » = inconnu) ayant des visites de lecteurs depuis la date donnée, avec leurs vues : sert à remplir la liste de choix.</summary>
+    Task<IReadOnlyList<CompteVues>> GetPaysDisponiblesAsync(DateTime depuis);
+    /// <summary>Visites de lecteurs (robots exclus) d'un pays sur [debut, fin[ ; <paramref name="pays"/> vide = tous les pays, « ? » = pays inconnu.</summary>
+    Task<JourPays> GetJourPaysAsync(DateTime debut, DateTime fin, string? pays);
 }
 
 public sealed class PageViewRepository(DapperContext db) : IPageViewRepository
@@ -41,6 +53,39 @@ public sealed class PageViewRepository(DapperContext db) : IPageViewRepository
         await conn.ExecuteAsync(
             "INSERT INTO page_views (path, ip_hash, is_bot, country_code) VALUES (@path, @ipHash, @isBot, @pays)",
             new { path, ipHash, isBot, pays });
+    }
+
+    public async Task<IReadOnlyList<CompteVues>> GetPaysDisponiblesAsync(DateTime depuis)
+    {
+        using var conn = db.CreateConnection();
+        return (await conn.QueryAsync<CompteVues>(
+            """
+            SELECT COALESCE(country_code, '?') AS cle, count(*)::int AS vues, count(DISTINCT ip_hash)::int AS visiteurs
+              FROM page_views WHERE visited_at >= @depuis AND NOT is_bot
+             GROUP BY 1 ORDER BY count(*) DESC
+            """, new { depuis })).ToList();
+    }
+
+    public async Task<JourPays> GetJourPaysAsync(DateTime debut, DateTime fin, string? pays)
+    {
+        using var conn = db.CreateConnection();
+        pays = string.IsNullOrWhiteSpace(pays) ? null : pays.Trim().ToUpperInvariant();
+        var p = new { debut, fin, pays };
+        // Filtre pays : NULL = tous ; « ? » = visites sans pays connu (country_code NULL) ; sinon le code ISO.
+        const string filtre =
+            """
+            visited_at >= @debut AND visited_at < @fin AND NOT is_bot
+            AND (@pays::text IS NULL OR (@pays = '?' AND country_code IS NULL) OR country_code = @pays)
+            """;
+        var total = await conn.QuerySingleAsync<(int Vues, int Visiteurs)>(
+            $"SELECT count(*)::int, count(DISTINCT ip_hash)::int FROM page_views WHERE {filtre}", p);
+        var top = (await conn.QueryAsync<CompteVues>(
+            $"""
+             SELECT path AS cle, count(*)::int AS vues, count(DISTINCT ip_hash)::int AS visiteurs
+               FROM page_views WHERE {filtre}
+              GROUP BY path ORDER BY count(*) DESC, path LIMIT 8
+             """, p)).ToList();
+        return new JourPays { Vues = total.Vues, Visiteurs = total.Visiteurs, TopPages = top };
     }
 
     public async Task<ApercuStats> GetStatsAsync(DateTime depuis, DateTime? jusqua, Granularite granularite, SourceVues source)

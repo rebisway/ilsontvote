@@ -17,6 +17,47 @@
     <div><b>@Model.Semaine.VisiteursUniques.ToString("N0", fr)</b><span>visiteurs uniques, 7 jours</span></div>
 </div>
 
+<h2>Fréquentation du jour</h2>
+<form method="get" class="filtres" id="form-pays">
+    <label class="champ-date">Pays
+        <select name="pays" aria-label="Pays" onchange="this.form.submit()">
+            <option value="" selected="@string.IsNullOrEmpty(Model.Pays)">Tous les pays</option>
+            @foreach (var c in Model.PaysDisponibles)
+            {
+                <option value="@c.Cle" selected="@(string.Equals(Model.Pays, c.Cle, StringComparison.OrdinalIgnoreCase))">@IlsOntVote.Web.Services.PaysResolver.Libelle(c.Cle)</option>
+            }
+            @* Pays choisi mais sans visite sur 30 jours : il reste sélectionnable (sinon le choix mémorisé disparaîtrait de la liste). *@
+            @if (!string.IsNullOrEmpty(Model.Pays) && !Model.PaysDisponibles.Any(c => string.Equals(c.Cle, Model.Pays, StringComparison.OrdinalIgnoreCase)))
+            {
+                <option value="@Model.Pays" selected>@IlsOntVote.Web.Services.PaysResolver.Libelle(Model.Pays)</option>
+            }
+        </select>
+    </label>
+    <noscript><button type="submit" class="bouton petit">Afficher</button></noscript>
+</form>
+<p class="note-source">@Model.DebutJourParis.ToString("dddd d MMMM yyyy", fr), heure de Paris. Lecteurs uniquement (robots exclus). Le pays est déduit de l'adresse IP sans la conserver.</p>
+<div class="chiffres">
+    <div><b>@Model.Aujourdhui.Vues.ToString("N0", fr)</b><span>pages vues aujourd'hui</span></div>
+    <div><b>@Model.Aujourdhui.Visiteurs.ToString("N0", fr)</b><span>visiteurs uniques aujourd'hui</span></div>
+    <div><b>@Model.Hier.Vues.ToString("N0", fr)</b><span>pages vues hier (journée entière)</span></div>
+    <div><b>@Model.Hier.Visiteurs.ToString("N0", fr)</b><span>visiteurs uniques hier</span></div>
+</div>
+@if (Model.Aujourdhui.TopPages.Count > 0)
+{
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Pages les plus vues aujourd'hui</th><th class="num">Vues</th><th class="num">Visiteurs</th></tr></thead>
+            <tbody>
+            @foreach (var pg in Model.Aujourdhui.TopPages)
+            {
+                <tr><td class="note-cell">@pg.Cle</td><td class="num">@pg.Vues.ToString("N0", fr)</td><td class="num">@pg.Visiteurs.ToString("N0", fr)</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+else { <p class="vide">Aucune visite aujourd'hui pour ce choix.</p> }
+
 <h2>Données les plus récentes</h2>
 <ul class="liste-simple">
     <li>Assemblée nationale : @(Model.Chiffres.DernierScrutinAn?.ToString("d MMMM yyyy", fr) ?? "—")</li>
