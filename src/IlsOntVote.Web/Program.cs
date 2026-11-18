@@ -64,6 +64,7 @@ builder.Services.AddSingleton<DapperContext>();
 builder.Services.AddScoped<IScrutinRepository, ScrutinRepository>();
 builder.Services.AddScoped<IParlementaireRepository, ParlementaireRepository>();
 builder.Services.AddScoped<ITexteRepository, TexteRepository>();
+builder.Services.AddScoped<IBillRepository, BillRepository>();
 builder.Services.AddScoped<IPageViewRepository, PageViewRepository>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 // Données ouvertes : dossier de l'export nocturne (Export:Dir, ou ILSONVOTE_EXPORT_DIR, ou /var/lib/ilsontvote-export en production).
@@ -253,14 +254,14 @@ app.MapGet("/sitemap-en.xml", async (DapperContext db) => Results.Text(Plan(awai
     .CacheOutput(p => p.Expire(TimeSpan.FromHours(6)));
 
 // Images d'aperçu de partage (og:image). Mises en cache : un scrutin ne change pas, et chaque image coûte une requête + un dessin.
-app.MapGet("/apercu/scrutin/{id}.png", async (string id, IScrutinRepository scrutins, ApercuImage image, Langue langue) =>
+app.MapGet("/apercu/scrutin/{id}.png", async (string id, IScrutinRepository scrutins, ApercuImage image, Langue langue, PaysSite pays) =>
 {
     var s = await scrutins.GetAsync(id);
     if (s is null) return Results.NotFound();
-    var vue = HemicycleLayout.Construire(await scrutins.GetSiegesAsync(id));
-    return Results.File(image.Scrutin(s, vue, langue.Anglais), "image/png");
+    var vue = HemicycleLayout.Construire(await scrutins.GetSiegesAsync(id), pays.Disposition(s.Chambre));   // demi-cercle ou croissants selon la chambre
+    return Results.File(image.Scrutin(s, vue, langue.Anglais, langue.Pays == "GB"), "image/png");
 }).CacheOutput(p => p.Expire(TimeSpan.FromHours(12)).SetVaryByRouteValue("id").VaryByValue(c => new KeyValuePair<string, string>("lang", c.Items["lang"] as string ?? "fr")));
-app.MapGet("/apercu/defaut.png", (ApercuImage image, Langue langue) => Results.File(image.Defaut(langue.Anglais), "image/png"))
+app.MapGet("/apercu/defaut.png", (ApercuImage image, Langue langue) => Results.File(image.Defaut(langue.Anglais, langue.Pays == "GB"), "image/png"))
     .CacheOutput(p => p.Expire(TimeSpan.FromHours(12)).VaryByValue(c => new KeyValuePair<string, string>("lang", c.Items["lang"] as string ?? "fr")));
 
 app.MapRazorPages();

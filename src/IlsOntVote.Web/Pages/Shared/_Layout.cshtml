@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script>document.documentElement.classList.add("js");var th="dark";try{th=localStorage.getItem("theme")==="light"?"light":"dark";}catch(e){}document.documentElement.setAttribute("data-theme",th);/* sombre par défaut ; le bouton ◐ mémorise un choix clair */</script>
     <script>try{if(localStorage.getItem("ordreNom")==="nom-prenom")document.documentElement.setAttribute("data-ordre","nom-prenom");}catch(e){}</script>
-    <title>@(ViewData["Title"] is string t && t.Length > 0 ? $"{t} — Ils ont voté" : L.Pays == "GB" ? "Ils ont voté (They voted) — who voted what in the UK House of Commons" : L.T("Ils ont voté — qui a voté quoi à l'Assemblée nationale et au Sénat", "Ils ont voté (They voted) — who voted what in the French National Assembly, Senate and European Parliament"))</title>
+    <title>@(ViewData["Title"] is string t && t.Length > 0 ? $"{t} — {(L.Pays == "GB" ? "They voted" : "Ils ont voté")}" : L.Pays == "GB" ? "They voted — who voted what in the UK House of Commons" : L.T("Ils ont voté — qui a voté quoi à l'Assemblée nationale et au Sénat", "Ils ont voté (They voted) — who voted what in the French National Assembly, Senate and European Parliament"))</title>
     <meta name="description" content="@(ViewData["Description"] ?? (L.Pays == "GB" ? "For each division of the House of Commons, see at a glance how every MP voted: aye, no, both lobbies, did not vote." : null) ?? L.T("Pour chaque grand texte de loi, voyez d'un coup d'œil le vote de chaque député et de chaque sénateur : pour, contre, abstention, absent.", "For each major law, see at a glance how every French deputy, senator and MEP voted: for, against, abstention, absent."))" />
     @if (ViewData["NoIndex"] is true)
     {
@@ -21,7 +21,7 @@
         var prefixePays = L.Pays is null ? "" : Context.Request.PathBase.Value;
         string Absolu(bool en) => L.Pays is not null ? site + prefixePays + (cheminSeul == "/" ? "" : cheminSeul) : site + (en ? "/en" + (cheminSeul == "/" ? "" : cheminSeul) : cheminSeul);
         var canon = Absolu(L.Anglais);
-        var titrePage = ViewData["Title"] is string tp && tp.Length > 0 ? tp : "Ils ont voté";
+        var titrePage = ViewData["Title"] is string tp && tp.Length > 0 ? tp : (L.Pays == "GB" ? "They voted" : "Ils ont voté");
         var descPage = ViewData["Description"] ?? (L.Pays == "GB" ? "For each division of the House of Commons, see at a glance how every MP voted: aye, no, both lobbies, did not vote." : null) ?? L.T("Pour chaque grand texte de loi, voyez d'un coup d'œil le vote de chaque député et de chaque sénateur : pour, contre, abstention, absent.", "For each major law, see at a glance how every French deputy, senator and MEP voted: for, against, abstention, absent.");
     }
     <link rel="canonical" href="@canon" />
@@ -35,7 +35,7 @@
     <link rel="icon" sizes="any" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Ils ont voté" />
+    <meta property="og:site_name" content="@(L.Pays == "GB" ? "They voted" : "Ils ont voté")" />
     <meta property="og:locale" content="@(L.Anglais ? "en_GB" : "fr_FR")" />
     <meta property="og:locale:alternate" content="@(L.Anglais ? "fr_FR" : "en_GB")" />
     <meta name="theme-color" content="#14171a" media="(prefers-color-scheme: dark)" />
@@ -60,7 +60,7 @@
             {
                 ["@context"] = "https://schema.org",
                 ["@type"] = "WebSite",
-                ["name"] = "Ils ont voté",
+                ["name"] = L.Pays == "GB" ? "They voted" : "Ils ont voté",
                 ["alternateName"] = "They voted",
                 ["url"] = Absolu(L.Anglais),
                 ["inLanguage"] = L.Code,
@@ -91,7 +91,7 @@
     }
     <header class="site-header">
         <div class="wrap">
-            <a class="brand" href="@L.Lien("/")">Ils ont <em>voté</em></a>
+            <a class="brand" href="@L.Lien("/")">@if (L.Pays == "GB") { <text>They <em>voted</em></text> } else { <text>Ils ont <em>voté</em></text> }</a>
             <nav class="menu" id="menu-principal" aria-label="@L.T("Navigation principale", "Main navigation")">
                 @if (chemin != "/" && chemin != "")
                 {
@@ -108,6 +108,7 @@
                     <a href="@L.Lien("/members")" @Html.Raw(Actif("/member"))>MPs</a>
                     <a href="@L.Lien("/elus")" @Html.Raw(Actif("/elus"))>Attendance</a>
                     <a href="@L.Lien("/statistiques")" @Html.Raw(Actif("/statistiques"))>Statistics</a>
+                    <a href="@L.Lien("/bills")" @Html.Raw(Actif("/bill"))>Bills</a>
                     <a href="@L.Lien("/petitions")" @Html.Raw(Actif("/petition"))>Petitions</a>
                 }
                 else

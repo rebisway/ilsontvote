@@ -22,7 +22,7 @@ int[] LegislaturesCompletes = [15, 16, 17];
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var argv = args.ToList();
-if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements" or "communes"))
+if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements" or "communes" or "bills"))
 {
     Console.Error.WriteLine("Usage : IlsOntVote.Importer an [--legislature 17|15,16,17|all] [--scrutins-dir D --amo-dir D]");
     Console.Error.WriteLine("        IlsOntVote.Importer senat [--senateurs-dir D --dosleg-sql F]");
@@ -70,6 +70,7 @@ return argv[0] switch
     "planificateur" => await new Planificateur(connectionString).PasserAsync(),
     "amendements" => await ImporterAmendementsAsync(),
     "communes" => await ImporterCommunesAsync(),
+    "bills" => await ImporterBillsRoyaumeUniAsync(),
     _ => await ImporterTextesAsync(),
 };
 
@@ -433,6 +434,56 @@ async Task<int> ImporterCommunesAsync()
 
         Console.WriteLine($"  {nbScrutins} divisions, {nbVotes} votes, {parlementaires.Count} députés.");
         await repo.TerminerAsync(runId, true, nbScrutins, nbVotes, null);
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex);
+        await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
+        return 1;
+    }
+}
+
+/// <summary>
+/// Projets de loi du Parlement britannique (<c>bills</c>) : liste des sessions courantes, puis étapes des seuls projets nouveaux ou modifiés depuis le dernier passage, puis rattachement
+/// des divisions des Communes à leur projet (par le titre). À lancer APRÈS « communes ». <c>--force</c> relit les étapes de tous les projets.
+/// </summary>
+async Task<int> ImporterBillsRoyaumeUniAsync()
+{
+    Console.WriteLine("=== Projets de loi du Parlement britannique ===");
+    var runId = await repo.DemarrerAsync("BILLS-UK");
+    try
+    {
+        // --rattacher : seulement le rattachement des divisions (calcul en base, sans appel réseau) : après un changement de la règle de titres.
+        if (argv.Contains("--rattacher"))
+        {
+            var (r, t) = await repo.RattacherDivisionsCommonsAsync();
+            Console.WriteLine($"  {r}/{t} divisions rattachées à un projet (d'après le titre).");
+            await repo.TerminerAsync(runId, true, 0, r, $"{r}/{t} divisions rattachées (rattachement seul)");
+            return 0;
+        }
+        using var source = new BillsRoyaumeUniSource();
+        var liste = await source.ListerAsync();
+        var connus = await repo.LireBillsMajAsync();
+        var force = argv.Contains("--force");
+        var aLire = liste.Where(b =>
+        {
+            var id = b.GetProperty("billId").GetInt64();
+            DateTime? maj = b.TryGetProperty("lastUpdate", out var m) && m.ValueKind == System.Text.Json.JsonValueKind.String
+                && DateTime.TryParse(m.GetString(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out var d) ? d : null;
+            return force || !connus.TryGetValue(id, out var stocke) || stocke is null || maj is null || maj > stocke;
+        }).ToList();
+        Console.WriteLine($"  {liste.Count} projets dans les sessions courantes, {connus.Count} déjà en base, {aLire.Count} à lire.");
+        var n = 0;
+        foreach (var resume in aLire)
+        {
+            await repo.EcrireBillAsync(await source.LireAsync(resume));
+            if (++n % 50 == 0) Console.WriteLine($"  {n}/{aLire.Count} projets lus…");
+            await Task.Delay(150);
+        }
+        var (rattachees, total) = await repo.RattacherDivisionsCommonsAsync();
+        Console.WriteLine($"  {n} projets écrits ; {rattachees}/{total} divisions rattachées à un projet (d'après le titre).");
+        await repo.TerminerAsync(runId, true, n, rattachees, $"{rattachees}/{total} divisions rattachées");
         return 0;
     }
     catch (Exception ex)

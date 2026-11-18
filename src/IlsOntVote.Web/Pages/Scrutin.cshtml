@@ -54,6 +54,15 @@
     typeVote = char.ToUpperInvariant(typeVote[0]) + typeVote[1..];
 }
 
+@if (Model.Bill is { } bill)
+{
+    <section class="bloc-texte" aria-label="Bill">
+        <p class="bloc-texte-titre"><span class="statut">Bill</span>
+            <a href="@L.Lien("/bill/" + bill.Id)">@bill.Titre</a>
+            @if (bill.Etape is not null) { <span class="note-source">· @bill.Etape</span> }
+            @Doute.Html(NiveauDoute.Calcule, "computed", "Linked by this site from the division title; Parliament does not publish this link.")</p>
+    </section>
+}
 @if (Model.Loi is { } loi)
 {
     var statutLoi = loi.Statut.Traduit(L.Anglais);

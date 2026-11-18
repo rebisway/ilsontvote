@@ -172,6 +172,64 @@ public sealed class ImportRepository(string connectionString)
             """, new { chambre, groupeId });
     }
 
+    // ------------------------------------------------------------------ projets de loi du Parlement britannique
+
+    /// <summary>Identifiant et date de dernière mise à jour des projets déjà en base : l'import ne relit les étapes que des projets nouveaux ou modifiés.</summary>
+    public async Task<IReadOnlyDictionary<long, DateTime?>> LireBillsMajAsync()
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        return (await conn.QueryAsync<(long Id, DateTime? Maj)>("SELECT id, derniere_maj FROM bills")).ToDictionary(r => r.Id, r => r.Maj);
+    }
+
+    /// <summary>Écrit un projet et REMPLACE ses étapes (transaction : on ne voit jamais un projet sans ses étapes).</summary>
+    public async Task EcrireBillAsync(BillRow b)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+        await using var tx = await conn.BeginTransactionAsync();
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO bills (id, titre, titre_long, chambre_origine, chambre_courante, session_id, est_loi, date_loi, retire_le, rejete, etape_courante, date_depot, derniere_maj, url)
+            VALUES (@Id, @Titre, @TitreLong, @ChambreOrigine, @ChambreCourante, @SessionId, @EstLoi, @DateLoi, @RetireLe, @Rejete, @EtapeCourante, @DateDepot, @DerniereMaj, @Url)
+            ON CONFLICT (id) DO UPDATE SET titre = EXCLUDED.titre, titre_long = COALESCE(EXCLUDED.titre_long, bills.titre_long), chambre_origine = EXCLUDED.chambre_origine,
+                chambre_courante = EXCLUDED.chambre_courante, session_id = EXCLUDED.session_id, est_loi = EXCLUDED.est_loi, date_loi = EXCLUDED.date_loi, retire_le = EXCLUDED.retire_le,
+                rejete = EXCLUDED.rejete, etape_courante = EXCLUDED.etape_courante, date_depot = EXCLUDED.date_depot, derniere_maj = EXCLUDED.derniere_maj, url = EXCLUDED.url
+            """, new { b.Id, b.Titre, b.TitreLong, b.ChambreOrigine, b.ChambreCourante, b.SessionId, b.EstLoi, b.DateLoi, b.RetireLe, b.Rejete, b.EtapeCourante, b.DateDepot, b.DerniereMaj, b.Url }, tx);
+        await conn.ExecuteAsync("DELETE FROM bill_etapes WHERE bill_id = @Id", new { b.Id }, tx);
+        await conn.ExecuteAsync(
+            "INSERT INTO bill_etapes (bill_id, ordre, libelle, chambre, date_seance) VALUES (@Id, @Ordre, @Libelle, @Chambre, @DateSeance)",
+            b.Etapes.Select(e => new { b.Id, e.Ordre, e.Libelle, e.Chambre, e.DateSeance }), tx);
+        await tx.CommitAsync();
+    }
+
+    /// <summary>
+    /// Rattache les divisions des Communes à leur projet de loi (règle dans <see cref="BillsRoyaumeUniSource.Rattacher"/>) : tout est recalculé (remise à zéro puis écriture, une transaction),
+    /// donc un titre corrigé par la source se corrige ici aussi. Renvoie (divisions rattachées, divisions au total).
+    /// </summary>
+    public async Task<(int Rattachees, int Total)> RattacherDivisionsCommonsAsync()
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+        // Période d'un projet : de sa première séance à sa dernière (ou dernière mise à jour) + 7 jours (une division peut suivre de quelques jours une date de séance publiée).
+        var candidats = (await conn.QueryAsync<(long Id, string Titre, DateTime? Debut, DateTime? Fin)>(
+            """
+            SELECT b.id, b.titre, COALESCE(min(e.date_seance), b.date_depot) AS debut,
+                   GREATEST(max(e.date_seance), b.derniere_maj::date, b.date_depot) AS fin
+              FROM bills b LEFT JOIN bill_etapes e ON e.bill_id = b.id
+             GROUP BY b.id
+            """)).Where(c => c.Debut is not null && c.Fin is not null)
+            .SelectMany(c => BillsRoyaumeUniSource.VariantesTitre(c.Titre).Select(v => new BillsRoyaumeUniSource.Candidat(c.Id, v, c.Debut!.Value, c.Fin!.Value.AddDays(7)))).ToList();
+        var divisions = (await conn.QueryAsync<(string Id, string Titre, DateTime Date)>(
+            "SELECT id, titre, date_scrutin FROM scrutins WHERE chambre = 'COMMONS'")).ToList();
+        var liens = divisions.Select(d => (d.Id, Lien: BillsRoyaumeUniSource.Rattacher(d.Titre, d.Date, candidats))).Where(x => x.Lien is not null).ToList();
+        await using var tx = await conn.BeginTransactionAsync();
+        await conn.ExecuteAsync("UPDATE scrutins SET bill_id = NULL, bill_etape = NULL WHERE chambre = 'COMMONS' AND bill_id IS NOT NULL", transaction: tx);
+        await conn.ExecuteAsync("UPDATE scrutins SET bill_id = @bill, bill_etape = @etape WHERE id = @id",
+            liens.Select(x => new { id = x.Id, bill = x.Lien!.Value.BillId, etape = x.Lien.Value.Etape }), tx);
+        await tx.CommitAsync();
+        return (liens.Count, divisions.Count);
+    }
+
     /// <summary>Clôt la ligne du journal avec le résultat (succès, compteurs, message d'erreur éventuel).</summary>
     public async Task TerminerAsync(long runId, bool ok, int scrutins, long votes, string? message)
     {

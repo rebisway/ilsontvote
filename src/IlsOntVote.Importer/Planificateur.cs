@@ -50,6 +50,7 @@ public sealed class Planificateur(string connectionString)
         ["amendements_historique"] = ["amendements", "--legislature", "all"],
         ["petitions"] = ["petitions"],
         ["petitions_uk"] = ["petitions", "--source", "uk"],
+        ["bills_uk"] = ["bills"],
         ["petitions_archives"] = ["petitions", "--archives"],
         ["traductions"] = ["traductions"],
         ["stats"] = ["stats"],

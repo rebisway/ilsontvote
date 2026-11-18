@@ -1,0 +1,102 @@
+@page "/bills"
+@model BillsModel
+@using IlsOntVote.Web.Services
+@{
+    ViewData["Title"] = "Bills";
+    ViewData["Description"] = "Bills before the UK Parliament: stage, house, Royal Assent, and the Commons divisions linked to each.";
+    var fr = L.Culture;
+    var tri = Model.TriEffectif;
+    int N(string cle) => Model.ParStatut.Where(x => x.Cle == cle).Select(x => x.Nombre).FirstOrDefault();
+}
+
+<h1 class="titre-page">Bills</h1>
+<p class="chapo">Bills of the current Parliament, from <a href="https://bills.parliament.uk/" rel="noopener">bills.parliament.uk</a>: where each one stands, in which house, and whether it became an Act. Status is as published by the source. The number of divisions is computed by this site from the division titles (for example “Finance Bill: Third Reading”), so a division whose title does not name its bill is not counted.</p>
+
+@if (Model.ParStatut.Count > 0)
+{
+    <section class="definitions" aria-label="Figures">
+        <dl>
+            <div><dt>Bills</dt><dd>@Model.ParStatut.Sum(x => x.Nombre).ToString("N0", fr) — Acts @N("loi").ToString("N0", fr) · in progress @N("en-cours").ToString("N0", fr) · withdrawn or defeated @N("retire").ToString("N0", fr)</dd></div>
+        </dl>
+    </section>
+}
+
+<form class="filtres filtres-auto filtres-liste" method="get" action="@L.Lien("/bills")">
+    <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="Search a bill…" aria-label="Search a bill" />
+    <select name="statut" aria-label="Status">
+        <option value="">All statuses</option>
+        <option value="loi" selected="@(Model.Statut == "loi")">Acts (Royal Assent)</option>
+        <option value="en-cours" selected="@(Model.Statut == "en-cours")">In progress</option>
+        <option value="retire" selected="@(Model.Statut == "retire")">Withdrawn or defeated</option>
+    </select>
+    <select name="chambre" aria-label="House">
+        <option value="">Both houses</option>
+        <option value="Commons" selected="@(Model.Chambre == "Commons")">Now in the Commons</option>
+        <option value="Lords" selected="@(Model.Chambre == "Lords")">Now in the Lords</option>
+    </select>
+    <select name="tri" class="tri-mobile" aria-label="Sort by">
+        <option value="maj" selected="@(tri == "maj")">Sort: last update</option>
+        <option value="depot" selected="@(tri == "depot")">Sort: first sitting</option>
+        <option value="titre" selected="@(tri == "titre")">Sort: title</option>
+        <option value="statut" selected="@(tri == "statut")">Sort: status</option>
+        <option value="divisions" selected="@(tri == "divisions")">Sort: divisions</option>
+    </select>
+    <select name="sens" class="tri-mobile" aria-label="Sort order">
+        <option value="desc" selected="@Model.Decroissant">Descending</option>
+        <option value="asc" selected="@(!Model.Decroissant)">Ascending</option>
+    </select>
+    <button type="submit" class="sans-js">Filter</button>
+    @if (Model.FiltreActif) { <a class="effacer" href="@Model.LienSansFiltre" title="Clear filter" aria-label="Clear filter">✕</a> }
+</form>
+
+<div class="barre-liste">
+    <p class="compte">@Model.Resultats.Total.ToString("N0", fr) bill@(Model.Resultats.Total > 1 ? "s" : "")</p>
+    <p class="export">Export this table:
+        @foreach (var f in Exporteur.Formats) { <a href="@Model.Lien(format: f)" download>@f.ToUpperInvariant()</a> }
+    </p>
+</div>
+
+@if (Model.Resultats.Lignes.Count == 0)
+{
+    <p class="vide">No bill matches these criteria.</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table class="liste-textes">
+            <thead>
+                <tr>
+                    @Model.Th("depot", "First sitting", "col-date")
+                    @Model.Th("titre", "Bill", "col-titre")
+                    @Model.Th("statut", "Status", "col-statut")
+                    <th scope="col">House</th>
+                    @Model.Th("divisions", "Divisions", "num")
+                    @Model.Th("maj", "Updated", "col-date")
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var b in Model.Resultats.Lignes)
+            {
+                <tr>
+                    <td class="nowrap col-date" data-label="First sitting">@(b.DateDepot?.ToString("d MMM yyyy", fr) ?? "—")</td>
+                    <td class="col-titre"><a href="@L.Lien("/bill/" + b.Id)">@b.Titre</a> <a class="note-source" href="@b.Url" rel="noopener" title="Bill page on bills.parliament.uk">↗</a></td>
+                    <td class="col-statut" data-label="Status"><span class="puce-statut @BillsModel.StatutClasse(b)">@BillsModel.StatutLibelle(b)</span></td>
+                    <td data-label="House">@(b.ChambreCourante ?? "—")@if (b.ChambreOrigine is not null && b.ChambreOrigine != b.ChambreCourante) { <span class="note-source"> (from @b.ChambreOrigine)</span> }</td>
+                    <td class="num" data-label="Divisions">@if (b.NbDivisions > 0) { <a href="@L.Lien("/bill/" + b.Id)" title="Divisions linked by title (computed)">@b.NbDivisions</a> } else { <span class="note-source">—</span> }</td>
+                    <td class="nowrap col-date" data-label="Updated">@(b.DerniereMaj?.ToString("d MMM yyyy", fr) ?? "—")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.Resultats.NbPages > 1)
+    {
+        <nav class="pagination" aria-label="Pagination">
+            @if (Model.Resultats.Page > 1) { <a href="@Model.Lien(page: Model.Resultats.Page - 1)" rel="prev">← Previous</a> }
+            <span>Page @Model.Resultats.Page / @Model.Resultats.NbPages</span>
+            @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">Next →</a> }
+        </nav>
+    }
+    <partial name="_LignesParPage" model="Model" />
+}

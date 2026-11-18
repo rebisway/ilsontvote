@@ -10,7 +10,7 @@ namespace IlsOntVote.Web.Pages;
 /// Page de détail d'un scrutin : caractéristiques du vote, hémicycle (un point par élu), décompte par groupe,
 /// liste des élus et, si on l'a identifié, le texte de loi concerné et son parcours.
 /// </summary>
-public class ScrutinModel(IScrutinRepository scrutins, ITexteRepository textes, PaysSite site) : PageModel
+public class ScrutinModel(IScrutinRepository scrutins, ITexteRepository textes, IBillRepository bills, PaysSite site) : PageModel
 {
     /// <summary>Le scrutin affiché (jamais null : la page répond 404 avant si l'identifiant est inconnu).</summary>
     public Scrutin Scrutin { get; private set; } = null!;
@@ -21,6 +21,8 @@ public class ScrutinModel(IScrutinRepository scrutins, ITexteRepository textes, 
     public IReadOnlyList<GroupeDecompte> Groupes { get; private set; } = [];
     /// <summary>Texte (dossier législatif) rattaché au scrutin ; null quand le rattachement est absent ou ambigu.</summary>
     public Texte? Loi { get; private set; }
+    /// <summary>Projet de loi britannique auquel la division est rattachée (calculé d'après le titre) ; null ailleurs ou sans rattachement.</summary>
+    public BillResume? Bill { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(string id)
     {
@@ -33,6 +35,7 @@ public class ScrutinModel(IScrutinRepository scrutins, ITexteRepository textes, 
         Groupes = HemicycleLayout.DecompteParGroupe(Sieges);
         // Le rattachement vote -> texte se fait à l'import, par titre : on n'invente rien ici.
         Loi = await textes.GetParScrutinAsync(id);
+        if (s.Chambre == Chambres.Commons) Bill = await bills.GetResumeParDivisionAsync(id);
         return Page();
     }
 }

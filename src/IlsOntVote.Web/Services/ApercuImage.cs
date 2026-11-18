@@ -40,19 +40,21 @@ public sealed class ApercuImage
         (File.Exists(chemin) ? SKTypeface.FromFile(chemin) : null) ?? SKTypeface.FromFamilyName(null, repli);
 
     /// <summary>Image d'un scrutin : titre, résultat, décomptes, hémicycle.</summary>
-    public byte[] Scrutin(Scrutin s, HemicycleVue vue, bool en = false)
+    public byte[] Scrutin(Scrutin s, HemicycleVue vue, bool en = false, bool royaumeUni = false)
     {
         using var surface = SKSurface.Create(new SKImageInfo(L, H));
         var c = surface.Canvas;
         c.Clear(Fond);
-        Marque(c);
+        Marque(c, 36, royaumeUni);
 
         var fr = CultureInfo.GetCultureInfo(en ? "en-GB" : "fr-FR");
         Texte(c, $"{Chambres.Nom(s.Chambre, en)} · {s.DateScrutin.ToString("d MMMM yyyy", fr)}", Marge, 132, 26, EncreDouce, _normal);
 
         // Titre : 3 lignes au plus, « … » si trop long.
         var y = 196f;
-        foreach (var ligne in Couper(s.TitreLangue(en), 46, L - 2 * Marge, 3, _gras))
+        // Croissants face à face (colonne de droite plus haute) : le titre ne dépasse pas la colonne de gauche, sinon il se superpose au dessin.
+        var largeurTitre = vue.FaceAFace ? 590f : L - 2 * Marge;
+        foreach (var ligne in Couper(s.TitreLangue(en), 46, largeurTitre, 3, _gras))
         {
             Texte(c, ligne, Marge, y, 46, Encre, _gras);
             y += 56;
@@ -66,7 +68,14 @@ public sealed class ApercuImage
         Compteur(c, s.NbAbstentions, "abst.", Abstention, Marge + 380, 520);
 
         // Colonne droite : l'hémicycle, mêmes coordonnées que le SVG du site (1000 × 520) réduites de moitié.
-        const float echelle = 0.5f, ox = 640, oy = 345;
+        // Demi-cercle : repère 1000 x 520 réduit de moitié ; croissants face à face (Communes) : repère propre à la vue, mis à l'échelle pour tenir dans la colonne.
+        float echelle = 0.5f, ox = 640, oy = 345;
+        if (vue.FaceAFace)
+        {
+            echelle = Math.Min(540f / (float)vue.LargeurVue, 470f / (float)vue.HauteurVue);
+            ox = 620 + (560f - (float)vue.LargeurVue * echelle) / 2;
+            oy = 110;
+        }
         using var pinceau = new SKPaint { IsAntialias = true };
         var rayon = Math.Max(1.4f, (float)vue.Rayon * echelle);
         foreach (var siege in vue.Sieges)
@@ -81,13 +90,19 @@ public sealed class ApercuImage
     }
 
     /// <summary>Image générale du site (pages sans aperçu propre) : marque et question.</summary>
-    public byte[] Defaut(bool en = false)
+    public byte[] Defaut(bool en = false, bool royaumeUni = false)
     {
         using var surface = SKSurface.Create(new SKImageInfo(L, H));
         var c = surface.Canvas;
         c.Clear(Fond);
-        Marque(c, 72);
+        Marque(c, 72, royaumeUni);
         Texte(c, en ? "Who voted what?" : "Qui a voté quoi ?", Marge, 330, 84, Encre, _gras);
+        if (royaumeUni)
+        {
+            Texte(c, "How every MP voted in the House of Commons,", Marge, 410, 34, EncreDouce, _normal);
+            Texte(c, "division by division. Official data, free software.", Marge, 456, 34, EncreDouce, _normal);
+            return Encoder(surface);
+        }
         Texte(c, en ? "How every French deputy, senator and MEP" : "Le vote de chaque député, sénateur et eurodéputé,", Marge, 410, 34, EncreDouce, _normal);
         Texte(c, en ? "voted, law by law. Official data, free software." : "texte par texte. Données officielles, code libre.", Marge, 456, 34, EncreDouce, _normal);
         return Encoder(surface);
@@ -108,14 +123,15 @@ public sealed class ApercuImage
     }
 
     /// <summary>« Ils ont voté » avec « voté » en rouge, comme dans l'en-tête du site.</summary>
-    private void Marque(SKCanvas c, float taille = 36)
+    private void Marque(SKCanvas c, float taille = 36, bool royaumeUni = false)
     {
         using var police = new SKFont(_gras, taille);
         using var p = new SKPaint { IsAntialias = true, Color = Encre };
-        const string debut = "Ils ont ";
+        // Site britannique : « They voted » (même mise en page, « voted » en rouge).
+        var debut = royaumeUni ? "They " : "Ils ont ";
         c.DrawText(debut, Marge, 84, police, p);
         p.Color = Contre;
-        c.DrawText("voté", Marge + Mesure(police, debut), 84, police, p);
+        c.DrawText(royaumeUni ? "voted" : "voté", Marge + Mesure(police, debut), 84, police, p);
     }
 
     private void Compteur(SKCanvas c, int? valeur, string libelle, SKColor couleur, float x, float y)

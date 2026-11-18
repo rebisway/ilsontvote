@@ -110,7 +110,14 @@ public sealed class PaysSite(DapperContext db)
         if ((req.Path.Value ?? "").Contains('.'))
         {
             var (paysFichier, resteFichier) = Correspond(actifs, req.Path);
-            if (paysFichier is not null) { req.PathBase = req.PathBase.Add("/" + paysFichier.Prefixe); req.Path = resteFichier; }
+            if (paysFichier is not null)
+            {
+                req.PathBase = req.PathBase.Add("/" + paysFichier.Prefixe);
+                req.Path = resteFichier;
+                // Pays aussi pour les ressources dynamiques à extension (images d'aperçu /uk/apercu/scrutin/x.png) : elles lisent les données du site de ce pays.
+                ctx.Items[CleItems] = paysFichier.Code;
+                ctx.Items["lang"] = "en";
+            }
             await suite();
             return;
         }
