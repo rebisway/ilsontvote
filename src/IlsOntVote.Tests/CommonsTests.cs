@@ -91,4 +91,21 @@ public class CommonsTests
     [InlineData("Lab", 40)]
     [InlineData("inconnu", 100)]
     public void Ordre_des_partis(string sigle, int attendu) => Assert.Equal(attendu, CommonsSource.OrdreParti(sigle));
+
+    [Theory]
+    [InlineData("2018-03-01", 57)]
+    [InlineData("2021-06-15", 58)]
+    [InlineData("2024-05-29", 58)]
+    [InlineData("2024-07-09", 59)]
+    [InlineData("2026-11-01", 59)]
+    public void Legislature_d_une_date(string date, int attendu) => Assert.Equal(attendu, CommonsSource.LegislatureDu(DateOnly.Parse(date)));
+
+    [Fact]
+    public void Seule_la_legislature_courante_est_ouverte()
+    {
+        Assert.Single(CommonsSource.Legislatures, l => l.Fin is null);
+        // Les périodes ne se chevauchent pas : une division n'a jamais deux législatures.
+        var l = CommonsSource.Legislatures.OrderBy(x => x.Debut).ToList();
+        for (var k = 1; k < l.Count; k++) Assert.True(l[k - 1].Fin < l[k].Debut);
+    }
 }

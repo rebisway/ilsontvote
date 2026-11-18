@@ -88,7 +88,10 @@ public sealed class ScrutinRepository(DapperContext db, PaysSite site, Langue la
             SELECT p.id AS parlementaire_id, p.chambre, p.prenom, p.nom, p.slug,
                    g.id AS groupe_id, COALESCE(g.sigle, 'NI') AS groupe_sigle,
                    g.couleur AS groupe_couleur, COALESCE(g.ordre, 130) AS groupe_ordre,
-                   COALESCE(g.gouvernement, false) AS groupe_gouvernement,
+                   -- Gouvernement : si une période CLOSE (chambre_gouvernements) couvre la date, elle fait foi ; sinon l'indicateur courant du groupe (réglé dans /Admin/Pays).
+                   CASE WHEN EXISTS (SELECT 1 FROM chambre_gouvernements x WHERE x.chambre = s.chambre AND s.date_scrutin BETWEEN x.date_debut AND x.date_fin)
+                        THEN EXISTS (SELECT 1 FROM chambre_gouvernements x WHERE x.chambre = s.chambre AND x.groupe_id = g.id AND s.date_scrutin BETWEEN x.date_debut AND x.date_fin)
+                        ELSE COALESCE(g.gouvernement, false) END AS groupe_gouvernement,
                    COALESCE(v.position, 'absent') AS position,
                    COALESCE(v.par_delegation, false) AS par_delegation,
                    COALESCE(v.rectifie, false) AS rectifie,

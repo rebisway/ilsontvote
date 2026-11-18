@@ -785,8 +785,11 @@ public sealed class ImportRepository(string connectionString)
     /// Version générale de la reconstruction des mandats (règles de <see cref="EcrireMandatsUeAsync"/>) pour toute chambre dont l'annuaire n'est pas daté en
     /// open data : mandat = du premier au dernier scrutin où l'élu figure. Les suppressions sont limitées à la chambre (jointure sur parlementaires) :
     /// un numéro de législature identique dans deux chambres ne s'efface jamais mutuellement.
+    /// <paramref name="terminee"/> : législature close (historique). Le mandat va du premier au dernier scrutin vu, sans fin ouverte ; fusionné avec l'existant
+    /// (début = le plus ancien, fin = la plus tardive) pour qu'une reprise après interruption n'efface rien ; les appartenances de groupe effacées sont
+    /// limitées à la période de CETTE législature (sinon un élu de deux législatures perdrait son groupe de l'autre).
     /// </summary>
-    public async Task EcrireMandatsDeduitsAsync(string chambre, int legislature, IReadOnlyDictionary<string, (DateOnly Premier, DateOnly Dernier, string GroupeId)> vus, DateOnly? ancienPlusRecent)
+    public async Task EcrireMandatsDeduitsAsync(string chambre, int legislature, IReadOnlyDictionary<string, (DateOnly Premier, DateOnly Dernier, string GroupeId)> vus, DateOnly? ancienPlusRecent, bool terminee = false)
     {
         var leg = (short)legislature;
         await using var conn = new NpgsqlConnection(connectionString);
@@ -798,6 +801,7 @@ public sealed class ImportRepository(string connectionString)
 
         var plusRecentLu = vus.Values.Max(v => v.Dernier);
         var remonteLhistorique = ancienPlusRecent is not null && plusRecentLu <= ancienPlusRecent;
+        if (terminee) remonteLhistorique = true;
 
         var lignes = new List<(string Id, DateTime Debut, DateTime? Fin, string GroupeId)>();
         foreach (var (id, e) in existants)
@@ -812,7 +816,9 @@ public sealed class ImportRepository(string connectionString)
             var premier = v.Premier.ToDateTime(default);
             var aExistant = existants.TryGetValue(id, out var e);
             var debut = aExistant && e.Debut < premier ? e.Debut : premier;
-            DateTime? fin = aExistant
+            DateTime? fin = terminee
+                ? (aExistant && e.Fin is { } fe && fe > v.Dernier.ToDateTime(default) ? fe : v.Dernier.ToDateTime(default))
+                : aExistant
                 ? (remonteLhistorique ? e.Fin : (v.Dernier >= plusRecentLu ? null : v.Dernier.ToDateTime(default)))
                 : (v.Dernier >= plusRecentLu && !remonteLhistorique ? null : v.Dernier.ToDateTime(default));
             lignes.Add((id, debut, fin, v.GroupeId));
@@ -825,9 +831,12 @@ public sealed class ImportRepository(string connectionString)
 
         // Groupe : une appartenance par eurodéputé (la plus récente connue), du début du mandat à sa fin. Un élu non listé dans
         // cet import garde l'appartenance existante.
+        // Législature terminée : seulement les appartenances de sa période (voir la note de la méthode) ; sinon toutes, comme avant.
+        var debutPeriode = terminee ? lignes.Min(x => x.Debut) : DateTime.MinValue;
+        var finPeriode = terminee ? lignes.Max(x => x.Fin ?? x.Debut) : DateTime.MaxValue;
         await conn.ExecuteAsync(
-            "DELETE FROM groupe_appartenances WHERE parlementaire_id = ANY(@ids) AND groupe_id IN (SELECT id FROM groupes WHERE chambre = @chambre)",
-            new { ids = vus.Keys.ToArray(), chambre }, tx);
+            "DELETE FROM groupe_appartenances WHERE parlementaire_id = ANY(@ids) AND groupe_id IN (SELECT id FROM groupes WHERE chambre = @chambre) AND date_debut >= @debutPeriode AND date_debut <= @finPeriode",
+            new { ids = vus.Keys.ToArray(), chambre, debutPeriode, finPeriode }, tx);
         await conn.ExecuteAsync(
             "INSERT INTO groupe_appartenances (parlementaire_id, groupe_id, date_debut, date_fin) VALUES (@Id, @GroupeId, @Debut, @Fin)",
             lignes.Where(x => x.GroupeId != "").Select(x => new { x.Id, x.GroupeId, x.Debut, x.Fin }), tx);

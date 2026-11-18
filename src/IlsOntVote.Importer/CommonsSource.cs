@@ -25,21 +25,40 @@ public sealed class CommonsSource : IDisposable
     /// <summary>Numéro de la législature (« Parliament ») courante : la 59e, élue le 4 juillet 2024, ouverte le 9 juillet 2024.</summary>
     public const int Legislature = 59;
 
-    /// <summary>Début de la 59e législature : date de départ de l'import (les législatures précédentes se rajouteront plus tard).</summary>
+    /// <summary>Début de la 59e législature : date de départ de l'import courant.</summary>
     public static readonly DateOnly DebutLegislature = new(2024, 7, 9);
+
+    /// <summary>Une législature (« Parliament ») des Communes : numéro, première et dernière date de séance possible, parti au gouvernement.</summary>
+    public sealed record LegislatureCommons(int Numero, DateOnly Debut, DateOnly? Fin, string GroupeGouvernement);
+
+    /// <summary>
+    /// Législatures importables (dates : ouverture du Parlement → dissolution). Une législature terminée a une fin : ses mandats sont alors figés (voir
+    /// <c>EcrireMandatsDeduitsAsync</c>, paramètre « terminee »). Le parti au gouvernement sert à dessiner les bancs ; il est inscrit en base (migration 037)
+    /// par PÉRIODE, pour que l'hémicycle d'une division de 2021 montre les conservateurs au gouvernement et non les travaillistes d'aujourd'hui.
+    /// </summary>
+    public static readonly IReadOnlyList<LegislatureCommons> Legislatures =
+    [
+        new(57, new DateOnly(2017, 6, 8), new DateOnly(2019, 11, 6), "COMMONS-Con"),
+        new(58, new DateOnly(2019, 12, 17), new DateOnly(2024, 5, 30), "COMMONS-Con"),
+        new(59, DebutLegislature, null, GroupeGouvernement),
+    ];
+
+    /// <summary>Législature d'une date (la dernière dont l'ouverture est antérieure) ; la courante par défaut.</summary>
+    public static int LegislatureDu(DateOnly date) =>
+        Legislatures.Where(l => date >= l.Debut).Select(l => l.Numero).DefaultIfEmpty(Legislature).Max();
 
     /// <summary>L'API plafonne à 25 divisions par page, quelle que soit la valeur de « take » demandée (constaté).</summary>
     private const int TaillePage = 25;
 
     private readonly HttpClient _http = Telechargement.CreerClient(TimeSpan.FromMinutes(2));
 
-    /// <summary>Identifiants et dates des divisions depuis <paramref name="depuis"/> (sans les membres : une requête par page de 25).</summary>
-    public async Task<IReadOnlyList<(int Id, DateOnly Date)>> ListerAsync(DateOnly depuis)
+    /// <summary>Identifiants et dates des divisions de <paramref name="depuis"/> à <paramref name="jusqua"/> inclus (sans les membres : une requête par page de 25).</summary>
+    public async Task<IReadOnlyList<(int Id, DateOnly Date)>> ListerAsync(DateOnly depuis, DateOnly? jusqua = null)
     {
         var liste = new List<(int, DateOnly)>();
         for (var skip = 0; ; skip += TaillePage)
         {
-            var json = await _http.GetStringAsync($"{Racine}/divisions.json/search?queryParameters.startDate={depuis:yyyy-MM-dd}&queryParameters.skip={skip}&queryParameters.take={TaillePage}");
+            var json = await _http.GetStringAsync($"{Racine}/divisions.json/search?queryParameters.startDate={depuis:yyyy-MM-dd}{(jusqua is null ? "" : $"&queryParameters.endDate={jusqua:yyyy-MM-dd}")}&queryParameters.skip={skip}&queryParameters.take={TaillePage}");
             using var doc = JsonDocument.Parse(json);
             var n = 0;
             foreach (var d in doc.RootElement.EnumerateArray())
@@ -158,7 +177,7 @@ public sealed class CommonsSource : IDisposable
         var scrutin = new ScrutinRow(
             // Numéro : l'identifiant de division (unique sur toute la législature). Le numéro de division de la session repart de 1 chaque session et
             // violerait la contrainte unique (chambre, législature, numéro) de scrutins (constaté) : il est repris dans le libellé du type de vote.
-            id, Chambres.Commons, Legislature, d.Id, d.Date, d.Titre, "division", Sort(d.OfficielPour, d.OfficielContre), null, false,
+            id, Chambres.Commons, LegislatureDu(d.Date), d.Id, d.Date, d.Titre, "division", Sort(d.OfficielPour, d.OfficielContre), null, false,
             d.OfficielPour + d.OfficielContre, d.OfficielPour, d.OfficielContre, deuxListes.Count, null, null,
             manquants, notes.Count == 0 ? null : string.Join(" ", notes), $"Division no. {d.Numero} of the session (recorded vote; no formal abstention in the Commons)", null, null, null, d.Titre);
         return new ScrutinAvecVotes(scrutin, votes);
