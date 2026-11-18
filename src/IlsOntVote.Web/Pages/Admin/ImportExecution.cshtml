@@ -11,7 +11,7 @@
 <h1 class="titre-page">@e.Libelle</h1>
 <p>
     <partial name="_EtatImport" model="e.Etat" />
-    <span class="note-source">exécution n° @e.Id · début @ImportAffichage.Date(e.Debut) · durée @ImportAffichage.Duree(e.Duree ?? (DateTime.UtcNow - DateTime.SpecifyKind(e.Debut, DateTimeKind.Utc))) @(e.Fin is null ? "(en cours, page actualisée toutes les 10 s)" : "")
+    <span class="note-source">exécution n° @e.Id · début @ImportAffichage.Date(e.Debut) · durée @ImportAffichage.Duree(e.Duree ?? (DateTime.UtcNow - DateTime.SpecifyKind(e.Debut, DateTimeKind.Utc))) @(e.Fin is null ? "(en cours, sortie actualisée toutes les 5 s)" : "")
         · @(e.Declencheur == "admin" ? "lancée à la main" + (e.DemandePar is null ? "" : " par " + e.DemandePar) : "lancée par le planning")@(e.CodeSortie is { } code ? " · code de sortie " + code : "")</span>
 </p>
 
@@ -65,5 +65,30 @@ else { <p class="vide">Relevé à la fin de l'exécution.</p> }
 
 <h2>Sortie console</h2>
 @if (string.IsNullOrWhiteSpace(Model.Sortie)) { <p class="vide">Aucune sortie enregistrée.</p> }
-else { <pre class="journal-sortie">@Model.Sortie</pre> }
-@if (e.Fin is null) { <script>setTimeout(function () { location.reload(); }, 10000);</script> }
+else { <pre id="sortie" class="journal-sortie">@Model.Sortie</pre> }
+@if (e.Fin is null)
+{
+    @* Import en cours : la sortie est mise à jour SUR PLACE toutes les 5 s (pas de rechargement de la page, qui remettait la console en haut). La console suit la fin de la sortie
+       tant qu'on ne l'a pas fait défiler vers le haut ; l'exécution terminée (le script a disparu de la page reçue), un seul rechargement affiche le bilan et les erreurs. *@
+    <script id="suivi">
+    (function () {
+        var pre = document.getElementById("sortie");
+        function auBas(p) { return p.scrollHeight - p.scrollTop - p.clientHeight < 40; }
+        if (pre) pre.scrollTop = pre.scrollHeight;
+        setInterval(function () {
+            fetch(location.href, { credentials: "same-origin", cache: "no-store" })
+                .then(function (r) { return r.text(); })
+                .then(function (t) {
+                    var d = new DOMParser().parseFromString(t, "text/html");
+                    if (!d.getElementById("suivi")) { location.reload(); return; }
+                    var n = d.getElementById("sortie");
+                    if (!n || !pre || pre.textContent === n.textContent) return;
+                    var suivre = auBas(pre), haut = pre.scrollTop;
+                    pre.textContent = n.textContent;
+                    pre.scrollTop = suivre ? pre.scrollHeight : haut;
+                })
+                .catch(function () { /* réseau coupé un instant : on réessaie au prochain passage */ });
+        }, 5000);
+    })();
+    </script>
+}
