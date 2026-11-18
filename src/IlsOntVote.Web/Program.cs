@@ -244,10 +244,34 @@ string Plan(List<(string Url, string? Date)> urls, bool en)
     }
     return sb.Append("</urlset>").ToString();
 }
-app.MapGet("/sitemap.xml", () => Results.Text(
+// Index : un fichier par langue (France) + un fichier par pays ACTIF hors France (/uk → sitemap-uk.xml). Un pays inactif n'apparaît nulle part.
+app.MapGet("/sitemap.xml", (PaysSite pays) => Results.Text(
     "<?xml version=\"1.0\" encoding=\"UTF-8\"?><sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">" +
-    $"<sitemap><loc>{SiteUrl}/sitemap-fr.xml</loc></sitemap><sitemap><loc>{SiteUrl}/sitemap-en.xml</loc></sitemap></sitemapindex>", "application/xml"))
+    $"<sitemap><loc>{SiteUrl}/sitemap-fr.xml</loc></sitemap><sitemap><loc>{SiteUrl}/sitemap-en.xml</loc></sitemap>" +
+    string.Concat(pays.Actifs.Where(p => p.Prefixe.Length > 0).Select(p => $"<sitemap><loc>{SiteUrl}/sitemap-{p.Prefixe}.xml</loc></sitemap>")) +
+    "</sitemapindex>", "application/xml"))
     .CacheOutput(p => p.Expire(TimeSpan.FromHours(6)));
+// Plan d'un pays hors France : pages de son interface (anglaise, une seule version, pas de hreflang fr/en) + divisions, élus et projets de loi de SES chambres.
+// 404 si le préfixe n'est pas celui d'un pays actif (jamais de plan pour un pays non publié).
+app.MapGet("/sitemap-{prefixe}.xml", async (string prefixe, PaysSite pays, DapperContext db) =>
+{
+    var p = pays.Actifs.FirstOrDefault(x => x.Prefixe.Length > 0 && x.Prefixe == prefixe);
+    if (p is null) return Results.NotFound();
+    using var cx = db.CreateConnection();
+    var chambres = pays.ChambresVisibles(p.Code);
+    var urls = new List<(string, string?)>();
+    var aujourdhui = DateTime.UtcNow.ToString("yyyy-MM-dd");
+    foreach (var u in new[] { "/", "/textes", "/members", "/elus", "/statistiques", "/bills", "/petitions", "/donnees" }) urls.Add((u, aujourdhui));
+    foreach (var u in new[] { "/methodologie", "/mentions-legales" }) urls.Add((u, null));
+    urls.AddRange((await cx.QueryAsync<(string, DateTime)>("SELECT '/scrutin/' || id, date_scrutin FROM scrutins WHERE chambre = ANY(@c)", new { c = chambres })).Select(r => (r.Item1, (string?)r.Item2.ToString("yyyy-MM-dd"))));
+    urls.AddRange((await cx.QueryAsync<string>("SELECT '/member/' || slug FROM parlementaires WHERE chambre = ANY(@c)", new { c = chambres })).Select(u => (u, (string?)null)));
+    urls.AddRange((await cx.QueryAsync<string>("SELECT '/bill/' || id FROM bills")).Select(u => (u, (string?)null)));
+    var sb = new System.Text.StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
+    foreach (var (u, date) in urls)
+        sb.Append("<url><loc>").Append(System.Security.SecurityElement.Escape(SiteUrl + "/" + prefixe + (u == "/" ? "" : u))).Append("</loc>")
+          .Append(date is null ? "" : $"<lastmod>{date}</lastmod>").Append("</url>");
+    return Results.Text(sb.Append("</urlset>").ToString(), "application/xml");
+}).CacheOutput(p => p.Expire(TimeSpan.FromHours(6)));
 app.MapGet("/sitemap-fr.xml", async (DapperContext db) => Results.Text(Plan(await PagesPubliques(db), false), "application/xml"))
     .CacheOutput(p => p.Expire(TimeSpan.FromHours(6)));
 app.MapGet("/sitemap-en.xml", async (DapperContext db) => Results.Text(Plan(await PagesPubliques(db), true), "application/xml"))
