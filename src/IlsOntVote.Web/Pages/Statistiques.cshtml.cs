@@ -11,7 +11,7 @@ namespace IlsOntVote.Web.Pages;
 /// (bornes incluses), « votes sur l'ensemble seulement ». La participation est calculée à l'import (cf. migration 013) : on la présente
 /// toujours comme une donnée calculée, jamais comme un chiffre officiel.
 /// </summary>
-public class StatistiquesModel(IStatistiquesRepository stats, Langue langue) : PageModel
+public class StatistiquesModel(IStatistiquesRepository stats, Langue langue, PaysSite site) : PageModel
 {
     [BindProperty(SupportsGet = true)] public string? Chambre { get; set; }
     /// <summary>Période prédéfinie : « 12m » (défaut), « annee » (année en cours) ou « tout » ; ignorée si des dates sont saisies.</summary>
@@ -24,11 +24,13 @@ public class StatistiquesModel(IStatistiquesRepository stats, Langue langue) : P
 
     public bool EnsembleSeul => Ensemble == "1";
     /// <summary>Code de chambre validé (liste blanche) : AN par défaut.</summary>
-    public string ChambreCode => Chambre switch { "senat" => Chambres.Senat, "ue" => Chambres.UE, _ => Chambres.AN };
+    public string ChambreCode => langue.Pays == "GB" ? Chambres.Commons : Chambre switch { "senat" => Chambres.Senat, "ue" => Chambres.UE, _ => Chambres.AN };
+    /// <summary>Chambre affichée sans filtre : l'Assemblée sur le site français, la chambre du pays sinon (le filtre « chambre » n'y existe pas).</summary>
+    private string ChambreDefaut => langue.Pays == "GB" ? Chambres.Commons : Chambres.AN;
     public string ChambreCle => Chambres.Filtre(ChambreCode);
     /// <summary>Période effective : « perso » si une date est saisie, sinon la période prédéfinie valide (12 derniers mois par défaut).</summary>
     public string PeriodeCle => !string.IsNullOrEmpty(Du) || !string.IsNullOrEmpty(Au) ? "perso" : Periode is "annee" or "tout" ? Periode : "12m";
-    public bool FiltreActif => PeriodeCle != "12m" || EnsembleSeul || ChambreCode != Chambres.AN;
+    public bool FiltreActif => PeriodeCle != "12m" || EnsembleSeul || ChambreCode != ChambreDefaut;
     /// <summary>Libellé de la période affichée (rappel au-dessus des chiffres : on ne montre jamais un chiffre sans sa période).</summary>
     public string PeriodeLibelle { get; private set; } = "";
 
@@ -55,6 +57,8 @@ public class StatistiquesModel(IStatistiquesRepository stats, Langue langue) : P
 
     public async Task<IActionResult> OnGetAsync()
     {
+        // Chambres du site courant seulement (statistiques des Communes sous /uk, des chambres françaises sur le site français).
+        if (!site.ChambresVisibles(langue.Pays).Contains(ChambreCode)) return NotFound();
         var fr = langue.Culture;
         DateTime? du, au;
         var aujourdhui = DateTime.UtcNow.Date;

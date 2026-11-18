@@ -5,6 +5,50 @@
     ViewData["Description"] = L.T("D'où viennent les données d'Ils ont voté, comment elles sont lues, ce qui est calculé par le site et ce qui reste incertain ou manquant.", "Where the data of Ils ont voté comes from, how it is read, what the site calculates and what remains uncertain or missing.");
 }
 
+@if (L.Pays == "GB")
+{
+<h1 class="titre-page">Methodology and limits</h1>
+<p class="chapo">The site judges no one: it displays what the official source publishes. When a piece of data is calculated, doubtful or missing, it says so.</p>
+
+<section class="bloc-texte">
+    <h2>Where the data comes from</h2>
+    <ul>
+        <li><strong>House of Commons divisions</strong>: the UK Parliament's public <a href="https://commonsvotes-api.parliament.uk/">Commons Votes API</a> (JSON), from the start of the current Parliament (the 59th, opened on 9 July 2024). Contains Parliamentary information licensed under the <a href="https://www.parliament.uk/site-information/copyright-parliament/open-parliament-licence/">Open Parliament Licence v3.0</a>.</li>
+        <li>Automatic update: divisions less than seven days old are read again, because the source corrects its lists after publication. The <a href="https://github.com/rebisway/ilsontvote">code is free software</a> (GPL-3.0).</li>
+    </ul>
+</section>
+
+<section class="bloc-texte">
+    <h2>How a division is read</h2>
+    <ul>
+        <li><strong>For (aye), against (no)</strong>: as published in the division lists. Tellers, listed separately by the source, are counted on their side.</li>
+        <li><strong>Both lobbies</strong>: a member listed in both the ayes and the noes voted in both lobbies, which parliamentary practice treats as an abstention. The site records an abstention and says so in the note of the division. There is no formal abstention in the Commons.</li>
+        <li><strong>Absent</strong>: the member was in office on the date of the division but is in neither list. The source publishes a “no vote recorded” list (absent members, the Speaker and Deputy Speakers who do not vote, abstentionist members): the site gives <em>no reason</em> and shows all of them as absent.</li>
+        <li><strong>Proxy</strong>: a member can vote through a colleague under the proxy voting scheme; the vote counts and is indicated.</li>
+        <li><strong>Mandates</strong>: the source has no dated directory. A mandate runs from the first to the last division in which the member appears in any list (<strong>calculated by the site</strong>); the number of seats on a given day never exceeds 650.</li>
+    </ul>
+</section>
+
+<section class="bloc-texte">
+    <h2>Calculated by the site (not published as is)</h2>
+    <ul>
+        <li><strong>Result “adopted / rejected”</strong>: computed from the official counts (more ayes than noes); a tie is left undetermined.</li>
+        <li><strong>Participation</strong>: among the members in office on the date of a division, the share who voted (aye, no or both lobbies). The others are absent. Divisions whose lists are incomplete (see below) are not counted.</li>
+        <li><strong>Seating chart</strong>: the government benches (left) and all other groups (right) are drawn as two facing crescents, one dot per member. Which group sits with the government is set by the site's administrator and revisited after each change of majority; within a side, groups are ordered by size. It is a layout, not the real bench position of each member.</li>
+    </ul>
+</section>
+
+<section class="bloc-texte">
+    <h2>Known limits</h2>
+    <ul>
+        <li><strong>Incomplete lists</strong>: in most divisions the source names a few members fewer than its own official count (2.5 fewer on average). Such divisions are marked “incomplete count” and excluded from participation rates, because their absentees are not reliable.</li>
+        <li><strong>Divisions only</strong>: votes without a recorded division (on the voices) leave no individual vote and do not appear.</li>
+        <li><strong>History</strong>: only the current Parliament is loaded for now. Bills and petitions are not linked to the divisions yet.</li>
+        <li>To report an error, write to <a href="mailto:contact@rebisway.com">contact@rebisway.com</a>.</li>
+    </ul>
+</section>
+}
+else
 @if (L.Anglais)
 {
 <h1 class="titre-page">Methodology and limits</h1>

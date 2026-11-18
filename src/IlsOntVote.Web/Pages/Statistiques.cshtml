@@ -13,11 +13,14 @@
 <p class="chapo">@L.TH("Combien de textes votés, et qui est présent au vote ? La <strong>participation</strong> est la part des élus en exercice qui ont voté (pour, contre ou abstention) lors d'un scrutin public ; les autres sont absents ou n'ont pas pris part au vote. Le site n'en donne aucune raison. <a href=\"/methodologie\">Comment c'est calculé</a>.", "How many texts were voted, and who takes part in the vote? <strong>Participation</strong> is the share of elected officials in office who voted (for, against or abstention) in a roll-call vote; the others are absent or did not take part in the vote. The site gives no reason. <a href=\"/en/methodologie\">How it is calculated</a>.")</p>
 
 <form class="filtres filtres-auto filtres-liste" method="get" action="@L.Lien("/statistiques")">
+    @if (L.Pays is null)
+    {
     <select name="chambre" aria-label="@L.T("Chambre", "Chamber")">
         <option value="an" selected="@(Model.ChambreCle == "an")">@L.T("Assemblée nationale", "National Assembly")</option>
         <option value="senat" selected="@(Model.ChambreCle == "senat")">@L.T("Sénat", "Senate")</option>
         <option value="ue" selected="@(Model.ChambreCle == "ue")">@L.T("Parlement européen", "European Parliament")</option>
     </select>
+    }
     <select name="periode" aria-label="@L.T("Période", "Period")">
         <option value="12m" selected="@(Model.PeriodeCle == "12m")">@L.T("12 derniers mois", "Last 12 months")</option>
         <option value="annee" selected="@(Model.PeriodeCle == "annee")">@L.T("Année en cours", "Current year")</option>
@@ -37,9 +40,12 @@
 
 <section class="cartes-stats" aria-label="@L.T("Chiffres clés", "Key figures")">
     <div class="carte-stat"><b>@Model.Chiffres.Scrutins.ToString("N0", fr)</b><span>@L.T("scrutins publics", "roll-call votes")</span></div>
+    @if (Model.ChambreCode != Chambres.Commons)
+    {
     <div class="carte-stat"><b>@Model.Chiffres.VotesEnsemble.ToString("N0", fr)</b><span>@L.T("votes sur l'ensemble d'un texte", "votes on the whole text")</span>
         <small>@Model.Chiffres.Adoptes.ToString("N0", fr) @L.T("adoptés", "adopted") · @Model.Chiffres.Rejetes.ToString("N0", fr) @L.T("rejetés", "rejected")</small></div>
-    @if (Model.ChambreCode != Chambres.UE)
+    }
+    @if (Model.ChambreCode != Chambres.UE && Model.ChambreCode != Chambres.Commons)
     {
         <div class="carte-stat"><b>@Model.Chiffres.LoisPromulguees.ToString("N0", fr)</b><span>@L.T("lois promulguées", "laws promulgated")</span><small>@L.T("sur la période (lois françaises, Parlement et Sénat)", "over the period (French laws, National Assembly and Senate)")</small></div>
     }

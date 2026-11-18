@@ -11,6 +11,11 @@
 <h1 class="titre-page">@L.T("Données ouvertes", "Open data")</h1>
 <p class="chapo">@L.TH("Toutes les données affichées sur le site, en fichiers <strong>CSV compressés (gzip)</strong>, régénérés chaque nuit. Séparateur virgule, encodage UTF-8, une ligne d'en-tête ; les dates sont au format AAAA-MM-JJ et les booléens valent <code>t</code> ou <code>f</code>.", "All the data shown on the site, as <strong>compressed CSV files (gzip)</strong>, regenerated every night. Comma-separated, UTF-8, one header row; dates are YYYY-MM-DD and booleans are <code>t</code> or <code>f</code>.")</p>
 
+@if (L.Pays == "GB")
+{
+    <p class="note-source">These files cover every published chamber: filter the <code>chambre</code> column on <code>COMMONS</code> for the House of Commons (members, groups, divisions and votes). Divisions are in <code>scrutins</code>, individual votes in <code>votes</code>; absent members are not stored (they are deduced from the mandates).</p>
+}
+
 @if (fichiers.Count == 0)
 {
     <p class="vide">@L.T("Les fichiers ne sont pas encore générés.", "The files have not been generated yet.")</p>
