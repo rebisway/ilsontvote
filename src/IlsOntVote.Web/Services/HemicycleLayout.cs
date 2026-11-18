@@ -58,6 +58,14 @@ public static class HemicycleLayout
         double centre = FaceLargeur / 2;
         var gauche = sieges.Where(s => s.GroupeGouvernement).ToList();
         var droite = sieges.Where(s => !s.GroupeGouvernement).ToList();
+        // Repli : aucun groupe n'est marqué « au gouvernement » (donnée non renseignée) : le plus gros groupe prend le côté gauche, pour ne jamais dessiner un seul croissant.
+        // Simple règle de mise en page (le plus gros groupe d'un parlement est en général celui du gouvernement), pas une affirmation : l'admin peut la corriger.
+        if (gauche.Count == 0 && droite.Count > 0)
+        {
+            var plusGros = droite.GroupBy(s => s.GroupeSigle).OrderByDescending(g => g.Count()).First().Key;
+            gauche = droite.Where(s => s.GroupeSigle == plusGros).ToList();
+            droite = droite.Where(s => s.GroupeSigle != plusGros).ToList();
+        }
         int plusGrand = Math.Max(1, Math.Max(gauche.Count, droite.Count));
         double rayonPoint = double.MaxValue;
         var bandes = new List<BandeGroupe>();

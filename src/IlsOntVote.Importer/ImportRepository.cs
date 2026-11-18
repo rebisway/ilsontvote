@@ -154,6 +154,22 @@ public sealed class ImportRepository(string connectionString)
         await tx.CommitAsync();
     }
 
+    /// <summary>
+    /// Marque un groupe « au gouvernement » PAR DÉFAUT, seulement si aucun groupe de la chambre ne l'est encore : le choix fait dans /Admin/Pays n'est jamais écrasé.
+    /// Nécessaire parce que la migration 032 s'exécute avant le premier import (le groupe n'existait pas : l'UPDATE ne touchait aucune ligne et tous les sièges
+    /// se retrouvaient du même côté de l'hémicycle en bancs face à face).
+    /// </summary>
+    public async Task InitialiserGouvernementAsync(string chambre, string groupeId)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.ExecuteAsync(
+            """
+            UPDATE groupes SET gouvernement = true
+             WHERE id = @groupeId AND chambre = @chambre
+               AND NOT EXISTS (SELECT 1 FROM groupes WHERE chambre = @chambre AND gouvernement)
+            """, new { chambre, groupeId });
+    }
+
     /// <summary>Clôt la ligne du journal avec le résultat (succès, compteurs, message d'erreur éventuel).</summary>
     public async Task TerminerAsync(long runId, bool ok, int scrutins, long votes, string? message)
     {

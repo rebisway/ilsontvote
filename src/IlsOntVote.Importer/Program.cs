@@ -422,6 +422,7 @@ async Task<int> ImporterCommunesAsync()
                 await Task.Delay(250);   // politesse envers une API publique partagée
             }
             await repo.EcrireMembresUeAsync(groupes.Values, parlementaires.Values);   // upsert générique (le nom « Ue » est historique)
+            await repo.InitialiserGouvernementAsync(Chambres.Commons, CommonsSource.GroupeGouvernement);
             var annuaire = new Annuaire(groupes.Values.ToList(), parlementaires.Values.ToList(), [], []);
             var (_, ancienPlusRecent) = await repo.LireScrutinsAsync(Chambres.Commons);
             var (n, v2, _) = await repo.EcrireScrutinsAsync(scrutins, annuaire);

@@ -123,6 +123,9 @@ public sealed class CommonsSource : IDisposable
     /// <summary>Identifiants préfixés : un MemberId ou un DivisionId britannique ne doit jamais pouvoir coïncider avec ceux d'une autre chambre.</summary>
     public static string IdMembre(int memberId) => $"COMMONS-{memberId}";
     public static string IdGroupe(string sigle) => $"COMMONS-{sigle}";
+    /// <summary>Groupe au gouvernement par défaut : le Parti travailliste, au pouvoir depuis juillet 2024 (59e législature). À changer dans /Admin/Pays après un changement de majorité.</summary>
+    public const string GroupeGouvernement = "COMMONS-Lab";
+
     public static string IdScrutin(int divisionId) => $"COMMONS-{divisionId}";
 
     /// <summary>
