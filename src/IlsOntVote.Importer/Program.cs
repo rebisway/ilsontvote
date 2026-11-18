@@ -22,7 +22,7 @@ int[] LegislaturesCompletes = [15, 16, 17];
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var argv = args.ToList();
-if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements"))
+if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements" or "communes"))
 {
     Console.Error.WriteLine("Usage : IlsOntVote.Importer an [--legislature 17|15,16,17|all] [--scrutins-dir D --amo-dir D]");
     Console.Error.WriteLine("        IlsOntVote.Importer senat [--senateurs-dir D --dosleg-sql F]");
@@ -69,6 +69,7 @@ return argv[0] switch
     "petitions" => await ImporterPetitionsAsync(),
     "planificateur" => await new Planificateur(connectionString).PasserAsync(),
     "amendements" => await ImporterAmendementsAsync(),
+    "communes" => await ImporterCommunesAsync(),
     _ => await ImporterTextesAsync(),
 };
 
@@ -366,6 +367,79 @@ async Task<IReadOnlyList<(string Source, string Cible)>> LancerScriptTraductionA
             .ToList();
     }
     finally { try { Directory.Delete(dossier, true); } catch (IOException) { } }
+}
+
+/// <summary>
+/// Chambre des Communes (Royaume-Uni), législature en cours (59e, depuis le 9 juillet 2024), via l'API publique des divisions. Incrémental : une division
+/// déjà en base n'est relue que si elle a moins de 7 jours (l'API corrige listes et décomptes après publication). <c>--limit N</c> pour tester.
+/// PROTOTYPE : la chambre est déclarée inactive dans <c>chambres</c> (migration 030) et le site n'a pas encore de pages pour elle ; ne pas planifier en production.
+/// </summary>
+async Task<int> ImporterCommunesAsync()
+{
+    Console.WriteLine("=== Chambre des Communes (Royaume-Uni) ===");
+    var runId = await repo.DemarrerAsync("COMMONS");
+    try
+    {
+        using var source = new CommonsSource();
+        var limite = int.TryParse(Option("--limit"), out var l) ? l : int.MaxValue;
+        var liste = await source.ListerAsync(CommonsSource.DebutLegislature);
+        var (deja, _) = await repo.LireScrutinsAsync(Chambres.Commons);
+        var seuil = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-7);
+        // Du plus ancien au plus récent : la reconstruction des mandats suit l'ordre du temps.
+        var aLire = liste.Where(d => !deja.Contains(CommonsSource.IdScrutin(d.Id)) || d.Date >= seuil)
+            .OrderBy(d => d.Date).ThenBy(d => d.Id).Take(limite).ToList();
+        Console.WriteLine($"  {liste.Count} divisions depuis {CommonsSource.DebutLegislature:yyyy-MM-dd}, {deja.Count} déjà en base, {aLire.Count} à lire.");
+
+        var existants = await repo.LireSlugsAsync();
+        var slugs = existants.Values.ToHashSet();
+        var groupes = new Dictionary<string, GroupeRow>();
+        var parlementaires = new Dictionary<string, ParlementaireRow>();
+        int nbScrutins = 0; long nbVotes = 0;
+
+        foreach (var lot in aLire.Chunk(25))
+        {
+            var scrutins = new List<ScrutinAvecVotes>();
+            var vus = new Dictionary<string, (DateOnly Premier, DateOnly Dernier, string GroupeId)>();
+            foreach (var (id, _) in lot)
+            {
+                var division = await source.LireAsync(id);
+                scrutins.Add(CommonsSource.VersScrutin(division));
+                // Tous les membres en exercice figurent dans l'une des trois listes : voté pour, contre, ou « sans vote enregistré ».
+                foreach (var m in division.Pour.Concat(division.Contre).Concat(division.SansVote))
+                {
+                    var gid = CommonsSource.IdGroupe(m.PartiSigle);
+                    groupes[gid] = new GroupeRow(gid, Chambres.Commons, CommonsSource.Legislature, m.PartiSigle, m.PartiLibelle, m.Couleur, CommonsSource.OrdreParti(m.PartiSigle));
+                    var pid = CommonsSource.IdMembre(m.MemberId);
+                    if (!parlementaires.ContainsKey(pid))
+                    {
+                        var slug = existants.TryGetValue(pid, out var s0) ? s0 : Slugs.Unique(slugs, m.Prenom, m.Nom, pid);
+                        parlementaires[pid] = new ParlementaireRow(pid, Chambres.Commons, null, m.Prenom, m.Nom, slug, null, m.Circonscription);
+                    }
+                    vus[pid] = vus.TryGetValue(pid, out var v)
+                        ? (division.Date < v.Premier ? division.Date : v.Premier, division.Date >= v.Dernier ? division.Date : v.Dernier, division.Date >= v.Dernier ? gid : v.GroupeId)
+                        : (division.Date, division.Date, gid);
+                }
+                await Task.Delay(250);   // politesse envers une API publique partagée
+            }
+            await repo.EcrireMembresUeAsync(groupes.Values, parlementaires.Values);   // upsert générique (le nom « Ue » est historique)
+            var annuaire = new Annuaire(groupes.Values.ToList(), parlementaires.Values.ToList(), [], []);
+            var (_, ancienPlusRecent) = await repo.LireScrutinsAsync(Chambres.Commons);
+            var (n, v2, _) = await repo.EcrireScrutinsAsync(scrutins, annuaire);
+            await repo.EcrireMandatsDeduitsAsync(Chambres.Commons, CommonsSource.Legislature, vus, ancienPlusRecent);
+            nbScrutins += n; nbVotes += v2;
+            Console.WriteLine($"  {nbScrutins}/{aLire.Count} divisions lues…");
+        }
+
+        Console.WriteLine($"  {nbScrutins} divisions, {nbVotes} votes, {parlementaires.Count} députés.");
+        await repo.TerminerAsync(runId, true, nbScrutins, nbVotes, null);
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex);
+        await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
+        return 1;
+    }
 }
 
 /// <summary>

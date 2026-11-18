@@ -74,6 +74,7 @@ builder.Services.AddSingleton<PaysResolver>();
 builder.Services.AddSingleton<ApercuImage>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<Langue>();
+builder.Services.AddSingleton<PaysSite>();
 builder.Services.AddScoped<IStatistiquesRepository, StatistiquesRepository>();
 builder.Services.AddScoped<IPetitionRepository, PetitionRepository>();
 builder.Services.AddHostedService<PurgeVuesService>();
@@ -164,6 +165,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseForwardedHeaders();
+// Pays : /uk/… -> mêmes pages, PathBase /uk, interface anglaise ; inactif tant qu'aucun pays autre que la France n'est publié (table pays). AVANT la langue.
+app.Use((ctx, next) => PaysSite.Middleware(ctx, next));
 // Version anglaise : /en/… -> mêmes pages, PathBase /en (avant fichiers statiques, routage et cache de sortie).
 app.Use((ctx, next) => Langue.Middleware(ctx, next));
 app.UseHttpsRedirection();

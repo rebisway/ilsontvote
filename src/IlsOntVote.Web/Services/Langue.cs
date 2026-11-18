@@ -31,7 +31,15 @@ public sealed class Langue(IHttpContextAccessor accessor)
     public HtmlString TH(string francais, string anglais) => new(Anglais ? anglais : francais);
 
     /// <summary>Adresse interne (« /lois ») avec le préfixe de la langue courante.</summary>
-    public string Lien(string chemin) => Anglais ? "/en" + (chemin == "/" ? "" : chemin) : chemin;
+    public string Lien(string chemin)
+    {
+        // PathBase porte déjà le préfixe courant (« /en », « /uk » ou rien) : le middleware l'y a déplacé. Même résultat qu'avant pour fr et en.
+        var b = Ctx.Request.PathBase.Value ?? "";
+        return chemin == "/" ? (b.Length == 0 ? "/" : b) : b + chemin;
+    }
+
+    /// <summary>Code ISO du pays de la page (« GB »), ou null pour la France (racine du site). Voir <see cref="PaysSite"/>.</summary>
+    public string? Pays => Ctx.Items[PaysSite.CleItems] as string;
 
     /// <summary>Même page dans l'autre langue (sélecteur FR | EN et balises hreflang), paramètres de l'adresse conservés.</summary>
     public string AutreLangue => Variante(!Anglais);
@@ -45,6 +53,8 @@ public sealed class Langue(IHttpContextAccessor accessor)
     /// </summary>
     private static Task<bool> ChoixLangue(HttpContext ctx)
     {
+        // Pays hors France (/uk…) : interface en anglais imposée par PaysSite, aucune redirection de langue.
+        if (ctx.Items.ContainsKey(PaysSite.CleItems)) return Task.FromResult(false);
         var req = ctx.Request;
         if (!HttpMethods.IsGet(req.Method) && !HttpMethods.IsHead(req.Method)) return Task.FromResult(false);
         var chemin = req.Path;
@@ -92,6 +102,8 @@ public sealed class Langue(IHttpContextAccessor accessor)
     /// <summary>Adresse de la page dans la langue demandée (true = anglais).</summary>
     public string Variante(bool anglais)
     {
+        // Sous un préfixe de pays l'interface est en anglais seulement : pas d'autre langue à proposer.
+        if (Pays is not null) return (Ctx.Request.PathBase + Ctx.Request.Path).Value + (Ctx.Request.QueryString.Value ?? "");
         var chemin = Ctx.Request.Path.Value ?? "/";   // sans le préfixe /en (déplacé dans PathBase)
         var requete = Ctx.Request.QueryString.Value ?? "";
         return anglais ? "/en" + (chemin == "/" ? "" : chemin) + requete : chemin + requete;

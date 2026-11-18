@@ -669,3 +669,6 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
 
 /* Nombre d'amendements sous le statut d'une loi (/lois) : petite ligne, sans colonne dédiée. */
 .liste-textes .amdts { margin-top: 4px; font-size: 0.8rem; color: var(--ink-soft); white-space: nowrap; }
+
+/* Choix du pays (en-tête), affiché quand plusieurs pays sont publiés. */
+.select-pays { font: inherit; font-size: 0.85rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }

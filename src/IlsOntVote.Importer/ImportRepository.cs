@@ -638,6 +638,14 @@ public sealed class ImportRepository(string connectionString)
 
     // ------------------------------------------------------------------ Parlement européen (import incrémental)
 
+    /// <summary>Identifiants des scrutins déjà en base pour une chambre, et date du plus récent (imports incrémentaux Parlement européen et Communes).</summary>
+    public async Task<(HashSet<string> Ids, DateOnly? PlusRecent)> LireScrutinsAsync(string chambre)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        var rows = (await conn.QueryAsync<(string Id, DateTime Date)>("SELECT id, date_scrutin FROM scrutins WHERE chambre = @chambre", new { chambre })).ToList();
+        return (rows.Select(r => r.Id).ToHashSet(), rows.Count == 0 ? null : DateOnly.FromDateTime(rows.Max(r => r.Date)));
+    }
+
     /// <summary>Identifiants des scrutins UE déjà en base (l'import UE ne relit que les votes nouveaux) et date du plus récent.</summary>
     public async Task<(HashSet<string> Ids, DateOnly? PlusRecent)> LireScrutinsUeAsync()
     {
@@ -694,14 +702,22 @@ public sealed class ImportRepository(string connectionString)
     ///   (un élu absent des vieux votes est simplement arrivé plus tard).
     /// Groupe : le dernier connu (les votes, eux, portent le groupe du jour du vote).
     /// </summary>
-    public async Task EcrireMandatsUeAsync(IReadOnlyDictionary<string, (DateOnly Premier, DateOnly Dernier, string GroupeId)> vus, DateOnly? ancienPlusRecent)
+    public Task EcrireMandatsUeAsync(IReadOnlyDictionary<string, (DateOnly Premier, DateOnly Dernier, string GroupeId)> vus, DateOnly? ancienPlusRecent) =>
+        EcrireMandatsDeduitsAsync(Chambres.UE, ParlementEuropeenSource.Legislature, vus, ancienPlusRecent);
+
+    /// <summary>
+    /// Version générale de la reconstruction des mandats (règles de <see cref="EcrireMandatsUeAsync"/>) pour toute chambre dont l'annuaire n'est pas daté en
+    /// open data : mandat = du premier au dernier scrutin où l'élu figure. Les suppressions sont limitées à la chambre (jointure sur parlementaires) :
+    /// un numéro de législature identique dans deux chambres ne s'efface jamais mutuellement.
+    /// </summary>
+    public async Task EcrireMandatsDeduitsAsync(string chambre, int legislature, IReadOnlyDictionary<string, (DateOnly Premier, DateOnly Dernier, string GroupeId)> vus, DateOnly? ancienPlusRecent)
     {
-        var leg = (short)ParlementEuropeenSource.Legislature;
+        var leg = (short)legislature;
         await using var conn = new NpgsqlConnection(connectionString);
         await conn.OpenAsync();
         await using var tx = await conn.BeginTransactionAsync();
         var existants = (await conn.QueryAsync<(string Id, DateTime Debut, DateTime? Fin)>(
-            "SELECT parlementaire_id, date_debut, date_fin FROM mandats WHERE legislature = @leg", new { leg }, tx))
+            "SELECT m.parlementaire_id, m.date_debut, m.date_fin FROM mandats m JOIN parlementaires p ON p.id = m.parlementaire_id WHERE m.legislature = @leg AND p.chambre = @chambre", new { leg, chambre }, tx))
             .ToDictionary(r => r.Id);
 
         var plusRecentLu = vus.Values.Max(v => v.Dernier);
@@ -726,7 +742,7 @@ public sealed class ImportRepository(string connectionString)
             lignes.Add((id, debut, fin, v.GroupeId));
         }
 
-        await conn.ExecuteAsync("DELETE FROM mandats WHERE legislature = @leg", new { leg }, tx);
+        await conn.ExecuteAsync("DELETE FROM mandats m USING parlementaires p WHERE p.id = m.parlementaire_id AND m.legislature = @leg AND p.chambre = @chambre", new { leg, chambre }, tx);
         await conn.ExecuteAsync(
             "INSERT INTO mandats (parlementaire_id, legislature, date_debut, date_fin) VALUES (@Id, @leg, @Debut, @Fin)",
             lignes.Select(x => new { x.Id, leg, x.Debut, x.Fin }), tx);
@@ -734,8 +750,8 @@ public sealed class ImportRepository(string connectionString)
         // Groupe : une appartenance par eurodéputé (la plus récente connue), du début du mandat à sa fin. Un élu non listé dans
         // cet import garde l'appartenance existante.
         await conn.ExecuteAsync(
-            "DELETE FROM groupe_appartenances WHERE parlementaire_id = ANY(@ids) AND groupe_id IN (SELECT id FROM groupes WHERE chambre = 'UE')",
-            new { ids = vus.Keys.ToArray() }, tx);
+            "DELETE FROM groupe_appartenances WHERE parlementaire_id = ANY(@ids) AND groupe_id IN (SELECT id FROM groupes WHERE chambre = @chambre)",
+            new { ids = vus.Keys.ToArray(), chambre }, tx);
         await conn.ExecuteAsync(
             "INSERT INTO groupe_appartenances (parlementaire_id, groupe_id, date_debut, date_fin) VALUES (@Id, @GroupeId, @Debut, @Fin)",
             lignes.Where(x => x.GroupeId != "").Select(x => new { x.Id, x.GroupeId, x.Debut, x.Fin }), tx);
