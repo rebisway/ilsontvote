@@ -55,7 +55,7 @@
     d.addEventListener('toggle', function () {
         var pn = d.querySelector('.resume-ia-panneau');
         pn.style.left = ''; pn.style.right = '';
-        if (!d.open) return;
+        if (!d.open || !window.innerWidth) return;
         var r = pn.getBoundingClientRect();
         if (r.right > window.innerWidth - 8) { pn.style.left = 'auto'; pn.style.right = '0'; r = pn.getBoundingClientRect(); }
         if (r.left < 8) { pn.style.right = 'auto'; pn.style.left = (8 - d.getBoundingClientRect().left) + 'px'; }

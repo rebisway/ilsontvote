@@ -691,15 +691,16 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
 .liste-textes td.col-statut .puce-statut { padding: 0 8px; font-size: 0.74rem; line-height: 1.5; max-width: 14rem; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
 /* Bouton « Résumer avec une IA » : dans la rangée des raccourcis ; la liste des assistants s'ouvre en fenêtre flottante sous le bouton. */
 .resume-ia { position: relative; display: inline-block; margin: 0; }
-.resume-ia > summary { cursor: pointer; list-style: none; padding: 3px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font-size: 0.88rem; font-weight: 600; }
+.resume-ia > summary { cursor: pointer; list-style: none; padding: 1px 10px; line-height: 1.35; border: 1px solid var(--tag-rectifie); border-radius: 999px; background: color-mix(in srgb, var(--tag-rectifie) 14%, var(--surface)); color: var(--tag-rectifie); font-size: 0.82rem; font-weight: 650; }
+.resume-ia > summary:hover, .resume-ia[open] > summary { background: var(--tag-rectifie); color: var(--surface); }
 .resume-ia > summary::-webkit-details-marker { display: none; }
 .resume-ia > summary::after { content: " ▾"; }
-.resume-ia[open] > summary { border-color: var(--ink-soft); }
 .resume-ia-panneau { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; width: min(30rem, calc(100vw - 32px)); padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0, 0, 0, .25); }
 .resume-ia-liste { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.resume-ia-liste .raccourci, .resume-ia-liste button.raccourci { padding: 3px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); text-decoration: none; font: inherit; font-size: 0.88rem; font-weight: 600; cursor: pointer; }
-.resume-ia-liste .raccourci:hover { border-color: var(--ink-soft); }
+.resume-ia-liste a.raccourci, .resume-ia-liste button.raccourci { padding: 1px 10px; line-height: 1.35; border: 1px solid var(--tag-rectifie); border-radius: 999px; background: color-mix(in srgb, var(--tag-rectifie) 8%, var(--surface)); color: var(--ink); text-decoration: none; font: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+.resume-ia-liste a.raccourci:hover, .resume-ia-liste button.raccourci:hover { background: var(--tag-rectifie); color: var(--surface); }
 .resume-ia-panneau .note-source { margin: 10px 0 0; }
 /* Raccourcis d'un texte (parcours, Légifrance, dossier) : boutons discrets plutôt que liens perdus dans la ligne. */
-.bloc-texte-titre a.raccourci { padding: 3px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2, var(--surface)); color: var(--ink); text-decoration: none; font-size: 0.88rem; font-weight: 600; }
-.bloc-texte-titre a.raccourci:hover { border-color: var(--ink-soft); background: color-mix(in srgb, var(--pour) 10%, var(--surface)); }
+/* Boutons d'action : turquoise pour la navigation (parcours, sources officielles), violet pour l'IA (outil externe) : ni l'un ni l'autre n'est une couleur de vote. */
+a.raccourci { display: inline-block; padding: 1px 10px; line-height: 1.35; border: 1px solid var(--tag-delegation); border-radius: 999px; background: color-mix(in srgb, var(--tag-delegation) 12%, var(--surface)); color: var(--tag-delegation); text-decoration: none; font-size: 0.82rem; font-weight: 650; }
+a.raccourci:hover { background: var(--tag-delegation); color: var(--surface); }

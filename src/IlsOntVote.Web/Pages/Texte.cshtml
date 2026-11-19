@@ -45,11 +45,14 @@
         </div>
         <div><dt>@L.T("Votes sur l'ensemble", "Votes on the whole text")</dt><dd>@t.NbScrutins</dd><dd class="detail">@(t.AdopteAn ? L.T("adopté à l'Assemblée", "adopted in the National Assembly") : "")@(t.AdopteAn && t.AdopteSenat ? " · " : "")@(t.AdopteSenat ? L.T("adopté au Sénat", "adopted in the Senate") : "")</dd></div>
     </dl>
-    <p class="liens-externes">
-        @if (!string.IsNullOrEmpty(t.UrlLegifrance)) { <a href="@t.UrlLegifrance" rel="noopener" target="_blank">@L.T("Texte sur Légifrance", "Text on Légifrance") ↗</a> }
-        @if (!string.IsNullOrEmpty(t.UrlDossierSenat)) { <a href="@t.UrlDossierSenat" rel="noopener" target="_blank">@L.T("Dossier législatif du Sénat", "Senate legislative file") ↗</a> }
-        @if (!string.IsNullOrEmpty(t.UrlDossierAn)) { <a href="@t.UrlDossierAn" rel="noopener" target="_blank">@L.T("Dossier de l'Assemblée", "National Assembly file") ↗</a> }
-    </p>
+    @* <div> et non <p> : <details> (bouton IA) ferme un paragraphe en HTML. *@
+    <div class="liens-externes">
+        @if (!string.IsNullOrEmpty(t.UrlLegifrance)) { <a class="raccourci" href="@t.UrlLegifrance" rel="noopener" target="_blank">@L.T("Texte sur Légifrance", "Text on Légifrance") ↗</a> }
+        @if (!string.IsNullOrEmpty(t.UrlDossierSenat)) { <a class="raccourci" href="@t.UrlDossierSenat" rel="noopener" target="_blank">@L.T("Dossier législatif du Sénat", "Senate legislative file") ↗</a> }
+        @if (!string.IsNullOrEmpty(t.UrlDossierAn)) { <a class="raccourci" href="@t.UrlDossierAn" rel="noopener" target="_blank">@L.T("Dossier de l'Assemblée", "National Assembly file") ↗</a> }
+        @{ var promptIA = PromptResume.Construire(L.Anglais, titre, new[] { t.UrlLegifrance ?? "", t.UrlDossierAn ?? "", t.UrlDossierSenat ?? "" }); }
+        <partial name="_ResumeIA" model="promptIA" />
+    </div>
 </section>
 
 @if (t.DecisionCcCode is not null || t.SaisineCcDate is not null)
