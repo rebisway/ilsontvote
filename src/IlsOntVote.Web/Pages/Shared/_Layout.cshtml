@@ -132,9 +132,11 @@
                     <details class="plus" @Html.Raw(Actif("/textes") + Actif("/scrutin") + Actif("/bill") + Actif("/petition") != "" ? "data-actif" : "")>
                         <summary>@L.T("Textes", "Texts")</summary>
                         <div class="plus-liste">
-                            <a href="@L.Lien("/bills")" @Html.Raw(Actif("/bill"))>@L.T("Projets de loi", "Bills")</a>
+                            @if (PaysSite.APetitionsEtProjets(L.Pays)) {
+                            <a href="@L.Lien("/bills")" @Html.Raw(Actif("/bill"))>@L.T("Projets de loi", "Bills")</a> }
                             <a href="@L.Lien("/textes")" @Html.Raw(Actif("/textes") + Actif("/scrutin"))>@L.T("Scrutins (divisions)", "Divisions")</a>
-                            <a href="@L.Lien("/petitions")" @Html.Raw(Actif("/petition"))>@L.T("Pétitions", "Petitions")</a>
+                            @if (PaysSite.APetitionsEtProjets(L.Pays)) {
+                            <a href="@L.Lien("/petitions")" @Html.Raw(Actif("/petition"))>@L.T("Pétitions", "Petitions")</a> }
                         </div>
                     </details>
                     <details class="plus" @Html.Raw(Actif("/member") + Actif("/lord") + Actif("/elus") != "" ? "data-actif" : "")>

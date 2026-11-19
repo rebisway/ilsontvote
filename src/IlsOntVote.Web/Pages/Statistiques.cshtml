@@ -112,9 +112,13 @@ else
 <p class="note-source">@L.T("Participation, présence, délégations et mises au point de chaque élu : la liste complète, sans seuil, avec le rang dans le tri.", "Participation, presence, proxy votes and vote corrections for every official: the complete list, without any threshold, with the rank in the sort order.")</p>
 <p><a class="bouton-lien" href="@Model.LienElus()">@L.T("Voir tous les élus et leurs taux", "See all officials and their rates")</a></p>
 
+@* Pétitions : France et Royaume-Uni seulement (les autres pays n'en ont pas : leurs pages répondent 404). *@
+@if (L.Pays is null || PaysSite.APetitionsEtProjets(L.Pays))
+{
 <h2>@L.T("Pétitions", "Petitions")</h2>
 <p class="note-source">@L.T("Pétitions du Sénat et de l'Assemblée : liste, historique des soutiens, et constats entre deux relevés (baisse du nombre de soutiens, disparition du fichier source).", "Senate and National Assembly petitions: list, supporter history, and findings between two snapshots (drop in supporters, disappearance from the source file).")</p>
 <p><a class="bouton-lien" href="@L.Lien("/petitions")">@L.T("Toutes les pétitions", "All petitions")</a> <a class="bouton-lien" href="@L.Lien("/petitions/anomalies")">@L.T("Anomalies des pétitions", "Petition anomalies")</a></p>
+}
 
 <h2>@L.T("Activité par année", "Activity by year")</h2>
 @if (Model.Annees.Count == 0)
