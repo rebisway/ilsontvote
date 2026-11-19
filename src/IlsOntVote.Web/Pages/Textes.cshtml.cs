@@ -33,7 +33,8 @@ public class TextesModel(IScrutinRepository scrutins, Langue langue) : ListePage
     public Resultats<Scrutin> Resultats { get; private set; } = new([], 0, 1, 30);
 
     /// <summary>Toutes les divisions sur le site d'un pays (aucune n'est rattachée à un texte « sur l'ensemble » : un filtre vide la liste) ; sinon selon la case « amendements et articles ».</summary>
-    public bool ToutAfficher => Portee == "tout";
+    /// <summary>Les Lords n'ont pas de « vote sur l'ensemble » (aucune troisième lecture n'y est mise aux voix) : leurs divisions s'affichent toutes.</summary>
+    public bool ToutAfficher => Portee == "tout" || (SitePays && Chambre == "lords");
 
     protected override string TriDefaut => "date";
     protected override IReadOnlyCollection<string> ClesTri { get; } = [.. ScrutinRepository.ClesTri];
@@ -65,7 +66,7 @@ public class TextesModel(IScrutinRepository scrutins, Langue langue) : ListePage
     {
         // Site d'un pays (/uk) : sa seule chambre (Communes) ; le paramètre « chambre » de la France n'a pas de sens. Les chambres des autres pays sont de toute façon
         // écartées par ScrutinRepository (chambres visibles du site).
-        var chambre = langue.Pays == "GB" ? Chambres.Commons
+        var chambre = langue.Pays == "GB" ? Chambre switch { "commons" => Chambres.Commons, "lords" => Chambres.Lords, _ => null }
             : Chambre switch { "an" => Chambres.AN, "senat" => Chambres.Senat, "ue" => Chambres.UE, _ => null };
 
         var (du, au) = Periode.Lire(Du, Au);

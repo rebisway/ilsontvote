@@ -96,6 +96,9 @@ public sealed class PaysSite(DapperContext db)
             .Any(m => userAgent.Contains(m, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Middleware à placer AVANT <see cref="Langue.Middleware"/> : lit le préfixe de pays, applique le choix explicite et la détection de l'accueil.</summary>
+    /// <summary>Cookie de la langue choisie sous un préfixe de pays (« fr » ou « en »).</summary>
+    public const string CookieLanguePays = "ilsontvote_lang_pays";
+
     public static async Task Middleware(HttpContext ctx, Func<Task> suite)
     {
         var site = ctx.RequestServices.GetRequiredService<PaysSite>();
@@ -144,7 +147,20 @@ public sealed class PaysSite(DapperContext db)
             req.PathBase = req.PathBase.Add("/" + pays.Prefixe);
             req.Path = reste;
             ctx.Items[CleItems] = pays.Code;
-            ctx.Items["lang"] = "en";
+            // Langue de l'interface : anglaise par défaut (le site d'un pays est écrit pour ses lecteurs), française si le lecteur l'a choisi (?hl=fr, cookie propre au pays :
+            // distinct du cookie de langue du site français, sinon un lecteur français sur la racine verrait /uk en français sans l'avoir demandé).
+            var hl = req.Query["hl"].ToString();
+            if (lecture && hl is "fr" or "en")
+            {
+                ctx.Response.Cookies.Append(CookieLanguePays, hl, new CookieOptions
+                { MaxAge = TimeSpan.FromDays(365), SameSite = SameSiteMode.Lax, Secure = req.IsHttps, HttpOnly = true, IsEssential = true });
+                var autres = req.Query.Where(q => q.Key != "hl").Select(q => $"{Uri.EscapeDataString(q.Key)}={Uri.EscapeDataString(q.Value.ToString())}");
+                var rq = string.Join('&', autres);
+                var cible = (req.PathBase + req.Path).Value + (rq.Length > 0 ? "?" + rq : "");
+                ctx.Response.Redirect(cible);
+                return;
+            }
+            ctx.Items["lang"] = req.Cookies[CookieLanguePays] == "fr" ? "fr" : "en";
             await suite();
             return;
         }

@@ -682,6 +682,7 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
 
 /* Chambre des Communes : étiquette de chambre, fauteuil du président et bandes de groupes en bancs face à face (même rendu que les arcs de l'hémicycle). */
 .tag-ch.ch-commons, .ch-commons { --ch: #c8102e; }
+.tag-ch.ch-lords, .ch-lords { --ch: #8a1538; }
 .hemicycle .fauteuil { fill: var(--surface); stroke: var(--line); stroke-width: 2; }
 .hemicycle .bancs .arc { stroke-width: 5; stroke-linecap: round; fill: none; }
 /* Croissants face à face : dessin plus haut que large, limité en largeur et centré ; étiquettes de groupes à la taille de celles de l'hémicycle. */

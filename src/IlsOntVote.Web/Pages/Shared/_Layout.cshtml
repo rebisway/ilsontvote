@@ -106,22 +106,23 @@
                     @* Site d'un pays (Communes) : seulement ce qui existe pour lui. *@
                     @* Mêmes regroupements que le menu français : Textes / Parlementaires, puis Statistiques et Données. *@
                     <details class="plus" @Html.Raw(Actif("/textes") + Actif("/scrutin") + Actif("/bill") + Actif("/petition") != "" ? "data-actif" : "")>
-                        <summary>Texts</summary>
+                        <summary>@L.T("Textes", "Texts")</summary>
                         <div class="plus-liste">
-                            <a href="@L.Lien("/bills")" @Html.Raw(Actif("/bill"))>Bills</a>
-                            <a href="@L.Lien("/textes")" @Html.Raw(Actif("/textes") + Actif("/scrutin"))>Divisions</a>
-                            <a href="@L.Lien("/petitions")" @Html.Raw(Actif("/petition"))>Petitions</a>
+                            <a href="@L.Lien("/bills")" @Html.Raw(Actif("/bill"))>@L.T("Projets de loi", "Bills")</a>
+                            <a href="@L.Lien("/textes")" @Html.Raw(Actif("/textes") + Actif("/scrutin"))>@L.T("Scrutins (divisions)", "Divisions")</a>
+                            <a href="@L.Lien("/petitions")" @Html.Raw(Actif("/petition"))>@L.T("Pétitions", "Petitions")</a>
                         </div>
                     </details>
-                    <details class="plus" @Html.Raw(Actif("/member") + Actif("/elus") != "" ? "data-actif" : "")>
-                        <summary>Members</summary>
+                    <details class="plus" @Html.Raw(Actif("/member") + Actif("/lord") + Actif("/elus") != "" ? "data-actif" : "")>
+                        <summary>@L.T("Parlementaires", "Members")</summary>
                         <div class="plus-liste">
-                            <a href="@L.Lien("/members")" @Html.Raw(Actif("/member"))>MPs</a>
-                            <a href="@L.Lien("/elus")" @Html.Raw(Actif("/elus"))>Attendance</a>
+                            <a href="@L.Lien("/members")" @Html.Raw(Actif("/member"))>@L.T("Députés", "MPs")</a>
+                            <a href="@L.Lien("/lords")" @Html.Raw(Actif("/lord"))>@L.T("Pairs (Lords)", "Lords")</a>
+                            <a href="@L.Lien("/elus")" @Html.Raw(Actif("/elus"))>@L.T("Présence", "Attendance")</a>
                         </div>
                     </details>
-                    <a href="@L.Lien("/statistiques")" @Html.Raw(Actif("/statistiques"))>Statistics</a>
-                    <a href="@L.Lien("/donnees")" @Html.Raw(Actif("/donnees"))>Data</a>
+                    <a href="@L.Lien("/statistiques")" @Html.Raw(Actif("/statistiques"))>@L.T("Statistiques", "Statistics")</a>
+                    <a href="@L.Lien("/donnees")" @Html.Raw(Actif("/donnees"))>@L.T("Données", "Data")</a>
                 }
                 else
                 {
@@ -164,14 +165,11 @@
                     </div>
                 </details>
             }
-            @if (L.Pays is null)
-            {
             <nav class="langue" aria-label="@L.T("Langue", "Language")">
                 @* hl= mémorise le choix explicite (cookie) : sinon la langue du navigateur reprendrait la main *@
                 <a href="@L.Variante(false)@(L.Variante(false).Contains('?') ? "&" : "?")hl=fr" rel="nofollow" lang="fr" hreflang="fr" @Html.Raw(L.Anglais ? "" : "aria-current=\"true\"")>FR</a>
                 <a href="@L.Variante(false)@(L.Variante(false).Contains('?') ? "&" : "?")hl=en" rel="nofollow" lang="en" hreflang="en" @Html.Raw(L.Anglais ? "aria-current=\"true\"" : "")>EN</a>
             </nav>
-            }
             <button type="button" class="theme-btn" id="theme-btn" title="@L.T("Thème clair / sombre", "Light / dark theme")" aria-label="@L.T("Basculer entre thème clair et sombre", "Switch between light and dark theme")">◐</button>
             <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu-principal">☰ @L.T("Menu", "Menu")</button>
         </div>
@@ -185,7 +183,7 @@
         <div class="wrap">
             @if (L.Pays == "GB")
             {
-                <p>Source: <a href="https://commonsvotes-api.parliament.uk/">UK Parliament, Commons Votes API</a> (<a href="https://www.parliament.uk/site-information/copyright-parliament/open-parliament-licence/">Open Parliament Licence</a>).</p>
+                <p>Source: <a href="https://commonsvotes-api.parliament.uk/">UK Parliament, Commons and Lords Votes APIs</a> (<a href="https://www.parliament.uk/site-information/copyright-parliament/open-parliament-licence/">Open Parliament Licence</a>).</p>
             }
             else
             {

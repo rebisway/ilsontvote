@@ -843,6 +843,30 @@ public sealed class ImportRepository(string connectionString)
         await tx.CommitAsync();
     }
 
+    /// <summary>
+    /// Mandats DATÉS des pairs (entrée / sortie de la Chambre, d'après l'annuaire des membres) et leur parti. Remplace ceux des pairs fournis, sans toucher aux autres :
+    /// l'import d'une période n'efface jamais un pair d'une autre période. <c>legislature</c> reste NULL : un pair n'est pas élu pour une législature (comme au Sénat),
+    /// les requêtes acceptent déjà « legislature IS NULL ». Le parti est le DERNIER connu (la source ne donne pas l'historique) : un pair qui a changé de parti apparaît,
+    /// s'il est absent, dans son parti actuel ; ses votes, eux, portent le parti du jour.
+    /// </summary>
+    public async Task EcrirePairsAsync(IReadOnlyCollection<(string Id, DateOnly Debut, DateOnly? Fin, string? GroupeId)> pairs)
+    {
+        if (pairs.Count == 0) return;
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+        await using var tx = await conn.BeginTransactionAsync();
+        var ids = pairs.Select(p => p.Id).ToArray();
+        await conn.ExecuteAsync("DELETE FROM mandats WHERE parlementaire_id = ANY(@ids)", new { ids }, tx);
+        await conn.ExecuteAsync("DELETE FROM groupe_appartenances WHERE parlementaire_id = ANY(@ids)", new { ids }, tx);
+        await conn.ExecuteAsync(
+            "INSERT INTO mandats (parlementaire_id, legislature, date_debut, date_fin) VALUES (@Id, NULL, @Debut, @Fin)",
+            pairs.Select(p => new { p.Id, Debut = p.Debut.ToDateTime(default), Fin = p.Fin?.ToDateTime(default) }), tx);
+        await conn.ExecuteAsync(
+            "INSERT INTO groupe_appartenances (parlementaire_id, groupe_id, date_debut, date_fin) VALUES (@Id, @GroupeId, @Debut, @Fin)",
+            pairs.Where(p => p.GroupeId is not null).Select(p => new { p.Id, p.GroupeId, Debut = p.Debut.ToDateTime(default), Fin = p.Fin?.ToDateTime(default) }), tx);
+        await tx.CommitAsync();
+    }
+
     public async Task<(int Scrutins, long Votes, long Ignores)> EcrireScrutinsAsync(
         IEnumerable<ScrutinAvecVotes> scrutins, Annuaire annuaire, int tailleLot = 250)
     {

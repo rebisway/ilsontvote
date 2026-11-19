@@ -21,7 +21,7 @@ public class ElusModel(IStatistiquesRepository stats, Langue langue, PaysSite si
 
     public bool EnsembleSeul => Ensemble == "1";
     /// <summary>Sur le site d'un pays (/uk) : sa seule chambre, quel que soit le paramètre « chambre ».</summary>
-    public string ChambreCode => langue.Pays == "GB" ? Chambres.Commons
+    public string ChambreCode => langue.Pays == "GB" ? (Chambre == "lords" ? Chambres.Lords : Chambres.Commons)
         : Chambre switch { "senat" => Chambres.Senat, "ue" => Chambres.UE, "commons" => Chambres.Commons, _ => Chambres.AN };
     public string ChambreCle => Chambres.Filtre(ChambreCode);
     /// <summary>« perso » si une date est saisie, sinon « 12m » (défaut), « annee » ou « tout ».</summary>

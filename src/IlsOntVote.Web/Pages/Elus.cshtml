@@ -27,6 +27,13 @@
 
 <form class="filtres filtres-auto filtres-liste" method="get" action="@L.Lien("/elus")">
     <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("Chercher un nom ou un groupe…", "Search a name or a group…")" aria-label="@L.T("Chercher un élu", "Search an official")" />
+    @if (L.Pays is not null)
+    {
+    <select name="chambre" aria-label="@L.T("Chambre", "House")">
+        <option value="commons" selected="@(Model.ChambreCode == Chambres.Commons)">@L.T("Chambre des Communes", "House of Commons")</option>
+        <option value="lords" selected="@(Model.ChambreCode == Chambres.Lords)">@L.T("Chambre des Lords", "House of Lords")</option>
+    </select>
+    }
     @if (L.Pays is null)
     {
     <select name="chambre" aria-label="@L.T("Chambre", "Chamber")">

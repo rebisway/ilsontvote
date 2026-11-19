@@ -22,7 +22,7 @@ int[] LegislaturesCompletes = [15, 16, 17];
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var argv = args.ToList();
-if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements" or "communes" or "bills"))
+if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements" or "communes" or "lords" or "bills"))
 {
     Console.Error.WriteLine("Usage : IlsOntVote.Importer an [--legislature 17|15,16,17|all] [--scrutins-dir D --amo-dir D]");
     Console.Error.WriteLine("        IlsOntVote.Importer senat [--senateurs-dir D --dosleg-sql F]");
@@ -70,6 +70,7 @@ return argv[0] switch
     "planificateur" => await new Planificateur(connectionString).PasserAsync(),
     "amendements" => await ImporterAmendementsAsync(),
     "communes" => await ImporterCommunesAsync(),
+    "lords" => await ImporterLordsAsync(),
     "bills" => await ImporterBillsRoyaumeUniAsync(),
     _ => await ImporterTextesAsync(),
 };
@@ -441,6 +442,88 @@ async Task<int> ImporterCommunesAsync()
         if (terminee && vusTotal.Count > 0) await repo.EcrireMandatsDeduitsAsync(Chambres.Commons, leg.Numero, vusTotal, null, terminee: true);
 
         Console.WriteLine($"  {nbScrutins} divisions, {nbVotes} votes, {parlementaires.Count} députés.");
+        await repo.TerminerAsync(runId, true, nbScrutins, nbVotes, null);
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex);
+        await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
+        return 1;
+    }
+}
+
+/// <summary>
+/// Chambre des Lords (Royaume-Uni) : législature en cours, ou <c>--legislature N</c> (57, 58) pour l'historique. Une exécution : divisions (avec leurs votants), pairs de la
+/// période (annuaire daté : mandats donc absents déduits), puis écriture. Incrémental : une division déjà en base n'est relue que si elle a moins de 7 jours.
+/// </summary>
+async Task<int> ImporterLordsAsync()
+{
+    Console.WriteLine("=== Chambre des Lords (Royaume-Uni) ===");
+    var runId = await repo.DemarrerAsync("LORDS");
+    try
+    {
+        using var source = new LordsSource();
+        var limite = int.TryParse(Option("--limit"), out var l) ? l : int.MaxValue;
+        var numLeg = int.TryParse(Option("--legislature"), out var nl) ? nl : CommonsSource.Legislature;
+        var leg = CommonsSource.Legislatures.FirstOrDefault(x => x.Numero == numLeg)
+                  ?? throw new ArgumentException($"Législature {numLeg} inconnue (connues : {string.Join(", ", CommonsSource.Legislatures.Select(x => x.Numero))}).");
+        var (deja, plusRecent) = await repo.LireScrutinsAsync(Chambres.Lords);
+        var seuil = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-7);
+        // Passage courant : on ne relit que les dernières semaines (la source rend toutes les divisions d'une période en une seule série de pages) ; premier import ou historique : toute la période.
+        var depuis = leg.Fin is null && plusRecent is { } pr && pr >= leg.Debut ? (pr.AddDays(-8) > leg.Debut ? pr.AddDays(-8) : leg.Debut) : leg.Debut;
+        var divisions = (await source.ListerDivisionsAsync(depuis, leg.Fin))
+            .Where(d => !deja.Contains(LordsSource.IdScrutin(d.Id)) || d.Date >= seuil).OrderBy(d => d.Date).ThenBy(d => d.Id).Take(limite).ToList();
+        Console.WriteLine($"  {divisions.Count} divisions à écrire depuis {depuis:yyyy-MM-dd} (législature {leg.Numero}).");
+
+        var fin = leg.Fin ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var pairs = (await source.ListerPairsAsync(leg.Debut, fin)).GroupBy(p => p.Id).Select(g => g.First()).ToDictionary(p => p.Id);
+        Console.WriteLine($"  {pairs.Count} pairs en exercice sur la période.");
+
+        // Un votant absent de l'annuaire (donnée manquante côté membres) reçoit un mandat réduit à ses votes observés : jamais de vote sans siège.
+        foreach (var grp in divisions.SelectMany(d => d.Content.Concat(d.NonContent).Select(v => (v, d.Date))).GroupBy(x => x.v.MemberId))
+            if (!pairs.ContainsKey(grp.Key))
+            {
+                var v = grp.First().v;
+                pairs[grp.Key] = new PairLords(grp.Key, v.Nom, v.Sigle, v.Parti, v.Couleur, grp.Min(x => x.Date), grp.Max(x => x.Date));
+            }
+
+        var existants = await repo.LireSlugsAsync();
+        var slugs = existants.Values.ToHashSet();
+        var groupes = new Dictionary<string, GroupeRow>();
+        var parlementaires = new List<ParlementaireRow>();
+        foreach (var p in pairs.Values)
+        {
+            var pid = LordsSource.IdMembre(p.Id);
+            // Titre inclus dans le nom (« Baroness Adams of Craigielea ») : un pair est désigné par son titre ; prénom vide, adresse « baroness-adams-of-craigielea ».
+            var slug = existants.TryGetValue(pid, out var s0) ? s0 : Slugs.Unique(slugs, "", p.Nom, pid);
+            parlementaires.Add(new ParlementaireRow(pid, Chambres.Lords, null, "", p.Nom, slug, null, null));
+            if (p.Sigle is { } sg)
+            {
+                var gid = LordsSource.IdGroupe(sg);
+                groupes[gid] = new GroupeRow(gid, Chambres.Lords, null, sg, p.Parti ?? sg, p.Couleur, CommonsSource.OrdreParti(sg));
+            }
+        }
+        foreach (var d in divisions)
+            foreach (var v in d.Content.Concat(d.NonContent))
+            {
+                var gid = LordsSource.IdGroupe(v.Sigle);
+                if (!groupes.ContainsKey(gid)) groupes[gid] = new GroupeRow(gid, Chambres.Lords, null, v.Sigle, v.Parti, v.Couleur, CommonsSource.OrdreParti(v.Sigle));
+            }
+
+        await repo.EcrireMembresUeAsync(groupes.Values, parlementaires);   // upsert générique (le nom « Ue » est historique)
+        if (leg.Fin is null) await repo.InitialiserGouvernementAsync(Chambres.Lords, LordsSource.GroupeGouvernement);
+        await repo.EcrirePairsAsync(pairs.Values.Select(p => (LordsSource.IdMembre(p.Id), p.Debut, p.Fin, p.Sigle is { } sg ? LordsSource.IdGroupe(sg) : null)).ToList());
+
+        var annuaire = new Annuaire(groupes.Values.ToList(), parlementaires, [], []);
+        int nbScrutins = 0; long nbVotes = 0;
+        foreach (var lot in divisions.Chunk(50))
+        {
+            var (n, v2, _) = await repo.EcrireScrutinsAsync(lot.Select(LordsSource.VersScrutin).ToList(), annuaire);
+            nbScrutins += n; nbVotes += v2;
+            Console.WriteLine($"  {nbScrutins}/{divisions.Count} divisions écrites…");
+        }
+        Console.WriteLine($"  {nbScrutins} divisions, {nbVotes} votes, {pairs.Count} pairs.");
         await repo.TerminerAsync(runId, true, nbScrutins, nbVotes, null);
         return 0;
     }

@@ -39,7 +39,16 @@ public class IndexModel(IScrutinRepository scrutins, Langue langue, PaysSite sit
                 var sieges = await scrutins.GetSiegesAsync(s.Id);
                 cartes.Add(new CarteScrutin(s, HemicycleLayout.Construire(sieges, site.Disposition(s.Chambre))));
             }
-            Sections = [new SectionChambre(Chambres.Commons, cartes)];
+            // Lords : leurs dernières divisions (aucun « vote sur l'ensemble » à la Chambre haute), même dessin en bancs face à face.
+            var cartesLords = new List<CarteScrutin>();
+            foreach (var s in await scrutins.GetDernieresAsync(Chambres.Lords, CartesParChambre))
+            {
+                var sieges = await scrutins.GetSiegesAsync(s.Id);
+                cartesLords.Add(new CarteScrutin(s, HemicycleLayout.Construire(sieges, site.Disposition(s.Chambre))));
+            }
+            Sections = cartesLords.Count > 0
+                ? [new SectionChambre(Chambres.Commons, cartes), new SectionChambre(Chambres.Lords, cartesLords)]
+                : [new SectionChambre(Chambres.Commons, cartes)];
             return;
         }
         foreach (var chambre in new[] { Chambres.AN, Chambres.Senat, Chambres.UE })

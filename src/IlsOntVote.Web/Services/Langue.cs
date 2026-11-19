@@ -102,7 +102,7 @@ public sealed class Langue(IHttpContextAccessor accessor)
     /// <summary>Adresse de la page dans la langue demandée (true = anglais).</summary>
     public string Variante(bool anglais)
     {
-        // Sous un préfixe de pays l'interface est en anglais seulement : pas d'autre langue à proposer.
+        // Sous un préfixe de pays la langue ne change pas l'adresse (cookie) : la même page, le sélecteur ajoute « ?hl= ».
         if (Pays is not null) return (Ctx.Request.PathBase + Ctx.Request.Path).Value + (Ctx.Request.QueryString.Value ?? "");
         var chemin = Ctx.Request.Path.Value ?? "/";   // sans le préfixe /en (déplacé dans PathBase)
         var requete = Ctx.Request.QueryString.Value ?? "";

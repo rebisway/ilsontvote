@@ -31,6 +31,14 @@ else
     <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("Chercher un texte (ex. retraites, finances, immigration…)", "Search a text (e.g. pensions, finance, immigration…)")" aria-label="@L.T("Chercher un texte", "Search a text")" />
     @if (!string.IsNullOrEmpty(Model.TexteId)) { <input type="hidden" name="texte" value="@Model.TexteId" /> }
     @if (Model.Resolutions) { <input type="hidden" name="nature" value="resolution" /> }
+    @if (Model.SitePays)
+    {
+    <select name="chambre" aria-label="@L.T("Chambre", "House")">
+        <option value="" selected="@string.IsNullOrEmpty(Model.Chambre)">@L.T("Communes et Lords", "Commons and Lords")</option>
+        <option value="commons" selected="@(Model.Chambre == "commons")">@L.T("Chambre des Communes", "House of Commons")</option>
+        <option value="lords" selected="@(Model.Chambre == "lords")">@L.T("Chambre des Lords", "House of Lords")</option>
+    </select>
+    }
     @if (!Model.SitePays)
     {
     <select name="chambre" aria-label="@L.T("Chambre", "Chamber")">
@@ -42,7 +50,10 @@ else
     }
     <span class="periode"><label class="champ-date">@L.T("Du", "From") <input type="date" name="du" value="@Model.Du" aria-label="@L.T("Du (date de début)", "From (start date)")" /></label>
         <label class="champ-date">@L.T("au", "to") <input type="date" name="au" value="@Model.Au" aria-label="@L.T("Au (date de fin)", "To (end date)")" /></label></span>
+    @if (Model.Chambre != "lords" || !Model.SitePays)
+    {
     <label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" /> @(Model.SitePays ? "amendments, motions and other divisions" : L.T("amendements et articles", "amendments and articles"))</label>
+    }
     @* Tri : en-têtes de colonne (écran large) ou ces listes (téléphone). *@
     <select name="tri" class="tri-mobile" aria-label="@L.T("Trier par", "Sort by")">
         <option value="date" selected="@(Model.TriEffectif == "date")">@L.T("Trier : date", "Sort: date")</option>

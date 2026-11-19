@@ -24,7 +24,7 @@ public class StatistiquesModel(IStatistiquesRepository stats, Langue langue, Pay
 
     public bool EnsembleSeul => Ensemble == "1";
     /// <summary>Code de chambre validé (liste blanche) : AN par défaut.</summary>
-    public string ChambreCode => langue.Pays == "GB" ? Chambres.Commons : Chambre switch { "senat" => Chambres.Senat, "ue" => Chambres.UE, _ => Chambres.AN };
+    public string ChambreCode => langue.Pays == "GB" ? (Chambre == "lords" ? Chambres.Lords : Chambres.Commons) : Chambre switch { "senat" => Chambres.Senat, "ue" => Chambres.UE, _ => Chambres.AN };
     /// <summary>Chambre affichée sans filtre : l'Assemblée sur le site français, la chambre du pays sinon (le filtre « chambre » n'y existe pas).</summary>
     private string ChambreDefaut => langue.Pays == "GB" ? Chambres.Commons : Chambres.AN;
     public string ChambreCle => Chambres.Filtre(ChambreCode);

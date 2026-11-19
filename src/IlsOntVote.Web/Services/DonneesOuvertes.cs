@@ -3,6 +3,34 @@ using System.Text.Json;
 namespace IlsOntVote.Web.Services;
 
 /// <summary>Un fichier de données ouvertes tel que décrit par le manifeste écrit par l'importeur (commande « export »).</summary>
+/// <summary>
+/// Descriptions ANGLAISES des fichiers de données ouvertes, par nom de fichier. Le manifeste (écrit par l'importeur) ne porte que le français : cette table évite d'attendre
+/// un nouvel export pour traduire la page. Un fichier absent de la table garde sa description française (jamais de description inventée).
+/// </summary>
+public static class DescriptionsDonnees
+{
+    private static readonly Dictionary<string, string> En = new()
+    {
+        ["groupes"] = "Political groups (one identifier per legislature for the National Assembly).",
+        ["parlementaires"] = "Members of the French Parliament, the European Parliament, the House of Commons and the House of Lords (identity, department or country, constituency).",
+        ["mandats"] = "Terms of office (start = taking office; empty end = ongoing).",
+        ["appartenances_groupes"] = "Membership of a member in a group, with dates.",
+        ["scrutins"] = "Recorded votes: count, result, linked text (texte_id: vote on the whole text; texte_lie_id: amendment or article). UK divisions: bill_id and bill_etape when linked.",
+        ["votes"] = "Each member's vote in each recorded vote (for, against, abstention, non-voting). Absent members are not in this file.",
+        ["textes"] = "French laws: type, title, status, promulgation, Official Journal, Constitutional Council decision, official links.",
+        ["petitions"] = "Petitions from petitions.senat.fr, petitions.assemblee-nationale.fr and petition.parliament.uk (UK platform, when published): title, status as published by the source, committee and decision (Assembly), UK Parliament stages (government response, debate), number of citizen supporters.",
+        ["petitions_historique"] = "Successive readings of the number of supporters and the status of each Senate petition (append-only, one reading per import).",
+        ["petitions_anomalies"] = "Findings between two readings: drop in supporters, petition disappearing or reappearing from the source file. No cause is stated.",
+        ["bills"] = "UK Parliament bills (sessions 35 to 40, since December 2019): title, originating and current house, current stage, Royal Assent (Act), withdrawal or defeat, as published by bills-api.parliament.uk. Published only when the UK is active.",
+        ["bill_etapes"] = "Stages (sittings) of each UK bill: house, stage label, sitting date (empty = no published sitting). Published only when the UK is active.",
+        ["amendements_dossiers"] = "Amendments tabled in the National Assembly per legislative file (DLR reference): number tabled and published outcome (adopted, rejected, lapsed, not moved, withdrawn, inadmissible). Source: the \"Amendements\" dataset of data.assemblee-nationale.fr (16th and 17th legislatures).",
+        ["texte_etapes"] = "Floor decisions on a text (Assembly and Senate), with or without a recorded vote.",
+    };
+
+    /// <summary>Description anglaise du fichier (« votes.csv.gz »), ou null si la table ne la connaît pas.</summary>
+    public static string? Anglais(string fichier) => En.GetValueOrDefault(fichier.Split('.')[0]);
+}
+
 public sealed class FichierDonnees
 {
     public string Fichier { get; set; } = "";
