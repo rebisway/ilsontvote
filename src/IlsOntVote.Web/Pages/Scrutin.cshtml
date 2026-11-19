@@ -55,37 +55,35 @@
 }
 
 @{
-    // Prompt « Résumer avec une IA » : faits de la base + liens officiels (page du site, Légifrance, dossier du Sénat).
-    var urlPage = $"{Request.Scheme}://{Request.Host}{Request.PathBase}{Request.Path}";
-    var faitsPrompt = new List<string>
-    {
-        $"{Chambres.Nom(s.Chambre, L.Anglais)}, {s.DateScrutin.ToString("d MMMM yyyy", fr)}",
-        s.Sort is null ? "" : (s.Adopte ? L.T("Résultat : adopté", "Result: adopted") : L.T("Résultat : rejeté", "Result: rejected")),
-        L.T($"Votes : {s.NbPour} pour, {s.NbContre} contre, {s.NbAbstentions} abstentions", $"Votes: {s.NbPour} for, {s.NbContre} against, {s.NbAbstentions} abstentions"),
-        s.NominatifIncomplet ? L.T("Le détail nominatif publié est incomplet.", "The published individual vote list is incomplete.") : "",
-    };
-    var liensPrompt = new List<string> { urlPage };
-    if (Model.Loi is { } l0) { liensPrompt.Add(l0.UrlLegifrance ?? ""); liensPrompt.Add(l0.UrlDossierSenat ?? ""); }
+    // Prompt « Résumer avec une IA » : le CONTENU du texte (voir PromptResume) ; sources = projet britannique, Légifrance, dossiers de l'Assemblée et du Sénat.
+    var liensPrompt = new List<string>();
+    if (Model.Bill is { } b0) liensPrompt.Add("https://bills.parliament.uk/bills/" + b0.Id);
+    if (Model.Loi is { } l0) { liensPrompt.Add(l0.UrlLegifrance ?? ""); liensPrompt.Add(l0.UrlDossierAn ?? ""); liensPrompt.Add(l0.UrlDossierSenat ?? ""); }
+    var promptIA = PromptResume.Construire(L.Anglais, titre, liensPrompt);
 }
-<partial name="_ResumeIA" model="@PromptResume.Construire(L.Anglais, s.Chambre == Chambres.Commons ? "division" : L.T("scrutin", "vote"), titre, faitsPrompt, liensPrompt)" />
+@* Sans bloc « texte » (UE, vote isolé) : le bouton reste seul ; sinon il est dans la rangée des raccourcis du bloc. *@
+@if (Model.Loi is null && Model.Bill is null) { <partial name="_ResumeIA" model="promptIA" /> }
 @if (Model.Bill is { } bill)
 {
     <section class="bloc-texte" aria-label="Bill">
-        <p class="bloc-texte-titre"><span class="statut">Bill</span>
+        <div class="bloc-texte-titre"><span class="statut">Bill</span>
             <a href="@L.Lien("/bill/" + bill.Id)">@bill.Titre</a>
             @if (bill.Etape is not null) { <span class="note-source">· @bill.Etape</span> }
-            @Doute.Html(NiveauDoute.Calcule, "computed", "Linked by this site from the division title; Parliament does not publish this link.")</p>
+            @Doute.Html(NiveauDoute.Calcule, "computed", "Linked by this site from the division title; Parliament does not publish this link.")
+            <a class="raccourci" href="https://bills.parliament.uk/bills/@bill.Id" rel="noopener" target="_blank">Bill text ↗</a>
+            <partial name="_ResumeIA" model="promptIA" /></div>
     </section>
 }
 @if (Model.Loi is { } loi)
 {
     var statutLoi = loi.Statut.Traduit(L.Anglais);
     <section class="bloc-texte" aria-label="@L.T("Le texte voté", "The text voted")">
-        <p class="bloc-texte-titre"><span class="statut @statutLoi.Classe">@statutLoi.Libelle</span>
+        <div class="bloc-texte-titre"><span class="statut @statutLoi.Classe">@statutLoi.Libelle</span>
             <a class="raccourci" href="@L.Lien("/texte/" + loi.Id)">@L.T("Voir tout le parcours de ce texte →", "See this text's full journey →")</a>
             @if (!string.IsNullOrEmpty(loi.UrlLegifrance)) { <a class="raccourci" href="@loi.UrlLegifrance" rel="noopener" target="_blank">@L.T("Texte sur Légifrance", "Text on Légifrance") ↗</a> }
             @if (!string.IsNullOrEmpty(loi.UrlDossierSenat)) { <a class="raccourci" href="@loi.UrlDossierSenat" rel="noopener" target="_blank">@L.T("Dossier législatif", "Legislative file") ↗</a> }
-        </p>
+            <partial name="_ResumeIA" model="promptIA" />
+        </div>
         <p class="bloc-texte-faits">
             @if (loi.DatePromulgation is not null) { <span>@L.T("Promulgué le", "Promulgated on") <b>@loi.DatePromulgation.Value.ToString("d MMMM yyyy", fr)</b></span> }
             @if (loi.DateJo is not null) { <span>@L.T("Paru au Journal officiel le", "Published in the Official Journal on") <b>@loi.DateJo.Value.ToString("d MMMM yyyy", fr)</b></span> }

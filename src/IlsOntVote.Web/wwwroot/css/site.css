@@ -689,13 +689,17 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
 .hemicycle .bancs text { font-size: 13px; font-weight: 700; fill: var(--ink-soft); font-family: inherit; }
 /* Puces d'état dans les tableaux : compactes, sur une ligne ; un libellé long est abrégé (BillsModel.StatutCourt) et l'infobulle donne le texte complet. */
 .liste-textes td.col-statut .puce-statut { padding: 0 8px; font-size: 0.74rem; line-height: 1.5; max-width: 14rem; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
-/* Bouton « Résumer avec une IA » : repliable, discret, mêmes boutons que les raccourcis. */
-.resume-ia { margin: 0 0 14px; }
-.resume-ia > summary { cursor: pointer; display: inline-block; padding: 3px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font-size: 0.88rem; font-weight: 600; }
-.resume-ia[open] > summary { margin-bottom: 8px; }
+/* Bouton « Résumer avec une IA » : dans la rangée des raccourcis ; la liste des assistants s'ouvre en fenêtre flottante sous le bouton. */
+.resume-ia { position: relative; display: inline-block; margin: 0; }
+.resume-ia > summary { cursor: pointer; list-style: none; padding: 3px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font-size: 0.88rem; font-weight: 600; }
+.resume-ia > summary::-webkit-details-marker { display: none; }
+.resume-ia > summary::after { content: " ▾"; }
+.resume-ia[open] > summary { border-color: var(--ink-soft); }
+.resume-ia-panneau { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; width: min(30rem, calc(100vw - 32px)); padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0, 0, 0, .25); }
 .resume-ia-liste { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.resume-ia-liste .raccourci { padding: 3px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); text-decoration: none; font: inherit; font-size: 0.88rem; font-weight: 600; cursor: pointer; }
+.resume-ia-liste .raccourci, .resume-ia-liste button.raccourci { padding: 3px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); text-decoration: none; font: inherit; font-size: 0.88rem; font-weight: 600; cursor: pointer; }
 .resume-ia-liste .raccourci:hover { border-color: var(--ink-soft); }
+.resume-ia-panneau .note-source { margin: 10px 0 0; }
 /* Raccourcis d'un texte (parcours, Légifrance, dossier) : boutons discrets plutôt que liens perdus dans la ligne. */
 .bloc-texte-titre a.raccourci { padding: 3px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2, var(--surface)); color: var(--ink); text-decoration: none; font-size: 0.88rem; font-weight: 600; }
 .bloc-texte-titre a.raccourci:hover { border-color: var(--ink-soft); background: color-mix(in srgb, var(--pour) 10%, var(--surface)); }
