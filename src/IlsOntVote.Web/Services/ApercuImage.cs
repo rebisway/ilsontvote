@@ -39,43 +39,56 @@ public sealed class ApercuImage
     private static SKTypeface Charger(string chemin, SKFontStyle repli) =>
         (File.Exists(chemin) ? SKTypeface.FromFile(chemin) : null) ?? SKTypeface.FromFamilyName(null, repli);
 
-    /// <summary>Image d'un scrutin : titre, résultat, décomptes, hémicycle.</summary>
+    /// <summary>
+    /// Image d'un scrutin : marque, titre, hémicycle et décomptes, TOUT CENTRÉ. Pourquoi : WhatsApp, Telegram et d'autres messageries rognent l'image en carré autour de son centre
+    /// (constaté : « They voted » et « Who voted what? » coupés sur les côtés avec une mise en page à gauche). Tout ce qui compte tient donc dans la bande centrale de 630 px
+    /// (x de 285 à 915) ; les côtés de l'image 1200 × 630 ne portent rien d'essentiel.
+    /// </summary>
     public byte[] Scrutin(Scrutin s, HemicycleVue vue, bool en = false, bool royaumeUni = false)
     {
         using var surface = SKSurface.Create(new SKImageInfo(L, H));
         var c = surface.Canvas;
         c.Clear(Fond);
-        Marque(c, 36, royaumeUni);
+        MarqueCentree(c, 40, 60, royaumeUni);
 
         var fr = CultureInfo.GetCultureInfo(en ? "en-GB" : "fr-FR");
-        Texte(c, $"{Chambres.Nom(s.Chambre, en)} · {s.DateScrutin.ToString("d MMMM yyyy", fr)}", Marge, 132, 26, EncreDouce, _normal);
+        TexteCentre(c, $"{Chambres.Nom(s.Chambre, en)} · {s.DateScrutin.ToString("d MMMM yyyy", fr)}", 104, 24, EncreDouce, _normal);
 
-        // Titre : 3 lignes au plus, « … » si trop long.
-        var y = 196f;
-        // Croissants face à face (colonne de droite plus haute) : le titre ne dépasse pas la colonne de gauche, sinon il se superpose au dessin.
-        var largeurTitre = vue.FaceAFace ? 590f : L - 2 * Marge;
-        foreach (var ligne in Couper(s.TitreLangue(en), 46, largeurTitre, 3, _gras))
+        // Titre : 3 lignes au plus (2 pour les croissants, plus hauts), centré, dans la bande centrale.
+        var y = 156f;
+        foreach (var ligne in Couper(s.TitreLangue(en), 38, Bande, vue.FaceAFace ? 2 : 3, _gras))
         {
-            Texte(c, ligne, Marge, y, 46, Encre, _gras);
-            y += 56;
+            TexteCentre(c, ligne, y, 38, Encre, _gras);
+            y += 46;
         }
 
-        // Colonne gauche : résultat + décomptes.
+        // Décomptes en bas (une ligne centrée) : résultat, pour, contre, abstentions.
+        const float yBas = 596;
         var adopte = s.Adopte;
-        Texte(c, adopte ? (en ? "ADOPTED" : "ADOPTÉ") : (en ? "REJECTED" : "REJETÉ"), Marge, 420, 40, adopte ? Adopte : Contre, _gras);
-        Compteur(c, s.NbPour, en ? "for" : "pour", Pour, Marge, 520);
-        Compteur(c, s.NbContre, en ? "against" : "contre", Contre, Marge + 190, 520);
-        Compteur(c, s.NbAbstentions, "abst.", Abstention, Marge + 380, 520);
-
-        // Colonne droite : l'hémicycle, mêmes coordonnées que le SVG du site (1000 × 520) réduites de moitié.
-        // Demi-cercle : repère 1000 x 520 réduit de moitié ; croissants face à face (Communes) : repère propre à la vue, mis à l'échelle pour tenir dans la colonne.
-        float echelle = 0.5f, ox = 640, oy = 345;
-        if (vue.FaceAFace)
+        var segments = new List<(string Texte, SKColor Couleur, SKTypeface Police)>
         {
-            echelle = Math.Min(540f / (float)vue.LargeurVue, 470f / (float)vue.HauteurVue);
-            ox = 620 + (560f - (float)vue.LargeurVue * echelle) / 2;
-            oy = 110;
+            (adopte ? (en ? "ADOPTED" : "ADOPTÉ") : (en ? "REJECTED" : "REJETÉ"), adopte ? Adopte : Contre, _gras),
+            ("   ", Encre, _normal),
+            ($"{s.NbPour?.ToString("N0", fr) ?? "—"} {(en ? "for" : "pour")}", Pour, _gras),
+            ("  ", Encre, _normal),
+            ($"{s.NbContre?.ToString("N0", fr) ?? "—"} {(en ? "against" : "contre")}", Contre, _gras),
+            ("  ", Encre, _normal),
+            ($"{s.NbAbstentions?.ToString("N0", fr) ?? "—"} abst.", Abstention, _gras),
+        };
+        var total = segments.Sum(g => { using var f = new SKFont(g.Police, 28); return Mesure(f, g.Texte); });
+        var x = (L - total) / 2;
+        foreach (var g in segments)
+        {
+            Texte(c, g.Texte, x, yBas, 28, g.Couleur, g.Police);
+            using var f = new SKFont(g.Police, 28);
+            x += Mesure(f, g.Texte);
         }
+
+        // Hémicycle : mêmes coordonnées que le SVG du site, mis à l'échelle pour tenir entre le titre et les décomptes, centré.
+        var haut = y + 16;
+        var dispo = 548 - haut;
+        var echelle = Math.Min(Bande / (float)vue.LargeurVue, dispo / (float)vue.HauteurVue);
+        var ox = (L - (float)vue.LargeurVue * echelle) / 2;
         using var pinceau = new SKPaint { IsAntialias = true };
         var rayon = Math.Max(1.4f, (float)vue.Rayon * echelle);
         foreach (var siege in vue.Sieges)
@@ -84,27 +97,48 @@ public sealed class ApercuImage
             {
                 Pos.Pour => Pour, Pos.Contre => Contre, Pos.Abstention => Abstention, Pos.NonVotant => NonVotant, _ => Absent,
             };
-            c.DrawCircle(ox + (float)siege.X * echelle, oy + (float)siege.Y * echelle, rayon, pinceau);
+            c.DrawCircle(ox + (float)siege.X * echelle, haut + (float)siege.Y * echelle, rayon, pinceau);
         }
         return Encoder(surface);
     }
 
-    /// <summary>Image générale du site (pages sans aperçu propre) : marque et question.</summary>
+    /// <summary>Largeur de la bande centrale qui survit au rognage carré des messageries.</summary>
+    private const float Bande = 600;
+
+    /// <summary>
+    /// Image générale du site (pages sans aperçu propre) : marque, question et un petit hémicycle de points, centrés (voir <see cref="Scrutin"/> : rognage carré des messageries).
+    /// Le dessin est un exemple fixe (pas un vrai vote) : il montre à quoi ressemble le site.
+    /// </summary>
     public byte[] Defaut(bool en = false, bool royaumeUni = false)
     {
         using var surface = SKSurface.Create(new SKImageInfo(L, H));
         var c = surface.Canvas;
         c.Clear(Fond);
-        Marque(c, 72, royaumeUni);
-        Texte(c, en ? "Who voted what?" : "Qui a voté quoi ?", Marge, 330, 84, Encre, _gras);
-        if (royaumeUni)
+        MarqueCentree(c, 76, 112, royaumeUni);
+        TexteCentre(c, en ? "Who voted what?" : "Qui a voté quoi ?", 196, 60, Encre, _gras);
+        var phrase = royaumeUni
+            ? "How every MP and peer voted in Parliament, division by division. Official data, free software."
+            : en ? "How every French deputy, senator and MEP voted, law by law. Official data, free software."
+                 : "Le vote de chaque député, sénateur et eurodéputé, texte par texte. Données officielles, code libre.";
+        var y = 250f;
+        foreach (var ligne in Couper(phrase, 28, Bande, 3, _normal)) { TexteCentre(c, ligne, y, 28, EncreDouce, _normal); y += 36; }
+
+        // Demi-cercle d'exemple : rangées de points colorées par secteurs (pour, contre, abstention, absents), centre en bas de l'image.
+        using var pinceau = new SKPaint { IsAntialias = true };
+        const float cx = L / 2f, cy = 618;
+        for (var rang = 0; rang < 6; rang++)
         {
-            Texte(c, "How every MP voted in the House of Commons,", Marge, 410, 34, EncreDouce, _normal);
-            Texte(c, "division by division. Official data, free software.", Marge, 456, 34, EncreDouce, _normal);
-            return Encoder(surface);
+            var r = 150f + rang * 24f;
+            var n = (int)(Math.PI * r / 16.5f);
+            for (var i = 0; i < n; i++)
+            {
+                var angle = Math.PI - Math.PI * (i + 0.5) / n;
+                var part = (double)i / n;
+                // Secteurs fixes + quelques points « absents » répartis : lisible dès la miniature.
+                pinceau.Color = (i * 7 + rang * 3) % 11 == 0 ? Absent : part < 0.46 ? Pour : part < 0.58 ? Abstention : part < 0.92 ? Contre : Pour;
+                c.DrawCircle(cx + (float)(r * Math.Cos(angle)), cy - (float)(r * Math.Sin(angle)), 6f, pinceau);
+            }
         }
-        Texte(c, en ? "How every French deputy, senator and MEP" : "Le vote de chaque député, sénateur et eurodéputé,", Marge, 410, 34, EncreDouce, _normal);
-        Texte(c, en ? "voted, law by law. Official data, free software." : "texte par texte. Données officielles, code libre.", Marge, 456, 34, EncreDouce, _normal);
         return Encoder(surface);
     }
 
@@ -122,16 +156,23 @@ public sealed class ApercuImage
         return data.ToArray();
     }
 
-    /// <summary>« Ils ont voté » avec « voté » en rouge, comme dans l'en-tête du site.</summary>
-    private void Marque(SKCanvas c, float taille = 36, bool royaumeUni = false)
+    /// <summary>« Ils ont voté » (ou « They voted ») centré, « voté » en rouge comme dans l'en-tête du site.</summary>
+    private void MarqueCentree(SKCanvas c, float taille, float y, bool royaumeUni)
     {
         using var police = new SKFont(_gras, taille);
         using var p = new SKPaint { IsAntialias = true, Color = Encre };
-        // Site britannique : « They voted » (même mise en page, « voted » en rouge).
         var debut = royaumeUni ? "They " : "Ils ont ";
-        c.DrawText(debut, Marge, 84, police, p);
+        var fin = royaumeUni ? "voted" : "voté";
+        var x = (L - Mesure(police, debut + fin)) / 2;
+        c.DrawText(debut, x, y, police, p);
         p.Color = Contre;
-        c.DrawText(royaumeUni ? "voted" : "voté", Marge + Mesure(police, debut), 84, police, p);
+        c.DrawText(fin, x + Mesure(police, debut), y, police, p);
+    }
+
+    private void TexteCentre(SKCanvas c, string texte, float y, float taille, SKColor couleur, SKTypeface police)
+    {
+        using var f = new SKFont(police, taille);
+        Texte(c, texte, (L - Mesure(f, texte)) / 2, y, taille, couleur, police);
     }
 
     private void Compteur(SKCanvas c, int? valeur, string libelle, SKColor couleur, float x, float y)

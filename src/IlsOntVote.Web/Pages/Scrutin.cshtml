@@ -175,6 +175,21 @@
     }
 </ul>
 
+@{
+    // Communes : le décompte officiel est le nombre de noms des listes « ayes » / « noes » ; les scrutateurs (tellers) sont listés à part par la source. Ils ont voté et figurent dans les
+    // points, la légende et les totaux par groupe : l'écart avec l'en-tête (ex. 290 / 94 contre 292 / 96) est EXPLIQUÉ ici, et non laissé à deviner (ce n'est pas un effet des procurations).
+    var pourListe = Model.Sieges.Count(x => x.Position == Pos.Pour);
+    var contreListe = Model.Sieges.Count(x => x.Position == Pos.Contre);
+    var ecartPour = pourListe - (s.NbPour ?? 0);
+    var ecartContre = contreListe - (s.NbContre ?? 0);
+    var procurations = Model.Sieges.Count(x => x.ParDelegation && (x.Position == Pos.Pour || x.Position == Pos.Contre));
+}
+@if (s.Chambre == Chambres.Commons && (ecartPour > 0 || ecartContre > 0))
+{
+    <p class="note-source">@Doute.Html(NiveauDoute.Calcule, L.T("scrutateurs", "tellers"), L.T("Écart calculé par le site entre le décompte officiel et les votes listés : il correspond aux scrutateurs, que la source liste à part.", "Difference calculated by the site between the official count and the listed votes: it matches the tellers, whom the source lists separately."))
+        @L.T($"Le décompte officiel ({s.NbPour} pour, {s.NbContre} contre) est le nombre de noms des listes « ayes » et « noes ». Les scrutateurs ({ecartPour} pour, {ecartContre} contre), listés à part par la source, ont voté : ils figurent dans l'hémicycle et les totaux par groupe ({pourListe} pour, {contreListe} contre). Les votes par procuration ({procurations}) sont compris dans les deux décomptes.",
+             $"The official count ({s.NbPour} ayes, {s.NbContre} noes) is the number of names in the ayes and noes lists. The tellers ({ecartPour} ayes, {ecartContre} noes), listed separately by the source, voted: they appear in the seating chart and the group totals ({pourListe} ayes, {contreListe} noes). Proxy votes ({procurations}) are included in both counts.")</p>
+}
 @if (!string.IsNullOrWhiteSpace(s.Note))
 {
     @if (s.Chambre == Chambres.UE)
