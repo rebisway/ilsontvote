@@ -263,10 +263,10 @@ app.MapGet("/sitemap-{prefixe}.xml", async (string prefixe, PaysSite pays, Dappe
     var chambres = pays.ChambresVisibles(p.Code);
     var urls = new List<(string, string?)>();
     var aujourdhui = DateTime.UtcNow.ToString("yyyy-MM-dd");
-    foreach (var u in new[] { "/", "/textes", "/members", "/elus", "/statistiques", "/bills", "/petitions", "/donnees" }) urls.Add((u, aujourdhui));
+    foreach (var u in new[] { "/", "/textes", "/members", "/lords", "/elus", "/statistiques", "/bills", "/petitions", "/donnees" }) urls.Add((u, aujourdhui));
     foreach (var u in new[] { "/methodologie", "/mentions-legales" }) urls.Add((u, null));
     urls.AddRange((await cx.QueryAsync<(string, DateTime)>("SELECT '/scrutin/' || id, date_scrutin FROM scrutins WHERE chambre = ANY(@c)", new { c = chambres })).Select(r => (r.Item1, (string?)r.Item2.ToString("yyyy-MM-dd"))));
-    urls.AddRange((await cx.QueryAsync<string>("SELECT '/member/' || slug FROM parlementaires WHERE chambre = ANY(@c)", new { c = chambres })).Select(u => (u, (string?)null)));
+    urls.AddRange((await cx.QueryAsync<string>("SELECT CASE chambre WHEN 'LORDS' THEN '/lord/' ELSE '/member/' END || slug FROM parlementaires WHERE chambre = ANY(@c)", new { c = chambres })).Select(u => (u, (string?)null)));
     urls.AddRange((await cx.QueryAsync<string>("SELECT '/bill/' || id FROM bills")).Select(u => (u, (string?)null)));
     var sb = new System.Text.StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
     foreach (var (u, date) in urls)
