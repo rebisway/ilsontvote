@@ -32,6 +32,7 @@ public class LoisModel(ITexteRepository textes, Langue langue) : ListePageModel
         ("rejete", "Rejetés, caducs ou retirés", "Rejected, lapsed or withdrawn"),
         ("cc", "Passés devant le Conseil constitutionnel", "Referred to the Constitutional Council"),
         ("censure", "Censurés (en tout ou partie)", "Struck down (in whole or in part)"),
+        ("49-3", "Adoptés par 49.3 (sans vote)", "Adopted under 49.3 (without a vote)"),
     ];
 
     public Resultats<Texte> Resultats { get; private set; } = new([], 0, 1, 30);
@@ -59,6 +60,7 @@ public class LoisModel(ITexteRepository textes, Langue langue) : ListePageModel
         new("Amendements au scrutin public (calculé)", t => t.NbAmendementsScrutins),
         new("Adopté par l'Assemblée", t => t.AdopteAn),
         new("Adopté par le Sénat", t => t.AdopteSenat),
+        new("Au moins une lecture adoptée par l'article 49-3 (sans vote)", t => t.Adopte493),
         new("Numéro de loi", t => t.NumeroLoi),
         new("Date de promulgation", t => t.DatePromulgation),
         new("Date de parution au JO", t => t.DateJo),

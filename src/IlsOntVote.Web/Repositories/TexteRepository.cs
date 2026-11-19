@@ -107,6 +107,8 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
         "rejete" => "AND etat_code IN ('03','05','06')",
         "cc" => "AND decision_cc_code IS NOT NULL",
         "censure" => "AND decision_cc_code IN ('02','03')",
+        // Au moins une lecture adoptée sans vote sur le texte (article 49, alinéa 3) : colonne adopte_493 (une étape `article_49_3` du texte).
+        "49-3" => "AND adopte_493",
         _ => "",
     };
 

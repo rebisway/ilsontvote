@@ -94,6 +94,10 @@ else
                         {
                             <span class="tag-ch @c.Classe" title="@c.Infobulle" tabindex="0">@c.Etiquette @c.Symbole</span>
                         }
+                        @if (t.Adopte493)
+                        {
+                            <span class="tag-ch ch-493" title="@L.T("Au moins une lecture de ce texte a été adoptée SANS VOTE sur le texte, par l'article 49, alinéa 3 de la Constitution : le Gouvernement engage sa responsabilité et le texte est considéré comme adopté sauf si une motion de censure est votée.", "At least one reading of this text was adopted WITHOUT A VOTE on the text, under article 49, paragraph 3 of the Constitution: the Government stakes its responsibility and the text is deemed adopted unless a censure motion passes.")" tabindex="0">49.3</span>
+                        }
                         @if (t.NbAmendements is { } na)
                         {
                             // Officiel : effectif publié par l'Assemblée. L'infobulle donne le sort ; la dernière ligne est le seul chiffre calculé par nous.
