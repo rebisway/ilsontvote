@@ -49,7 +49,7 @@ public class ParlementaireModel(IParlementaireRepository parlementaires, PaysSit
     /// Aux Communes, aucun vote n'est rattaché à un texte « sur l'ensemble » : le filtre par défaut viderait l'historique, donc toutes les divisions sont listées
     /// (et la case « amendements et articles » est masquée). Ailleurs : selon la case.
     /// </summary>
-    public bool ToutAfficher => Portee == "tout" || Chambre == Chambres.Commons;
+    public bool ToutAfficher => Portee == "tout";
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {

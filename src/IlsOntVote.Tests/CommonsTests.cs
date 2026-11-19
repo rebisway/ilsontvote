@@ -108,4 +108,12 @@ public class CommonsTests
         var l = CommonsSource.Legislatures.OrderBy(x => x.Debut).ToList();
         for (var k = 1; k < l.Count; k++) Assert.True(l[k - 1].Fin < l[k].Debut);
     }
+
+    [Theory]
+    [InlineData("Immigration and Asylum Bill: Third Reading", true)]
+    [InlineData("Finance (No. 2) Bill: third reading", true)]
+    [InlineData("Immigration and Asylum Bill Report Stage: New Clause 62", false)]
+    [InlineData("Opposition day: UK-EU relations", false)]
+    [InlineData("Third Reading: Amendment (a)", false)]
+    public void Troisieme_lecture_est_le_vote_sur_l_ensemble(string titre, bool attendu) => Assert.Equal(attendu, CommonsSource.EstTroisiemeLecture(titre));
 }

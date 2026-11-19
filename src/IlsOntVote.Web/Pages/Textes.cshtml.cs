@@ -33,7 +33,7 @@ public class TextesModel(IScrutinRepository scrutins, Langue langue) : ListePage
     public Resultats<Scrutin> Resultats { get; private set; } = new([], 0, 1, 30);
 
     /// <summary>Toutes les divisions sur le site d'un pays (aucune n'est rattachée à un texte « sur l'ensemble » : un filtre vide la liste) ; sinon selon la case « amendements et articles ».</summary>
-    public bool ToutAfficher => Portee == "tout" || SitePays;
+    public bool ToutAfficher => Portee == "tout";
 
     protected override string TriDefaut => "date";
     protected override IReadOnlyCollection<string> ClesTri { get; } = [.. ScrutinRepository.ClesTri];

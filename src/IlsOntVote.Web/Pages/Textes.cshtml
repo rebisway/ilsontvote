@@ -19,7 +19,7 @@ else
 @* chapô des scrutins : voir plus bas *@
 @if (Model.SitePays)
 {
-    <p class="chapo">Every recorded vote (division) of the House of Commons since July 2024, most recent first. Click a column title to sort; export the table in CSV or JSON. Members who did not vote are shown as absent only when the published lists are complete.</p>
+    <p class="chapo">Votes on the whole bill (third readings) of the House of Commons since December 2019, most recent first; tick the box to include every other recorded vote (division): amendments, motions, opposition days. A third reading is this site's way of finding the vote on the whole bill; Parliament does not publish that distinction. Click a column title to sort; export the table in CSV or JSON. Members who did not vote are shown as absent only when the published lists are complete.</p>
 }
 else
 {
@@ -42,10 +42,7 @@ else
     }
     <span class="periode"><label class="champ-date">@L.T("Du", "From") <input type="date" name="du" value="@Model.Du" aria-label="@L.T("Du (date de début)", "From (start date)")" /></label>
         <label class="champ-date">@L.T("au", "to") <input type="date" name="au" value="@Model.Au" aria-label="@L.T("Au (date de fin)", "To (end date)")" /></label></span>
-    @if (!Model.SitePays)
-    {
-        <label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" /> @L.T("amendements et articles", "amendments and articles")</label>
-    }
+    <label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" /> @(Model.SitePays ? "amendments, motions and other divisions" : L.T("amendements et articles", "amendments and articles"))</label>
     @* Tri : en-têtes de colonne (écran large) ou ces listes (téléphone). *@
     <select name="tri" class="tri-mobile" aria-label="@L.T("Trier par", "Sort by")">
         <option value="date" selected="@(Model.TriEffectif == "date")">@L.T("Trier : date", "Sort: date")</option>

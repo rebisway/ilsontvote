@@ -30,11 +30,11 @@ public class IndexModel(IScrutinRepository scrutins, Langue langue, PaysSite sit
     public async Task OnGetAsync()
     {
         var sections = new List<SectionChambre>();
-        // Site d'un pays (/uk) : les derniers scrutins de sa chambre, dessinés selon sa disposition (bancs face à face aux Communes).
+        // Site d'un pays (/uk) : les derniers votes sur l'ensemble (troisièmes lectures) de sa chambre, dessinés selon sa disposition (bancs face à face aux Communes).
         if (langue.Pays == "GB")
         {
             var cartes = new List<CarteScrutin>();
-            foreach (var s in await scrutins.GetDernieresAsync(Chambres.Commons, CartesParChambre + 2))
+            foreach (var s in await scrutins.GetAccueilAsync(Chambres.Commons, CartesParChambre + 2))
             {
                 var sieges = await scrutins.GetSiegesAsync(s.Id);
                 cartes.Add(new CarteScrutin(s, HemicycleLayout.Construire(sieges, site.Disposition(s.Chambre))));

@@ -63,8 +63,8 @@ public sealed class ScrutinRepository(DapperContext db, PaysSite site, Langue la
         var recents = await conn.QueryAsync<Scrutin>(
             $"""
              SELECT {Colonnes} FROM scrutins
-              WHERE chambre = @chambre AND sur_ensemble AND NOT nominatif_incomplet
-                AND (chambre = 'UE' OR titre ~* '(projet|proposition) de loi') -- UE : titres anglais, `sur_ensemble` = vote principal de la procédure
+              WHERE chambre = @chambre AND sur_ensemble AND (NOT nominatif_incomplet OR chambre = 'COMMONS')
+                AND (chambre IN ('UE', 'COMMONS') OR titre ~* '(projet|proposition) de loi') -- UE : titres anglais, `sur_ensemble` = vote principal de la procédure
               ORDER BY date_scrutin DESC, numero DESC LIMIT @max
              """, new { chambre, max });
         return recents.ToList();
@@ -143,7 +143,7 @@ public sealed class ScrutinRepository(DapperContext db, PaysSite site, Langue la
             WHERE ((@chambre IS NULL AND chambre <> 'UE') OR chambre = @chambre)
               AND chambre = ANY(@visibles)   -- seulement les chambres du site courant (voir Visibles)
               AND (NOT @ensemble OR sur_ensemble)
-              AND NOT (nominatif_incomplet AND @ensemble)
+              AND NOT (nominatif_incomplet AND @ensemble AND chambre <> 'COMMONS')   -- Communes : incomplets conservés (alerte sur la fiche)
               AND (recherche_norm(titre) ILIKE ALL (@mots) OR recherche_norm(titre_en) ILIKE ALL (@mots))   -- aussi dans le titre anglais ; tirets = espaces
               -- Période : bornes incluses ; `date_scrutin` est une date (sans heure).
               AND (@du::date IS NULL OR date_scrutin >= @du::date)

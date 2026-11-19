@@ -155,6 +155,14 @@ public sealed class CommonsSource : IDisposable
     /// - si les listes ne totalisent pas les décomptes officiels (constaté : l'API est corrigée après publication), le scrutin est marqué incomplet
     ///   et la note donne les deux chiffres, sans choisir.
     /// </summary>
+    /// <summary>
+    /// Vote sur l'ensemble d'un projet de loi, version britannique : la division de « Third Reading » (dernière lecture aux Communes, titre « X Bill: Third Reading »).
+    /// Équivalent CALCULÉ par le site du « vote sur l'ensemble » français (le Parlement ne publie pas cette distinction) : il sert à l'accueil, au filtre par défaut
+    /// des listes et aux statistiques. Les amendements, motions et « Opposition Day » ne comptent pas.
+    /// </summary>
+    public static bool EstTroisiemeLecture(string titre) =>
+        System.Text.RegularExpressions.Regex.IsMatch(titre, @"\bthird reading\s*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
     public static ScrutinAvecVotes VersScrutin(DivisionCommons d)
     {
         var id = IdScrutin(d.Id);
@@ -177,7 +185,7 @@ public sealed class CommonsSource : IDisposable
         var scrutin = new ScrutinRow(
             // Numéro : l'identifiant de division (unique sur toute la législature). Le numéro de division de la session repart de 1 chaque session et
             // violerait la contrainte unique (chambre, législature, numéro) de scrutins (constaté) : il est repris dans le libellé du type de vote.
-            id, Chambres.Commons, LegislatureDu(d.Date), d.Id, d.Date, d.Titre, "division", Sort(d.OfficielPour, d.OfficielContre), null, false,
+            id, Chambres.Commons, LegislatureDu(d.Date), d.Id, d.Date, d.Titre, "division", Sort(d.OfficielPour, d.OfficielContre), null, EstTroisiemeLecture(d.Titre),
             d.OfficielPour + d.OfficielContre, d.OfficielPour, d.OfficielContre, deuxListes.Count, null, null,
             manquants, notes.Count == 0 ? null : string.Join(" ", notes), $"Division no. {d.Numero} of the session (recorded vote; no formal abstention in the Commons)", null, null, null, d.Titre);
         return new ScrutinAvecVotes(scrutin, votes);
