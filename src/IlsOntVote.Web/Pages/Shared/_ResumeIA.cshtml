@@ -1,0 +1,53 @@
+@model string
+@* Bouton « Résumer avec une IA » : le modèle est le prompt (voir PromptResume). Aucun appel serveur : liens vers l'assistant choisi ; pour ceux dont l'adresse
+   n'accepte pas de pré-remplissage fiable, le prompt est copié dans le presse-papiers puis le site s'ouvre (à coller). *@
+@{
+    // (nom, adresse, pré-remplissage ?) : vrai = l'adresse accepte le prompt en paramètre. Les trois assistants chinois n'ont pas de pré-remplissage documenté : copier puis coller.
+    (string Nom, string Url, bool Prefill)[] assistants =
+    [
+        ("ChatGPT", "https://chatgpt.com/?q=", true),
+        ("Claude", "https://claude.ai/new?q=", true),
+        ("Mistral", "https://chat.mistral.ai/chat?q=", true),
+        ("Perplexity", "https://www.perplexity.ai/search?q=", true),
+        ("DeepSeek", "https://chat.deepseek.com/", false),
+        ("Qwen", "https://chat.qwen.ai/", false),
+        ("Kimi", "https://www.kimi.com/", false),
+    ];
+    var q = Uri.EscapeDataString(Model);
+}
+<details class="resume-ia" data-prompt="@Model">
+    <summary>@L.T("Résumer avec une IA", "Summarize with an AI")</summary>
+    <div class="resume-ia-liste">
+        @foreach (var a in assistants)
+        {
+            if (a.Prefill)
+            {
+                <a class="raccourci" href="@(a.Url + q)" target="_blank" rel="noopener noreferrer">@a.Nom ↗</a>
+            }
+            else
+            {
+                <a class="raccourci" href="@a.Url" target="_blank" rel="noopener noreferrer" data-copie>@a.Nom ↗</a>
+            }
+        }
+        <button type="button" class="raccourci" data-copier>@L.T("Copier le prompt", "Copy prompt")</button>
+        <span class="note-source" role="status" data-etat></span>
+    </div>
+    <p class="note-source">@L.T("Outil externe, non officiel : le site n'envoie rien tant que vous ne cliquez pas, et une IA peut se tromper. Le prompt ne contient que des données publiques de cette page. Pour les outils sans pré-remplissage, le prompt est copié : collez-le.", "External tool, not official: nothing is sent until you click, and an AI can make mistakes. The prompt only contains public data from this page. For tools that cannot be pre-filled, the prompt is copied: paste it.")</p>
+</details>
+<script>
+(function () {
+    var d = document.currentScript.previousElementSibling;
+    var etat = d.querySelector('[data-etat]');
+    function copier() {
+        var p = d.getAttribute('data-prompt');
+        var ok = function () { etat.textContent = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(L.T("Prompt copié : collez-le dans l'assistant.", "Prompt copied: paste it into the assistant."))); };
+        try { return navigator.clipboard.writeText(p).then(ok); } catch (e) { }
+        var t = document.createElement('textarea'); t.value = p; document.body.appendChild(t); t.select();
+        try { document.execCommand('copy'); ok(); } catch (e) { }
+        document.body.removeChild(t);
+    }
+    d.addEventListener('click', function (e) {
+        if (e.target.closest('[data-copier], [data-copie]')) copier();
+    });
+})();
+</script>

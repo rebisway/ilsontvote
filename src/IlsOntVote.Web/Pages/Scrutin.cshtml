@@ -54,6 +54,20 @@
     typeVote = char.ToUpperInvariant(typeVote[0]) + typeVote[1..];
 }
 
+@{
+    // Prompt « Résumer avec une IA » : faits de la base + liens officiels (page du site, Légifrance, dossier du Sénat).
+    var urlPage = $"{Request.Scheme}://{Request.Host}{Request.PathBase}{Request.Path}";
+    var faitsPrompt = new List<string>
+    {
+        $"{Chambres.Nom(s.Chambre, L.Anglais)}, {s.DateScrutin.ToString("d MMMM yyyy", fr)}",
+        s.Sort is null ? "" : (s.Adopte ? L.T("Résultat : adopté", "Result: adopted") : L.T("Résultat : rejeté", "Result: rejected")),
+        L.T($"Votes : {s.NbPour} pour, {s.NbContre} contre, {s.NbAbstentions} abstentions", $"Votes: {s.NbPour} for, {s.NbContre} against, {s.NbAbstentions} abstentions"),
+        s.NominatifIncomplet ? L.T("Le détail nominatif publié est incomplet.", "The published individual vote list is incomplete.") : "",
+    };
+    var liensPrompt = new List<string> { urlPage };
+    if (Model.Loi is { } l0) { liensPrompt.Add(l0.UrlLegifrance ?? ""); liensPrompt.Add(l0.UrlDossierSenat ?? ""); }
+}
+<partial name="_ResumeIA" model="@PromptResume.Construire(L.Anglais, s.Chambre == Chambres.Commons ? "division" : L.T("scrutin", "vote"), titre, faitsPrompt, liensPrompt)" />
 @if (Model.Bill is { } bill)
 {
     <section class="bloc-texte" aria-label="Bill">
