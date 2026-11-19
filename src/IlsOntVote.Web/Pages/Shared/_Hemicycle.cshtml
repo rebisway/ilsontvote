@@ -7,6 +7,11 @@
     var vue = Model.Vue;
     string F(double d) => d.ToString("0.#", inv);
 
+    // Rayon de l'arc des groupes et des étiquettes. Hémicycle de peu de sièges (Sénat des États-Unis) : les points sont GROS (rayon > 11) et débordent sur l'arc fixe : l'arc est alors
+    // repoussé au-delà du dernier rang de points. Grandes chambres : valeurs d'origine, dessin inchangé.
+    var rArc = vue.Rayon > 11 ? HemicycleLayout.RayonMax + vue.Rayon + 12 : HemicycleLayout.RayonArc;
+    var rEtiq = rArc + (HemicycleLayout.RayonEtiquette - HemicycleLayout.RayonArc);
+
     // Chaque groupe reçoit une classe g0, g1… dont la couleur est définie UNE fois dans un <style> propre à ce
     // dessin (l'identifiant le rend indépendant des autres hémicycles de la page) : plus léger qu'un style par point.
     var id = "h" + Guid.NewGuid().ToString("N")[..8];
@@ -30,7 +35,7 @@
         return $"M{F(x1)} {F(y1)}A{F(r)} {F(r)} 0 {grand} 1 {F(x2)} {F(y2)}";
     }
 }
-<svg id="@id" class="hemicycle@(vue.FaceAFace ? " faceaface" : "")" viewBox="0 0 @vue.LargeurVue.ToString(inv) @vue.HauteurVue.ToString(inv)"
+<svg id="@id" class="hemicycle@(vue.FaceAFace ? " faceaface" : "")@(!vue.FaceAFace && vue.Sieges.Count < 200 ? " petit" : "")" viewBox="0 0 @vue.LargeurVue.ToString(inv) @vue.HauteurVue.ToString(inv)"
      role="img" aria-label="@L.T("Hémicycle : un point par élu, coloré selon son vote, entouré de la couleur de son groupe", "Hemicycle: one dot per elected official, coloured by vote, ringed with the colour of their group")">
 
     @* Couleurs des groupes, propres à ce dessin. <style> est valide dans un SVG en ligne. *@
@@ -57,7 +62,7 @@
     <g class="arcs">
         @foreach (var a in vue.Arcs)
         {
-            <path class="arc" d="@Arc(a, HemicycleLayout.RayonArc)" style="stroke:@CouleurSure(a.Couleur)">
+            <path class="arc" d="@Arc(a, rArc)" style="stroke:@CouleurSure(a.Couleur)">
                 <title>@a.Sigle — @a.Effectif</title>
             </path>
         }
@@ -69,16 +74,16 @@
             @foreach (var a in vue.Arcs.Where(x => x.Etiquetable))
             {
                 var cos = Math.Cos(a.AngleMilieu);
-                var y = HemicycleLayout.CentreY - HemicycleLayout.RayonEtiquette * Math.Sin(a.AngleMilieu);
+                var y = HemicycleLayout.CentreY - rEtiq * Math.Sin(a.AngleMilieu);
                 // Aux deux extrémités l'arc est vertical : l'étiquette se place à côté de lui, pas dessus.
                 var extremite = Math.Abs(cos) > 0.85;
                 // Nom LONG (« Democratic », « Republican ») : centré sur l'arc il déborderait sur les sièges voisins ; on l'accroche à l'extérieur de l'arc, du côté où il se trouve.
                 var nomLong = a.Sigle.Length > 6 && Math.Abs(cos) > 0.3;
                 var x = extremite
-                    ? HemicycleLayout.CentreX + Math.Sign(cos) * (HemicycleLayout.RayonArc + 14)
-                    : nomLong ? HemicycleLayout.CentreX + (HemicycleLayout.RayonArc + 16) * cos
-                    : HemicycleLayout.CentreX + HemicycleLayout.RayonEtiquette * cos;
-                if (nomLong && !extremite) y = HemicycleLayout.CentreY - (HemicycleLayout.RayonArc + 16) * Math.Sin(a.AngleMilieu);
+                    ? HemicycleLayout.CentreX + Math.Sign(cos) * (rArc + 14)
+                    : nomLong ? HemicycleLayout.CentreX + (rArc + 16) * cos
+                    : HemicycleLayout.CentreX + rEtiq * cos;
+                if (nomLong && !extremite) y = HemicycleLayout.CentreY - (rArc + 16) * Math.Sin(a.AngleMilieu);
                 var ancre = extremite || nomLong ? (cos < 0 ? "end" : "start") : "middle";
                 @* <text> est un nom réservé de Razor : on émet l'élément SVG en HTML brut (sigle encodé). *@
                 @Html.Raw($"<text x=\"{F(x)}\" y=\"{F(y)}\" text-anchor=\"{ancre}\" dominant-baseline=\"middle\">{System.Net.WebUtility.HtmlEncode(a.Sigle)}</text>")

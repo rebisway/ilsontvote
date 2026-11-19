@@ -156,11 +156,11 @@ public sealed class UsSource : IDisposable
     /// <summary>Sigle du parti d'après le code Voteview (100 démocrate, 200 républicain, 328 indépendant) ; les autres gardent leur code (« P714 »).</summary>
     public static (string Id, string Sigle, string Libelle, string? Couleur) Parti(int code) => code switch
     {
-        // Id = clé stable du groupe (ne change jamais) ; Sigle = ce qu'on affiche : le NOM du parti, pas une lettre (« D » ne dit rien à un lecteur non américain).
-        100 => ("D", "Democratic", "Democratic Party", "#2a62c9"),
-        200 => ("R", "Republican", "Republican Party", "#d6332d"),
-        328 => ("I", "Independent", "Independent", "#8a8f98"),
-        0 => ("NA", "No party", "No party recorded", null),
+        // Id = clé stable du groupe (ne change jamais) ; Sigle = ce qu'on affiche : trois lettres (« Dem », « Rep », « Ind »), plus parlant qu'une lettre et assez court pour tenir sur le schéma ; le libellé complet est dans l'infobulle.
+        100 => ("D", "Dem", "Democratic Party", "#2a62c9"),
+        200 => ("R", "Rep", "Republican Party", "#d6332d"),
+        328 => ("I", "Ind", "Independent", "#8a8f98"),
+        0 => ("NA", "None", "No party recorded", null),
         _ => ($"P{code}", "Other", $"Other party (Voteview code {code})", null),
     };
 
