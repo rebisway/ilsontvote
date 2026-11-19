@@ -849,7 +849,7 @@ public sealed class ImportRepository(string connectionString)
     /// les requêtes acceptent déjà « legislature IS NULL ». Le parti est le DERNIER connu (la source ne donne pas l'historique) : un pair qui a changé de parti apparaît,
     /// s'il est absent, dans son parti actuel ; ses votes, eux, portent le parti du jour.
     /// </summary>
-    public async Task EcrirePairsAsync(IReadOnlyCollection<(string Id, DateOnly Debut, DateOnly? Fin, string? GroupeId)> pairs)
+    public async Task EcrirePairsAsync(IReadOnlyCollection<(string Id, DateOnly Debut, DateOnly? Fin, string? GroupeId, string? Statut)> pairs)
     {
         if (pairs.Count == 0) return;
         await using var conn = new NpgsqlConnection(connectionString);
@@ -864,6 +864,8 @@ public sealed class ImportRepository(string connectionString)
         await conn.ExecuteAsync(
             "INSERT INTO groupe_appartenances (parlementaire_id, groupe_id, date_debut, date_fin) VALUES (@Id, @GroupeId, @Debut, @Fin)",
             pairs.Where(p => p.GroupeId is not null).Select(p => new { p.Id, p.GroupeId, Debut = p.Debut.ToDateTime(default), Fin = p.Fin?.ToDateTime(default) }), tx);
+        // Statut du jour (congé, suspension…) : remis à NULL quand il n'y en a plus (le pair est revenu).
+        await conn.ExecuteAsync("UPDATE parlementaires SET statut = @Statut WHERE id = @Id", pairs.Select(p => new { p.Id, p.Statut }), tx);
         await tx.CommitAsync();
     }
 

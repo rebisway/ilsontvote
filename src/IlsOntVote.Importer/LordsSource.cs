@@ -14,7 +14,7 @@ public sealed record DivisionLords(
     IReadOnlyList<VotantLords> Content, IReadOnlyList<VotantLords> NonContent);
 
 /// <summary>Un pair avec ses dates d'appartenance à la Chambre (annuaire daté de la source des membres).</summary>
-public sealed record PairLords(int Id, string Nom, string? Sigle, string? Parti, string? Couleur, DateOnly Debut, DateOnly? Fin);
+public sealed record PairLords(int Id, string Nom, string? Sigle, string? Parti, string? Couleur, DateOnly Debut, DateOnly? Fin, string? Statut = null);
 
 /// <summary>
 /// Chambre des Lords (Royaume-Uni) : divisions via <c>lordsvotes-api.parliament.uk</c> (JSON public) et pairs via <c>members-api.parliament.uk</c> (Open Parliament Licence).
@@ -115,6 +115,9 @@ public sealed class LordsSource : IDisposable
         return liste;
     }
 
+    /// <summary>Mots d'un statut d'annuaire qui signalent un pair qui ne peut pas voter pour le moment (congé, suspension, déchéance).</summary>
+    private static readonly string[] Restrictions = ["leave", "suspend", "disqualif"];
+
     /// <summary>Analyse une page de l'annuaire des membres.</summary>
     public static List<PairLords> AnalyserPairs(string json)
     {
@@ -133,8 +136,13 @@ public sealed class LordsSource : IDisposable
                 if (string.IsNullOrEmpty(sigle)) sigle = parti;
                 var c = Texte(p, "backgroundColour"); couleur = c.Length == 0 ? null : "#" + c;
             }
+            // Statut du jour, retenu seulement s'il est une RESTRICTION (congé, suspension, déchéance) : « Current Member », « Retired », « Deceased »… ne sont pas des restrictions.
+            string? statut = null;
+            if (ms.TryGetProperty("membershipStatus", out var st) && st.ValueKind == JsonValueKind.Object && Texte(st, "statusDescription") is { Length: > 0 } desc
+                && Restrictions.Any(r => desc.Contains(r, StringComparison.OrdinalIgnoreCase)))
+                statut = desc;
             liste.Add(new PairLords(v.GetProperty("id").GetInt32(), Texte(v, "nameDisplayAs"), string.IsNullOrEmpty(sigle) ? null : sigle, parti, couleur,
-                DateOnly.FromDateTime(sd.GetDateTime()), fin));
+                DateOnly.FromDateTime(sd.GetDateTime()), fin, statut));
         }
         return liste;
     }

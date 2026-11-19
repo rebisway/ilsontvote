@@ -17,9 +17,12 @@ public class ElusModel(IStatistiquesRepository stats, Langue langue, PaysSite si
     [BindProperty(SupportsGet = true)] public string? Du { get; set; }
     [BindProperty(SupportsGet = true)] public string? Au { get; set; }
     [BindProperty(SupportsGet = true)] public string? Ensemble { get; set; }
+    /// <summary>« 1 » : masquer les élus qui n'ont exprimé aucun vote sur la période.</summary>
+    [BindProperty(SupportsGet = true)] public string? Votants { get; set; }
     [BindProperty(SupportsGet = true, Name = "q")] public string? Recherche { get; set; }
 
     public bool EnsembleSeul => Ensemble == "1";
+    public bool AvecVotes => Votants == "1";
     /// <summary>Sur le site d'un pays (/uk) : sa seule chambre, quel que soit le paramètre « chambre ».</summary>
     public string ChambreCode => langue.Pays == "GB" ? (Chambre == "lords" ? Chambres.Lords : Chambres.Commons)
         : Chambre switch { "senat" => Chambres.Senat, "ue" => Chambres.UE, "commons" => Chambres.Commons, _ => Chambres.AN };
@@ -35,10 +38,10 @@ public class ElusModel(IStatistiquesRepository stats, Langue langue, PaysSite si
     // Les taux et effectifs : le premier clic trie du plus grand au plus petit ; nom et groupe : alphabétique.
     protected override bool DecroissantInitial(string cle) => cle is not ("nom" or "groupe");
     protected override IEnumerable<(string Nom, string? Valeur)> Filtres =>
-        [("q", Recherche), ("chambre", ChambreCle), ("periode", PeriodeCle is "annee" or "tout" ? PeriodeCle : null), ("du", Du), ("au", Au), ("ensemble", EnsembleSeul ? "1" : null)];
+        [("q", Recherche), ("chambre", ChambreCle), ("periode", PeriodeCle is "annee" or "tout" ? PeriodeCle : null), ("du", Du), ("au", Au), ("ensemble", EnsembleSeul ? "1" : null), ("votants", AvecVotes ? "1" : null)];
 
     /// <summary>Filtre « actif » : tout sauf les valeurs par défaut (Assemblée, 12 mois, pas de recherche).</summary>
-    public new bool FiltreActif => !string.IsNullOrWhiteSpace(Recherche) || PeriodeCle != "12m" || EnsembleSeul || ChambreCode != Chambres.AN;
+    public new bool FiltreActif => !string.IsNullOrWhiteSpace(Recherche) || PeriodeCle != "12m" || EnsembleSeul || AvecVotes || ChambreCode != Chambres.AN;
 
     private IReadOnlyList<Colonne<StatEluDetail>> ColonnesExport()
     {
@@ -82,10 +85,10 @@ public class ElusModel(IStatistiquesRepository stats, Langue langue, PaysSite si
 
         if (ExportDemande)
         {
-            var tout = await stats.ListerElusAsync(ChambreCode, du, au, EnsembleSeul, Recherche, TriEffectif, Decroissant, 1, 0);
+            var tout = await stats.ListerElusAsync(ChambreCode, du, au, EnsembleSeul, AvecVotes, Recherche, TriEffectif, Decroissant, 1, 0);
             return Exporteur.Ecrire(Format!, langue.Anglais ? "officials-rates" : "taux-des-elus", ColonnesExport(), tout.Lignes);
         }
-        Resultats = await stats.ListerElusAsync(ChambreCode, du, au, EnsembleSeul, Recherche, TriEffectif, Decroissant, NumeroPage, ParPage);
+        Resultats = await stats.ListerElusAsync(ChambreCode, du, au, EnsembleSeul, AvecVotes, Recherche, TriEffectif, Decroissant, NumeroPage, ParPage);
         return Page();
     }
 }

@@ -3,7 +3,9 @@
 @using IlsOntVote.Web.Models
 @using IlsOntVote.Web.Services
 @{
-    ViewData["Title"] = L.T("Taux de présence des élus", "Attendance rates of elected officials");
+    var lords = Model.ChambreCode == Chambres.Lords;
+    var titreElus = lords ? "Voting participation of peers" : L.T("Taux de présence des élus", "Attendance rates of elected officials");
+    ViewData["Title"] = titreElus;
     ViewData["Description"] = L.T("Tous les élus avec leur taux de participation, de présence, de délégation et de mise au point sur la période choisie : triez, filtrez, exportez.", "All elected officials with their participation, presence, proxy and vote-correction rates over the chosen period: sort, filter, export.");
     var fr = L.Culture;
     string Pct(double? v) => v is null ? "—" : v.Value.ToString("0.0", fr) + (L.Anglais ? "%" : " %");
@@ -11,7 +13,7 @@
     var rang = decalage;
 }
 
-<h1 class="titre-page">@L.T("Taux de présence des élus", "Attendance rates of elected officials")</h1>
+<h1 class="titre-page">@titreElus</h1>
 
 <section class="definitions" aria-label="@L.T("Définitions", "Definitions")">
     <p class="def-base">@L.TH("Chaque taux est calculé sur les <strong>scrutins publics tenus pendant le mandat de l'élu</strong>, sur la période choisie.", "Each rate is computed over the <strong>roll-call votes held during the official's term</strong>, over the chosen period.")</p>
@@ -52,7 +54,12 @@
         <label class="champ-date">@L.T("Du", "From") <input type="date" name="du" value="@Model.Du" aria-label="@L.T("Du (date de début)", "From (start date)")" /></label>
         <label class="champ-date">@L.T("au", "to") <input type="date" name="au" value="@Model.Au" aria-label="@L.T("Au (date de fin)", "To (end date)")" /></label>
     </span>
+    <label class="case"><input type="checkbox" name="votants" value="1" checked="@Model.AvecVotes" /> @L.T("masquer ceux qui n'ont voté dans aucun scrutin", "hide those who cast no vote")</label>
+    @* Les Lords n'ont pas de vote sur l'ensemble : option sans objet. *@
+    @if (!lords)
+    {
     <label class="case"><input type="checkbox" name="ensemble" value="1" checked="@Model.EnsembleSeul" /> @L.T("votes sur l'ensemble d'un texte seulement", "votes on the whole text only")</label>
+    }
     @* Tri : en-têtes de colonne (écran large) ou ces listes (téléphone). *@
     <select name="tri" class="tri-mobile" aria-label="@L.T("Trier par", "Sort by")">
         <option value="nom" selected="@(Model.TriEffectif == "nom")">@L.T("Trier : nom", "Sort: name")</option>
@@ -75,7 +82,7 @@
 <p class="periode-rappel">@Chambres.Nom(Model.ChambreCode, L.Anglais) · <strong>@Model.PeriodeLibelle</strong>@(Model.EnsembleSeul ? L.T(" · votes sur l'ensemble seulement", " · votes on the whole text only") : "")</p>
 @if (Model.ChambreCode == Chambres.Lords)
 {
-    <p class="note-source">@Doute.Html(NiveauDoute.Incertain, L.T("absences surestimées", "absences overstated"), L.T("Seuls les pairs ayant voté sont publiés : les absents sont déduits des dates d'appartenance. Un pair en congé ou suspendu est compté absent, ce qui abaisse les taux de participation.", "Only peers who voted are published: absentees are deduced from membership dates. A peer on leave of absence or suspended is counted as absent, which lowers the participation rates.")) @L.T("Les taux des Lords sont à lire avec cette réserve.", "Read the Lords rates with this caveat.")</p>
+    <p class="note-source">@Doute.Html(NiveauDoute.Incertain, L.T("absences surestimées", "absences overstated"), L.T("Seuls les pairs ayant voté sont publiés : les absents sont déduits des dates d'appartenance. Un pair en congé ou suspendu est compté absent, ce qui abaisse les taux de participation.", "Only peers who voted are published: absentees are deduced from membership dates. A peer on leave of absence or suspended is counted as absent, which lowers the participation rates.")) @L.T("Les taux des Lords sont à lire avec cette réserve.", "Read the Lords rates with this caveat.") @L.T("Ces taux comptent les votes exprimés, pas la présence : un pair peut siéger et parler sans voter.", "These rates count votes cast, not attendance: a peer can sit and speak without voting.")</p>
 }
 
 <div class="barre-liste">
@@ -112,7 +119,7 @@ else
                 rang++;
                 <tr>
                     <td class="num rang" data-label="@L.T("Rang", "Rank")">@rang.ToString("N0", fr)</td>
-                    <td data-label="@L.T("Élu", "Official")"><a href="@L.Lien("/" + Chambres.Fiche(e.Chambre) + "/" + e.Slug)">@Noms.Html(e.Prenom, e.Nom)</a></td>
+                    <td data-label="@L.T("Élu", "Official")"><a href="@L.Lien("/" + Chambres.Fiche(e.Chambre) + "/" + e.Slug)">@Noms.Html(e.Prenom, e.Nom)</a>@if (e.Statut is not null) { <text> </text>@Doute.Html(NiveauDoute.Incertain, StatutTexte.Libelle(e.Statut, L.Anglais)!, L.T("Statut du jour d'après l'annuaire des membres (la source ne donne pas l'historique) : un pair en congé ou suspendu ne peut pas voter.", "Status as of today in the members directory (the source gives no history): a peer on leave or suspended cannot vote.")) }</td>
                     <td data-label="@L.T("Groupe", "Group")"><span class="pastille" style="background:@(e.GroupeCouleur ?? "#8d949a")"></span> @(e.GroupeSigle ?? "—")</td>
                     <td data-label="@L.T("Scrutins", "Votes")" class="num">@e.Scrutins.ToString("N0", fr)</td>
                     <td data-label="Participation" class="num" title="@e.Votants.ToString("N0", fr) / @e.Scrutins.ToString("N0", fr)">@Pct(e.ParticipationPct)</td>

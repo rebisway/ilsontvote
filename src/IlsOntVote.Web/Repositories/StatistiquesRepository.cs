@@ -37,6 +37,8 @@ public sealed class StatEluDetail
     public string Nom { get; set; } = "";
     public string? GroupeSigle { get; set; }
     public string? GroupeCouleur { get; set; }
+    /// <summary>Statut du jour avec restriction (congé, suspension : Lords) ; null sinon.</summary>
+    public string? Statut { get; set; }
     public int Scrutins { get; set; }
     /// <summary>Votes exprimés (pour, contre, abstention), délégations comprises.</summary>
     public int Votants { get; set; }
@@ -72,7 +74,7 @@ public interface IStatistiquesRepository
     Task<IReadOnlyList<StatAnnee>> GetAnneesAsync(string chambre);
     /// <summary>Les élus les plus (ou les moins) présents ; seuls ceux ayant au moins <paramref name="minScrutins"/> scrutins sur la période comptent.</summary>
     /// <summary>Liste complète des élus d'une chambre avec leurs taux sur la période : recherche, tri (liste blanche), pagination (parPage = 0 : tout).</summary>
-    Task<Resultats<StatEluDetail>> ListerElusAsync(string chambre, DateTime? du, DateTime? au, bool ensembleSeulement, string? recherche,
+    Task<Resultats<StatEluDetail>> ListerElusAsync(string chambre, DateTime? du, DateTime? au, bool ensembleSeulement, bool avecVotes, string? recherche,
         string tri, bool decroissant, int page, int parPage);
 }
 
@@ -167,7 +169,7 @@ public sealed class StatistiquesRepository(DapperContext db) : IStatistiquesRepo
 
     public static IEnumerable<string> ClesTriElus => TrisElus.Keys;
 
-    public async Task<Resultats<StatEluDetail>> ListerElusAsync(string chambre, DateTime? du, DateTime? au, bool ensembleSeulement, string? recherche,
+    public async Task<Resultats<StatEluDetail>> ListerElusAsync(string chambre, DateTime? du, DateTime? au, bool ensembleSeulement, bool avecVotes, string? recherche,
         string tri, bool decroissant, int page, int parPage)
     {
         using var cx = db.CreateConnection();
@@ -204,9 +206,10 @@ public sealed class StatistiquesRepository(DapperContext db) : IStatistiquesRepo
                     SELECT gr.sigle, gr.couleur FROM groupe_appartenances ga JOIN groupes gr ON gr.id = ga.groupe_id
                      WHERE ga.parlementaire_id = p.id ORDER BY ga.date_debut DESC LIMIT 1) g ON true
              WHERE a.scrutins > 0
+               AND (NOT @avecVotes OR a.votants > 0)   -- option « masquer ceux qui n'ont voté dans aucun scrutin de la période »
                AND (cardinality(@mots) = 0 OR (recherche_norm(p.prenom || ' ' || p.nom) || ' ' || COALESCE(g.sigle, '')) ILIKE ALL (@mots))
             """;
-        var p = new { chambre, du, au, ensemble = ensembleSeulement, mots, limit = parPage, offset = (page - 1) * parPage };
+        var p = new { chambre, du, au, ensemble = ensembleSeulement, avecVotes, mots, limit = parPage, offset = (page - 1) * parPage };
 
         var total = await cx.ExecuteScalarAsync<int>($"{avant} SELECT count(*) {depuis}", p);
         var ordre = TrisElus.GetValueOrDefault(tri, TrisElus["participation"]);
@@ -215,7 +218,7 @@ public sealed class StatistiquesRepository(DapperContext db) : IStatistiquesRepo
         var lignes = (await cx.QueryAsync<StatEluDetail>(
             $"""
              {avant}
-             SELECT p.slug, p.chambre, p.prenom, p.nom, g.sigle AS groupe_sigle, g.couleur AS groupe_couleur,
+             SELECT p.slug, p.chambre, p.prenom, p.nom, p.statut, g.sigle AS groupe_sigle, g.couleur AS groupe_couleur,
                     a.scrutins::int AS scrutins, a.votants::int AS votants, a.delegations::int AS delegations, a.mises_au_point::int AS mises_au_point
                {depuis}
               ORDER BY {ordre} {sens} NULLS LAST, a.scrutins DESC, p.nom, p.prenom

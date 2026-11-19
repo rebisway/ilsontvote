@@ -158,6 +158,17 @@ public sealed record GroupeDecompte(
 
 /// <summary>Un parlementaire en exercice (ou une fiche), avec son groupe courant.</summary>
 /// <summary>Un élu (député ou sénateur) et son groupe courant. `EnExercice` : un mandat couvre aujourd'hui, dans la législature la plus récente pour l'AN.</summary>
+/// <summary>Traduction des statuts d'annuaire à restriction (congé, suspension, déchéance) : seuls ceux que l'import retient.</summary>
+public static class StatutTexte
+{
+    public static string? Libelle(string? statut, bool en) =>
+        statut is null ? null
+        : statut.Contains("leave", StringComparison.OrdinalIgnoreCase) ? (en ? "on leave of absence" : "en congé")
+        : statut.Contains("suspend", StringComparison.OrdinalIgnoreCase) ? (en ? "suspended" : "suspendu")
+        : statut.Contains("disqualif", StringComparison.OrdinalIgnoreCase) ? (en ? "disqualified" : "disqualifié")
+        : statut;
+}
+
 public sealed class Parlementaire
 {
     public string Id { get; set; } = "";
@@ -173,6 +184,11 @@ public sealed class Parlementaire
     public string? GroupeCouleur { get; set; }
     public int GroupeOrdre { get; set; } = 130;
     public bool EnExercice { get; set; }
+    /// <summary>Statut du jour avec restriction (« Leave of Absence », « Suspended »… : Lords) ; null sinon. Voir la migration 041.</summary>
+    public string? Statut { get; set; }
+
+    /// <summary>Libellé du statut dans la langue de la page (la source est en anglais).</summary>
+    public string? StatutLibelle(bool en) => StatutTexte.Libelle(Statut, en);
 
     public string NomComplet => $"{Prenom} {Nom}";
     public string Lien => $"/{Chambres.Fiche(Chambre)}/{Slug}";

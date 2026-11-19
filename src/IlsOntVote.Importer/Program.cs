@@ -513,7 +513,7 @@ async Task<int> ImporterLordsAsync()
 
         await repo.EcrireMembresUeAsync(groupes.Values, parlementaires);   // upsert générique (le nom « Ue » est historique)
         if (leg.Fin is null) await repo.InitialiserGouvernementAsync(Chambres.Lords, LordsSource.GroupeGouvernement);
-        await repo.EcrirePairsAsync(pairs.Values.Select(p => (LordsSource.IdMembre(p.Id), p.Debut, p.Fin, p.Sigle is { } sg ? LordsSource.IdGroupe(sg) : null)).ToList());
+        await repo.EcrirePairsAsync(pairs.Values.Select(p => (LordsSource.IdMembre(p.Id), p.Debut, p.Fin, p.Sigle is { } sg ? LordsSource.IdGroupe(sg) : null, p.Statut)).ToList());
 
         var annuaire = new Annuaire(groupes.Values.ToList(), parlementaires, [], []);
         int nbScrutins = 0; long nbVotes = 0;

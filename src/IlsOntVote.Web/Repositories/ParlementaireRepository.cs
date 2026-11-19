@@ -31,7 +31,7 @@ public sealed class ParlementaireRepository(DapperContext db) : IParlementaireRe
     // l'élu n'a aucune appartenance ouverte, pour qu'il se range en fin d'hémicycle plutôt que de disparaître.
     private const string Colonnes =
         """
-        p.id, p.chambre, p.civilite, p.prenom, p.nom, p.slug, p.departement, p.circonscription,
+        p.id, p.chambre, p.civilite, p.prenom, p.nom, p.slug, p.departement, p.circonscription, p.statut,
         g.sigle AS groupe_sigle, g.libelle AS groupe_libelle, g.couleur AS groupe_couleur,
         COALESCE(g.ordre, 130) AS groupe_ordre
         """;

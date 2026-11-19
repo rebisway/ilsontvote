@@ -32,6 +32,7 @@
         }
         @if (!string.IsNullOrEmpty(e.Departement)) { <text> · @Drapeaux.Avec(e.Chambre, e.Departement, L.Anglais)</text> }
         @if (!e.EnExercice) { <text> · @L.T("ancien ", "former ")@Chambres.Membre(e.Chambre, L.Anglais)</text> }
+        @if (e.EnExercice && e.Statut is not null) { <text> · </text>@Doute.Html(NiveauDoute.Incertain, e.StatutLibelle(L.Anglais)!, L.T("Statut du jour d'après l'annuaire des membres (la source ne donne pas l'historique) : un pair en congé ou suspendu ne peut pas voter.", "Status as of today in the members directory (the source gives no history): a peer on leave or suspended cannot vote.")) }
     </p>
     @if (Model.Mandats.Count > 0)
     {

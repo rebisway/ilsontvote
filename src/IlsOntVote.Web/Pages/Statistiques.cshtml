@@ -39,7 +39,7 @@
 <p class="periode-rappel">@Chambres.Nom(Model.ChambreCode, L.Anglais) · <strong>@Model.PeriodeLibelle</strong>@(Model.EnsembleSeul ? L.T(" · votes sur l'ensemble seulement", " · votes on the whole text only") : "")</p>
 @if (Model.ChambreCode == Chambres.Lords)
 {
-    <p class="note-source">@Doute.Html(NiveauDoute.Incertain, L.T("absences surestimées", "absences overstated"), L.T("Seuls les pairs ayant voté sont publiés : les absents sont déduits des dates d'appartenance. Un pair en congé ou suspendu est compté absent, ce qui abaisse les taux de participation.", "Only peers who voted are published: absentees are deduced from membership dates. A peer on leave of absence or suspended is counted as absent, which lowers the participation rates.")) @L.T("Les taux des Lords sont à lire avec cette réserve.", "Read the Lords rates with this caveat.")</p>
+    <p class="note-source">@Doute.Html(NiveauDoute.Incertain, L.T("absences surestimées", "absences overstated"), L.T("Seuls les pairs ayant voté sont publiés : les absents sont déduits des dates d'appartenance. Un pair en congé ou suspendu est compté absent, ce qui abaisse les taux de participation.", "Only peers who voted are published: absentees are deduced from membership dates. A peer on leave of absence or suspended is counted as absent, which lowers the participation rates.")) @L.T("Les taux des Lords sont à lire avec cette réserve.", "Read the Lords rates with this caveat.") @L.T("Ces taux comptent les votes exprimés, pas la présence : un pair peut siéger et parler sans voter.", "These rates count votes cast, not attendance: a peer can sit and speak without voting.")</p>
 }
 
 <section class="cartes-stats" aria-label="@L.T("Chiffres clés", "Key figures")">

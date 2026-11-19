@@ -70,7 +70,7 @@
             <a href="@L.Lien(e.Lien)" title="@e.NomComplet — @(e.GroupeLibelle ?? e.GroupeSigle)@(string.IsNullOrEmpty(e.Departement) ? "" : " — " + Drapeaux.Avec(e.Chambre, e.Departement, L.Anglais))">
                 <span class="pastille" style="background:@(e.GroupeCouleur ?? "#8d949a")"></span>
                 <span class="nom">@Noms.Html(e.Prenom, e.Nom)</span>
-                <span class="sous">@e.GroupeSigle@(string.IsNullOrEmpty(e.Departement) ? "" : " · " + Drapeaux.Avec(e.Chambre, e.Departement, L.Anglais))</span>
+                <span class="sous">@e.GroupeSigle@(string.IsNullOrEmpty(e.Departement) ? "" : " · " + Drapeaux.Avec(e.Chambre, e.Departement, L.Anglais))@(e.Statut is null ? "" : " · " + e.StatutLibelle(L.Anglais))</span>
             </a>
         </li>
     }
