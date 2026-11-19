@@ -73,6 +73,10 @@
 </form>
 
 <p class="periode-rappel">@Chambres.Nom(Model.ChambreCode, L.Anglais) · <strong>@Model.PeriodeLibelle</strong>@(Model.EnsembleSeul ? L.T(" · votes sur l'ensemble seulement", " · votes on the whole text only") : "")</p>
+@if (Model.ChambreCode == Chambres.Lords)
+{
+    <p class="note-source">@Doute.Html(NiveauDoute.Incertain, L.T("absences surestimées", "absences overstated"), L.T("Seuls les pairs ayant voté sont publiés : les absents sont déduits des dates d'appartenance. Un pair en congé ou suspendu est compté absent, ce qui abaisse les taux de participation.", "Only peers who voted are published: absentees are deduced from membership dates. A peer on leave of absence or suspended is counted as absent, which lowers the participation rates.")) @L.T("Les taux des Lords sont à lire avec cette réserve.", "Read the Lords rates with this caveat.")</p>
+}
 
 <div class="barre-liste">
     <p class="compte">@Model.Resultats.Total.ToString("N0", fr) @L.T(Model.Resultats.Total > 1 ? "élus" : "élu", Model.Resultats.Total > 1 ? "officials" : "official")</p>
