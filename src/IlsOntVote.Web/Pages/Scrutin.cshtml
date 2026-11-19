@@ -26,7 +26,7 @@
 
 <header class="scrutin-tete">
     <p class="meta">
-        @Chambres.Nom(s.Chambre, L.Anglais) · @(s.Chambre is Chambres.Commons or Chambres.Lords ? "division no." : L.T("scrutin n°", "vote no.")) @s.Numero · <time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMMM yyyy", fr)</time>
+        @Chambres.Nom(s.Chambre, L.Anglais) · @(s.Chambre is Chambres.Commons or Chambres.Lords ? L.T("division n°", "division no.") : L.T("scrutin n°", "vote no.")) @s.Numero · <time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMMM yyyy", fr)</time>
         · <span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span>
     </p>
     <h1>@titre</h1>
@@ -68,12 +68,12 @@
 }
 @if (Model.Bill is { } bill)
 {
-    <section class="bloc-texte" aria-label="Bill">
-        <div class="bloc-texte-titre"><span class="statut">Bill</span>
+    <section class="bloc-texte" aria-label="@L.T("Projet de loi", "Bill")">
+        <div class="bloc-texte-titre"><span class="statut">@L.T("Projet de loi", "Bill")</span>
             <a href="@L.Lien("/bill/" + bill.Id)">@bill.Titre</a>
             @if (bill.Etape is not null) { <span class="note-source">· @bill.Etape</span> }
-            @Doute.Html(NiveauDoute.Calcule, "computed", "Linked by this site from the division title; Parliament does not publish this link.")
-            <a class="raccourci" href="https://bills.parliament.uk/bills/@bill.Id" rel="noopener" target="_blank">Bill text ↗</a>
+            @Doute.Html(NiveauDoute.Calcule, L.T("calculé", "computed"), L.T("Rattaché par ce site d'après le titre de la division ; le Parlement ne publie pas ce lien.", "Linked by this site from the division title; Parliament does not publish this link."))
+            <a class="raccourci" href="https://bills.parliament.uk/bills/@bill.Id" rel="noopener" target="_blank">@L.T("Texte du projet", "Bill text") ↗</a>
             <partial name="_ResumeIA" model="promptIA" /></div>
     </section>
 }

@@ -72,11 +72,21 @@ else
 
 <section class="bloc-texte">
     <h2>Propriété intellectuelle et données</h2>
+    @if (L.Pays == "GB")
+    {
+    <p>Le code source du site est publié sous licence GNU GPL v3.0. Les données de vote et les pétitions proviennent des services publics du Parlement britannique :
+    <a href="https://commonsvotes-api.parliament.uk/">Commons Votes API</a>, <a href="https://lordsvotes-api.parliament.uk/">Lords Votes API</a> et <a href="https://petition.parliament.uk/">site des pétitions</a>. Contient des informations parlementaires sous
+    <a href="https://www.parliament.uk/site-information/copyright-parliament/open-parliament-licence/">Open Parliament Licence v3.0</a>.
+    Elles sont reprises telles que publiées, avec les calculs décrits dans la <a href="@L.Lien("/methodologie")">méthodologie</a>. Les autres contenus (textes, mise en page) sont protégés par le droit d'auteur.</p>
+    }
+    else
+    {
     <p>Le code source du site est publié sous licence GNU GPL v3.0. Les données de vote proviennent de sources publiques :
     <a href="https://data.assemblee-nationale.fr/">Assemblée nationale</a> et <a href="https://data.senat.fr/">Sénat</a> (données ouvertes), et
     <a href="https://howtheyvote.eu/">HowTheyVote.eu</a> pour le Parlement européen (données sous <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License</a> : les données européennes reprises ici et leurs exports restent sous cette licence).
     Elles sont reprises telles que publiées, avec les calculs décrits dans la
     <a href="/methodologie">méthodologie</a>. Les autres contenus (textes, mise en page) sont protégés par le droit d'auteur.</p>
+    }
     <p>Les noms et votes des élus sont des données publiques relatives à l'exercice d'un mandat. Pour signaler une erreur, écrivez au contact ci-dessus.</p>
 </section>
 

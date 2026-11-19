@@ -5,48 +5,48 @@
 @{
     var b = Model.Fiche;
     ViewData["Title"] = b.Titre.Length > 70 ? b.Titre[..70] + "…" : b.Titre;
-    ViewData["Description"] = "Stages of a bill before the UK Parliament and the Commons divisions linked to it.";
+    ViewData["Description"] = L.T("Étapes d'un projet de loi du Parlement britannique et divisions des Communes qui lui sont rattachées.", "Stages of a bill before the UK Parliament and the Commons divisions linked to it.");
     var fr = L.Culture;
 }
 
-<p class="chapo"><a href="@L.Lien("/bills")">← Bills</a></p>
+<p class="chapo"><a href="@L.Lien("/bills")">@L.T("← Projets de loi", "← Bills")</a></p>
 <h1 class="titre-page">@b.Titre</h1>
 @if (b.TitreLong is not null) { <p class="note-source">@b.TitreLong</p> }
 
-<section class="definitions fiche-petition @BillsModel.StatutClasse(b)" aria-label="Details">
+<section class="definitions fiche-petition @BillsModel.StatutClasse(b)" aria-label="@L.T("Détails", "Details")">
     <dl>
-        <div><dt>Status</dt><dd><span class="puce-statut @BillsModel.StatutClasse(b)">@BillsModel.StatutLibelle(b)</span></dd></div>
-        @if (b.ChambreOrigine is not null) { <div><dt>Introduced in</dt><dd>the @b.ChambreOrigine</dd></div> }
-        @if (b.ChambreCourante is not null) { <div><dt>Now in</dt><dd>the @b.ChambreCourante</dd></div> }
-        @if (b.DateDepot is { } dd) { <div><dt>First sitting</dt><dd>@dd.ToString("d MMMM yyyy", fr)</dd></div> }
-        @if (b.DateLoi is { } dl) { <div><dt>Royal Assent</dt><dd>@dl.ToString("d MMMM yyyy", fr)</dd></div> }
-        @if (b.RetireLe is { } rl) { <div><dt>Withdrawn on</dt><dd>@rl.ToString("d MMMM yyyy", fr)</dd></div> }
-        <div><dt>Source</dt><dd><a href="@b.Url" rel="noopener">bills.parliament.uk</a></dd></div>
+        <div><dt>@L.T("Statut", "Status")</dt><dd><span class="puce-statut @BillsModel.StatutClasse(b)">@BillsModel.StatutLibelle(b, L)</span></dd></div>
+        @if (b.ChambreOrigine is not null) { <div><dt>@L.T("Déposé à", "Introduced in")</dt><dd>@(b.ChambreOrigine == "Commons" ? L.T("la Chambre des Communes", "the Commons") : L.T("la Chambre des Lords", "the Lords"))</dd></div> }
+        @if (b.ChambreCourante is not null) { <div><dt>@L.T("Actuellement à", "Now in")</dt><dd>@(b.ChambreCourante == "Commons" ? L.T("la Chambre des Communes", "the Commons") : L.T("la Chambre des Lords", "the Lords"))</dd></div> }
+        @if (b.DateDepot is { } dd) { <div><dt>@L.T("Première séance", "First sitting")</dt><dd>@dd.ToString("d MMMM yyyy", fr)</dd></div> }
+        @if (b.DateLoi is { } dl) { <div><dt>@L.T("Sanction royale", "Royal Assent")</dt><dd>@dl.ToString("d MMMM yyyy", fr)</dd></div> }
+        @if (b.RetireLe is { } rl) { <div><dt>@L.T("Retiré le", "Withdrawn on")</dt><dd>@rl.ToString("d MMMM yyyy", fr)</dd></div> }
+        <div><dt>@L.T("Source", "Source")</dt><dd><a href="@b.Url" rel="noopener">bills.parliament.uk</a></dd></div>
     </dl>
     <div class="liens-externes">
-        <a class="raccourci" href="@b.Url" rel="noopener" target="_blank">Bill text ↗</a>
-        @{ var promptIA = PromptResume.Construire(true, b.Titre, new[] { b.Url }); }
+        <a class="raccourci" href="@b.Url" rel="noopener" target="_blank">@L.T("Texte du projet", "Bill text") ↗</a>
+        @{ var promptIA = PromptResume.Construire(L.Anglais, b.Titre, new[] { b.Url }); }
         <partial name="_ResumeIA" model="promptIA" />
     </div>
 </section>
 
-<h2 class="titre-section">Stages</h2>
+<h2 class="titre-section">@L.T("Étapes", "Stages")</h2>
 @if (Model.Etapes.Count == 0)
 {
-    <p class="vide">No stage published for this bill yet.</p>
+    <p class="vide">@L.T("Aucune étape publiée pour ce projet pour l'instant.", "No stage published for this bill yet.")</p>
 }
 else
 {
     <div class="table-wrap">
         <table class="liste-textes">
-            <thead><tr><th>Date</th><th>House</th><th>Stage</th></tr></thead>
+            <thead><tr><th>Date</th><th>@L.T("Chambre", "House")</th><th>@L.T("Étape", "Stage")</th></tr></thead>
             <tbody>
             @foreach (var e in Model.Etapes)
             {
                 <tr>
-                    <td class="nowrap" data-label="Date">@if (e.DateSeance is { } d) { @d.ToString("d MMM yyyy", fr) } else { <span class="doute doute-manquant" title="The source gives no sitting date for this stage (not held yet, or not published).">?</span> }</td>
-                    <td data-label="House">@(e.Chambre ?? "—")</td>
-                    <td data-label="Stage">@e.Libelle</td>
+                    <td class="nowrap" data-label="Date">@if (e.DateSeance is { } d) { @d.ToString("d MMM yyyy", fr) } else { <span class="doute doute-manquant" title="@L.T("La source ne donne pas de date de séance pour cette étape (pas encore tenue, ou non publiée).", "The source gives no sitting date for this stage (not held yet, or not published).")">?</span> }</td>
+                    <td data-label="@L.T("Chambre", "House")">@(e.Chambre ?? "—")</td>
+                    <td data-label="@L.T("Étape", "Stage")">@e.Libelle</td>
                 </tr>
             }
             </tbody>
@@ -54,26 +54,26 @@ else
     </div>
 }
 
-<h2 class="titre-section">Divisions in the Commons</h2>
-<p class="note-source">Linked by this site from the division title (computed, not published by Parliament). Votes on the voices leave no individual vote and do not appear.</p>
+<h2 class="titre-section">@L.T("Divisions aux Communes", "Divisions in the Commons")</h2>
+<p class="note-source">@L.T("Rattachées par ce site d'après le titre de la division (calculé, non publié par le Parlement). Les votes à main levée ne laissent aucun vote individuel et n'apparaissent pas.", "Linked by this site from the division title (computed, not published by Parliament). Votes on the voices leave no individual vote and do not appear.")</p>
 @if (Model.Divisions.Count == 0)
 {
-    <p class="vide">No division is linked to this bill.</p>
+    <p class="vide">@L.T("Aucune division n'est rattachée à ce projet.", "No division is linked to this bill.")</p>
 }
 else
 {
     <div class="table-wrap">
         <table class="liste-textes">
-            <thead><tr><th>Date</th><th>Division</th><th>Result</th><th class="num">Aye</th><th class="num">No</th></tr></thead>
+            <thead><tr><th>Date</th><th>Division</th><th>@L.T("Résultat", "Result")</th><th class="num">@L.T("Pour", "Aye")</th><th class="num">@L.T("Contre", "No")</th></tr></thead>
             <tbody>
             @foreach (var d in Model.Divisions)
             {
                 <tr>
                     <td class="nowrap" data-label="Date">@d.DateScrutin.ToString("d MMM yyyy", fr)</td>
                     <td data-label="Division"><a href="@L.Lien("/scrutin/" + d.Id)">@(d.BillEtape ?? d.Titre)</a></td>
-                    <td data-label="Result">@(d.Sort is null ? "—" : d.Sort.StartsWith("adopt") ? "✓ Adopted" : "✗ Rejected")</td>
-                    <td class="num" data-label="Aye">@(d.NbPour?.ToString("N0", fr) ?? "—")</td>
-                    <td class="num" data-label="No">@(d.NbContre?.ToString("N0", fr) ?? "—")</td>
+                    <td data-label="@L.T("Résultat", "Result")">@(d.Sort is null ? "—" : d.Sort.StartsWith("adopt") ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</td>
+                    <td class="num" data-label="@L.T("Pour", "Aye")">@(d.NbPour?.ToString("N0", fr) ?? "—")</td>
+                    <td class="num" data-label="@L.T("Contre", "No")">@(d.NbContre?.ToString("N0", fr) ?? "—")</td>
                 </tr>
             }
             </tbody>

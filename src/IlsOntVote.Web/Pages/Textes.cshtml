@@ -3,7 +3,7 @@
 @using IlsOntVote.Web.Models
 @using IlsOntVote.Web.Services
 @{
-    ViewData["Title"] = Model.Resolutions ? L.T("Résolutions", "Resolutions") : Model.SitePays ? "Divisions" : L.T("Scrutins", "Votes");
+    ViewData["Title"] = Model.Resolutions ? L.T("Résolutions", "Resolutions") : Model.SitePays ? L.T("Divisions", "Divisions") : L.T("Scrutins", "Votes");
     ViewData["Description"] = L.T("Tous les scrutins publics de l'Assemblée nationale et du Sénat : cherchez un texte, triez, exportez, et voyez qui a voté quoi.", "All roll-call votes of the French National Assembly and Senate: search a text, sort, export, and see who voted what.");
     var fr = L.Culture;
 }
@@ -15,11 +15,11 @@
 }
 else
 {
-    <h1 class="titre-page">@(Model.SitePays ? "Divisions" : L.T("Scrutins", "Votes"))</h1>
+    <h1 class="titre-page">@(Model.SitePays ? L.T("Divisions", "Divisions") : L.T("Scrutins", "Votes"))</h1>
 @* chapô des scrutins : voir plus bas *@
 @if (Model.SitePays)
 {
-    <p class="chapo">Votes on the whole bill (third readings) of the House of Commons since December 2019, most recent first; tick the box to include every other recorded vote (division): amendments, motions, opposition days. A third reading is this site's way of finding the vote on the whole bill; Parliament does not publish that distinction. Click a column title to sort; export the table in CSV or JSON. Members who did not vote are shown as absent only when the published lists are complete.</p>
+    <p class="chapo">@L.T("Les votes sur l'ensemble d'un projet de loi (troisièmes lectures) de la Chambre des Communes depuis décembre 2019, du plus récent au plus ancien ; cochez la case pour inclure tous les autres votes enregistrés (divisions) : amendements, motions, jours d'opposition. Une troisième lecture est la façon qu'a ce site de repérer le vote sur l'ensemble du projet ; le Parlement ne publie pas cette distinction. Cliquez sur un titre de colonne pour trier ; exportez le tableau en CSV ou JSON. Les membres qui n'ont pas voté ne sont montrés absents que lorsque les listes publiées sont complètes.", "Votes on the whole bill (third readings) of the House of Commons since December 2019, most recent first; tick the box to include every other recorded vote (division): amendments, motions, opposition days. A third reading is this site's way of finding the vote on the whole bill; Parliament does not publish that distinction. Click a column title to sort; export the table in CSV or JSON. Members who did not vote are shown as absent only when the published lists are complete.")</p>
 }
 else
 {
@@ -52,7 +52,7 @@ else
         <label class="champ-date">@L.T("au", "to") <input type="date" name="au" value="@Model.Au" aria-label="@L.T("Au (date de fin)", "To (end date)")" /></label></span>
     @if (Model.Chambre != "lords" || !Model.SitePays)
     {
-    <label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" /> @(Model.SitePays ? "amendments, motions and other divisions" : L.T("amendements et articles", "amendments and articles"))</label>
+    <label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" /> @(Model.SitePays ? L.T("amendements, motions et autres divisions", "amendments, motions and other divisions") : L.T("amendements et articles", "amendments and articles"))</label>
     }
     @* Tri : en-têtes de colonne (écran large) ou ces listes (téléphone). *@
     <select name="tri" class="tri-mobile" aria-label="@L.T("Trier par", "Sort by")">

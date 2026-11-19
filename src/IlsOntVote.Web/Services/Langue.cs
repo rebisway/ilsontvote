@@ -9,26 +9,40 @@ namespace IlsOntVote.Web.Services;
 /// générés par ASP.NET gardent le préfixe. Les traductions s'écrivent À CÔTÉ du français, dans les pages : <c>@L.T("Lois", "Laws")</c>.
 /// Les DONNÉES (titres de lois, noms de groupes) restent en français : ce sont les sources officielles.
 /// </summary>
-public sealed class Langue(IHttpContextAccessor accessor)
+public sealed class Langue(IHttpContextAccessor accessor, Traductions? traductions = null)
 {
     private const string Cle_Items = "lang";
     private static readonly CultureInfo Fr = new("fr-FR");
     private static readonly CultureInfo En = new("en-GB");
+    /// <summary>Cultures des langues supplémentaires (dates, nombres) : à compléter avec la langue.</summary>
+    private static readonly Dictionary<string, CultureInfo> AutresCultures = new() { ["es"] = new("es-ES"), ["it"] = new("it-IT"), ["de"] = new("de-DE") };
 
     private HttpContext Ctx => accessor.HttpContext!;
 
     /// <summary>Vrai pour l'interface anglaise (adresses <c>/en/…</c>).</summary>
-    public bool Anglais => Ctx.Items[Cle_Items] as string == "en";
-    /// <summary>« fr » ou « en » (attribut <c>lang</c>, balises <c>hreflang</c>).</summary>
-    public string Code => Anglais ? "en" : "fr";
+    public bool Anglais => Code == "en";
+    /// <summary>Code de la langue de la page : « fr », « en », ou une langue ajoutée dans la table de traduction (« es », « it »…). Attribut <c>lang</c>, balises <c>hreflang</c>.</summary>
+    public string Code => Ctx.Items[Cle_Items] as string is { Length: > 0 } c ? c : "fr";
     /// <summary>Culture pour les dates et les nombres (jamais la culture du serveur).</summary>
-    public CultureInfo Culture => Anglais ? En : Fr;
+    public CultureInfo Culture => Code switch { "fr" => Fr, "en" => En, _ => AutresCultures.GetValueOrDefault(Code, En) };
 
-    /// <summary>Texte dans la langue courante (texte simple : il sera encodé à l'affichage).</summary>
-    public string T(string francais, string anglais) => Anglais ? anglais : francais;
+    /// <summary>
+    /// Texte dans la langue courante (texte simple : il sera encodé à l'affichage). Ordre : traduction de la table (clé = le texte français), puis le texte du code (français, anglais) ;
+    /// pour une autre langue sans traduction, l'anglais s'affiche et le texte est signalé « à traduire » dans /Admin/Traductions.
+    /// </summary>
+    public string T(string francais, string anglais)
+    {
+        var code = Code;
+        if (traductions is null) return code == "fr" ? francais : anglais;
+        var t = traductions.Get(code, francais);
+        if (t is not null) return t;
+        if (code is "fr") return francais;
+        if (code is not "en") traductions.Manque(code, francais, anglais);
+        return anglais;
+    }
 
     /// <summary>Texte contenant du HTML écrit par nous (liens, gras) : affiché tel quel. Jamais pour une donnée venant de la base ou de l'URL.</summary>
-    public HtmlString TH(string francais, string anglais) => new(Anglais ? anglais : francais);
+    public HtmlString TH(string francais, string anglais) => new(T(francais, anglais));
 
     /// <summary>Adresse interne (« /lois ») avec le préfixe de la langue courante.</summary>
     public string Lien(string chemin)

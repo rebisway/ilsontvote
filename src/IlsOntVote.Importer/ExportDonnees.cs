@@ -7,10 +7,11 @@ using Npgsql;
 namespace IlsOntVote.Importer;
 
 /// <summary>Un jeu de données publié en téléchargement : fichier CSV compressé, produit par une requête SQL (colonnes nommées, sans photo).</summary>
-public sealed record JeuDonnees(string Nom, string Description, string Sql);
+public sealed record JeuDonnees(string Nom, string Description, string Sql, string Pays = "FR");
 
 /// <summary>Une ligne du manifeste (manifest.json) lu par la page « Données ouvertes ».</summary>
-public sealed record EntreeManifeste(string Fichier, string Description, long Lignes, long Octets, string Sha256, DateTime GenereLe);
+/// <summary><c>Pays</c> : « FR » (France et Union européenne, fichiers sans préfixe) ou « GB » (fichiers « gb_… ») ; chaque site n'affiche que les fichiers de son pays.</summary>
+public sealed record EntreeManifeste(string Fichier, string Description, long Lignes, long Octets, string Sha256, DateTime GenereLe, string Pays = "FR");
 
 /// <summary>
 /// Export des données du site en fichiers téléchargeables (CSV UTF-8 virgule, compressés en gzip), régénérés à chaque import.
@@ -26,9 +27,39 @@ public static class ExportDonnees
     /// (Communes avant l'ouverture du site britannique) ne doit pas apparaître dans les données ouvertes publiques.
     /// </summary>
     /// <summary>Plateformes de pétitions publiées : les françaises toujours ; celle du Parlement britannique (UK) seulement quand le pays GB est actif (/Admin/Pays).</summary>
-    private const string PlateformesPubliees = "(chambre IN ('AN', 'SENAT') OR (chambre = 'UK' AND EXISTS (SELECT 1 FROM pays WHERE code = 'GB' AND actif)))";
+    // Données PAR PAYS : le site français ne propose que les données de la France et de l'Union européenne, le site britannique que celles du Royaume-Uni (fichiers « gb_… ») ;
+    // chaque jeu est écrit une fois, pour la France, puis décliné pour le Royaume-Uni en remplaçant ces deux filtres (voir <see cref="PourRoyaumeUni"/>).
+    private const string PlateformesPubliees = "chambre IN ('AN', 'SENAT')";
+    private const string PlateformesGb = "(chambre = 'UK' AND EXISTS (SELECT 1 FROM pays WHERE code = 'GB' AND actif))";
 
-    private const string ChambresActives = "chambre IN (SELECT code FROM chambres WHERE actif)";
+    private const string ChambresActives = "chambre IN (SELECT code FROM chambres WHERE actif AND pays IN ('FR', 'EU'))";
+    private const string ChambresGb = "chambre IN (SELECT code FROM chambres WHERE actif AND pays = 'GB')";
+
+    /// <summary>Jeux communs déclinés pour le Royaume-Uni (mêmes colonnes, autres chambres) ; les autres sont propres à la France.</summary>
+    private static readonly string[] JeuxCommuns = ["groupes", "parlementaires", "mandats", "appartenances_groupes", "scrutins", "votes", "petitions", "petitions_historique", "petitions_anomalies"];
+
+    private static readonly Dictionary<string, string> DescriptionsGb = new()
+    {
+        ["groupes"] = "Partis (groupes) de la Chambre des Communes et de la Chambre des Lords.",
+        ["parlementaires"] = "Députés britanniques et pairs (identité, circonscription pour les députés).",
+        ["mandats"] = "Périodes de mandat. Pour les Communes : du premier au dernier vote où le député figure (calculé) ; pour les Lords : dates d'entrée et de sortie de l'annuaire des membres.",
+        ["appartenances_groupes"] = "Appartenance d'un membre à un parti, avec dates (pour les pairs : le dernier parti connu).",
+        ["scrutins"] = "Divisions (votes enregistrés) des Communes et des Lords : décompte, résultat calculé, projet de loi rattaché (bill_id, calculé d'après le titre) ; sur_ensemble = troisième lecture aux Communes (calculé).",
+        ["votes"] = "Vote de chaque membre à chaque division (pour = aye / content, contre = no / not content, abstention = présent dans les deux couloirs). Les absents ne figurent pas dans ce fichier.",
+        ["petitions"] = "Pétitions de petition.parliament.uk : titre, statut publié, soutiens, réponse du gouvernement et débat.",
+        ["petitions_historique"] = "Relevés successifs du nombre de soutiens et du statut de chaque pétition (un relevé par jour de changement).",
+        ["petitions_anomalies"] = "Constats entre deux relevés : baisse du nombre de soutiens, disparition ou réapparition d'une pétition. Sans cause connue.",
+    };
+
+    /// <summary>Déclinaison britannique d'un jeu commun : mêmes colonnes, chambres et plateformes du Royaume-Uni, fichier « gb_… ».</summary>
+    private static JeuDonnees PourRoyaumeUni(JeuDonnees j) => new("gb_" + j.Nom, DescriptionsGb.GetValueOrDefault(j.Nom, j.Description),
+        j.Sql.Replace(ChambresActives, ChambresGb).Replace(PlateformesPubliees, PlateformesGb)
+            .Replace("nominatif_incomplet, texte_id, texte_lie_id", "nominatif_incomplet, bill_id, bill_etape"), "GB");   // projet de loi britannique rattaché (calculé) au lieu du texte français
+
+    /// <summary>Tous les jeux publiés : France (sans préfixe), puis Royaume-Uni (« gb_… »).</summary>
+    public static IReadOnlyList<JeuDonnees> Tous => [.. Jeux.Where(j => j.Pays == "FR" && j.Nom is not ("bills" or "bill_etapes")),
+        .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom)).Select(PourRoyaumeUni),
+        .. Jeux.Where(j => j.Nom is "bills" or "bill_etapes").Select(j => j with { Nom = "gb_" + j.Nom, Pays = "GB" })];
 
     public static readonly IReadOnlyList<JeuDonnees> Jeux =
     [
@@ -80,11 +111,13 @@ public static class ExportDonnees
     public static async Task<IReadOnlyList<EntreeManifeste>> ExporterAsync(string connectionString, string dossier, Action<string> journal)
     {
         Directory.CreateDirectory(dossier);
-        await using var conn = new NpgsqlConnection(connectionString);
+        // Pas de délai : le jeu des votes (plus de 6 millions de lignes, trié) met plus de 30 s à produire sa première ligne (constaté : « Timeout during reading attempt »).
+        var cs = new NpgsqlConnectionStringBuilder(connectionString) { CommandTimeout = 0, Timeout = 60 };
+        await using var conn = new NpgsqlConnection(cs.ConnectionString);
         await conn.OpenAsync();
 
         var manifeste = new List<EntreeManifeste>();
-        foreach (var jeu in Jeux)
+        foreach (var jeu in Tous)
         {
             var final = Path.Combine(dossier, jeu.Nom + ".csv.gz");
             var temporaire = final + ".tmp";
@@ -109,7 +142,7 @@ public static class ExportDonnees
             string sha;
             await using (var f = File.OpenRead(temporaire)) sha = Convert.ToHexString(await SHA256.HashDataAsync(f)).ToLowerInvariant();
             File.Move(temporaire, final, overwrite: true);   // remplacement atomique : le site ne sert jamais un fichier à moitié écrit
-            manifeste.Add(new EntreeManifeste(jeu.Nom + ".csv.gz", jeu.Description, lignes, octets, sha, DateTime.UtcNow));
+            manifeste.Add(new EntreeManifeste(jeu.Nom + ".csv.gz", jeu.Description, lignes, octets, sha, DateTime.UtcNow, jeu.Pays));
             journal($"  {jeu.Nom}.csv.gz : {lignes:N0} lignes, {octets / 1024.0 / 1024.0:N1} Mo");
         }
 

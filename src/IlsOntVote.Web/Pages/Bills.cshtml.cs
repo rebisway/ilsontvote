@@ -28,22 +28,26 @@ public class BillsModel(IBillRepository bills, Langue langue) : ListePageModel
     protected override bool DecroissantInitial(string cle) => cle is "depot" or "maj" or "divisions";
     protected override IEnumerable<(string Nom, string? Valeur)> Filtres => [("q", Recherche), ("statut", Statut), ("chambre", Chambre)];
 
-    public static string StatutLibelle(Bill b) => b.StatutCle switch
+    /// <summary>
+    /// Statut d'un projet dans la langue de la page. Les libellés de la source (étape en cours : « Committee stage ») restent en anglais : ce sont des DONNÉES officielles, comme
+    /// les titres ; seuls les libellés que le site ajoute (loi, rejeté, retiré, en cours) se traduisent.
+    /// </summary>
+    public static string StatutLibelle(Bill b, Langue l) => b.StatutCle switch
     {
-        "loi" => "Act" + (b.DateLoi is { } d ? " · Royal Assent " + d.ToString("d MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("en-GB")) : ""),
-        "rejete" => "Defeated",
-        "retire" => "Withdrawn",
-        _ => b.EtapeCourante ?? "In progress",
+        "loi" => l.T("Loi", "Act") + (b.DateLoi is { } d ? l.T(" · sanction royale le ", " · Royal Assent ") + d.ToString("d MMM yyyy", l.Culture) : ""),
+        "rejete" => l.T("Rejeté", "Defeated"),
+        "retire" => l.T("Retiré", "Withdrawn"),
+        _ => b.EtapeCourante ?? l.T("En cours", "In progress"),
     };
 
     /// <summary>
     /// Libellé abrégé pour la puce d'un tableau : « Consideration of Commons amendments and / or reasons » devient « Commons amendments », « Committee stage » « Committee ».
     /// L'infobulle de la puce garde le libellé complet de la source.
     /// </summary>
-    public static string StatutCourt(Bill b)
+    public static string StatutCourt(Bill b, Langue l)
     {
-        var s = StatutLibelle(b);
-        if (b.StatutCle != "en-cours") return s.Replace("Royal Assent ", "");
+        var s = StatutLibelle(b, l);
+        if (b.StatutCle != "en-cours") return s.Replace("Royal Assent ", "").Replace("sanction royale le ", "");
         s = System.Text.RegularExpressions.Regex.Replace(s, @"^Consideration of ", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         s = System.Text.RegularExpressions.Regex.Replace(s, @"\s+and\s*/\s*or reasons$| stage$", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         return s;
@@ -52,20 +56,20 @@ public class BillsModel(IBillRepository bills, Langue langue) : ListePageModel
     /// <summary>Classe de teinte (puce de statut) : mêmes teintes que les pétitions, distinctes des couleurs de vote.</summary>
     public static string StatutClasse(Bill b) => b.StatutCle switch { "loi" => "st-ouverte", "rejete" => "st-archivee", "retire" => "st-neutre", _ => "st-seuil" };
 
-    private static readonly IReadOnlyList<Colonne<Bill>> ColonnesExport =
+    private IReadOnlyList<Colonne<Bill>> ColonnesExport() =>
     [
-        new("Bill", b => b.Titre),
-        new("Status", b => b.StatutCle),
-        new("Current stage", b => b.EtapeCourante),
-        new("Originating house", b => b.ChambreOrigine),
-        new("Current house", b => b.ChambreCourante),
-        new("First sitting", b => b.DateDepot),
-        new("Royal Assent", b => b.DateLoi),
-        new("Withdrawn on", b => b.RetireLe),
-        new("Divisions linked (computed)", b => b.NbDivisions),
-        new("Last update", b => b.DerniereMaj),
+        new(langue.T("Projet de loi", "Bill"), b => b.Titre),
+        new(langue.T("Statut", "Status"), b => b.StatutCle),
+        new(langue.T("Étape en cours", "Current stage"), b => b.EtapeCourante),
+        new(langue.T("Chambre d'origine", "Originating house"), b => b.ChambreOrigine),
+        new(langue.T("Chambre actuelle", "Current house"), b => b.ChambreCourante),
+        new(langue.T("Première séance", "First sitting"), b => b.DateDepot),
+        new(langue.T("Sanction royale", "Royal Assent"), b => b.DateLoi),
+        new(langue.T("Retiré le", "Withdrawn on"), b => b.RetireLe),
+        new(langue.T("Divisions rattachées (calculé)", "Divisions linked (computed)"), b => b.NbDivisions),
+        new(langue.T("Dernière mise à jour", "Last update"), b => b.DerniereMaj),
         new("URL", b => b.Url),
-        new("Identifier", b => b.Id),
+        new(langue.T("Identifiant", "Identifier"), b => b.Id),
     ];
 
     public async Task<IActionResult> OnGetAsync()
@@ -78,7 +82,7 @@ public class BillsModel(IBillRepository bills, Langue langue) : ListePageModel
         if (ExportDemande)
         {
             var tout = await bills.ListerAsync(Recherche, Statut, Chambre, TriEffectif, Decroissant, 1, 0);
-            return Exporteur.Ecrire(Format!, "bills", ColonnesExport, tout.Lignes);
+            return Exporteur.Ecrire(Format!, "bills", ColonnesExport(), tout.Lignes);
         }
         Resultats = await bills.ListerAsync(Recherche, Statut, Chambre, TriEffectif, Decroissant, NumeroPage, ParPage);
         return Page();

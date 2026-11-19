@@ -61,6 +61,7 @@ builder.Services.AddAuthorization(o => o.AddPolicy("AdminOnly", p => p.RequireRo
 
 // --- Dapper — tout le reste ---------------------------------------------------------
 builder.Services.AddSingleton<DapperContext>();
+builder.Services.AddSingleton<Traductions>();
 builder.Services.AddScoped<IScrutinRepository, ScrutinRepository>();
 builder.Services.AddScoped<IParlementaireRepository, ParlementaireRepository>();
 builder.Services.AddScoped<ITexteRepository, TexteRepository>();

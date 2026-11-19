@@ -12,7 +12,7 @@ public static class DescriptionsDonnees
     private static readonly Dictionary<string, string> En = new()
     {
         ["groupes"] = "Political groups (one identifier per legislature for the National Assembly).",
-        ["parlementaires"] = "Members of the French Parliament, the European Parliament, the House of Commons and the House of Lords (identity, department or country, constituency).",
+        ["parlementaires"] = "Members of the French Parliament and the European Parliament (identity, department or country, constituency).",
         ["mandats"] = "Terms of office (start = taking office; empty end = ongoing).",
         ["appartenances_groupes"] = "Membership of a member in a group, with dates.",
         ["scrutins"] = "Recorded votes: count, result, linked text (texte_id: vote on the whole text; texte_lie_id: amendment or article). UK divisions: bill_id and bill_etape when linked.",
@@ -27,14 +27,35 @@ public static class DescriptionsDonnees
         ["texte_etapes"] = "Floor decisions on a text (Assembly and Senate), with or without a recorded vote.",
     };
 
-    /// <summary>Description anglaise du fichier (« votes.csv.gz »), ou null si la table ne la connaît pas.</summary>
-    public static string? Anglais(string fichier) => En.GetValueOrDefault(fichier.Split('.')[0]);
+    private static readonly Dictionary<string, string> EnGb = new()
+    {
+        ["groupes"] = "Parties (groups) of the House of Commons and the House of Lords.",
+        ["parlementaires"] = "MPs and peers (identity, constituency for MPs).",
+        ["mandats"] = "Terms of office. Commons: from the first to the last vote where the MP appears (calculated); Lords: entry and exit dates from the members directory.",
+        ["appartenances_groupes"] = "Membership of a member in a party, with dates (peers: the latest known party).",
+        ["scrutins"] = "Divisions (recorded votes) of the Commons and the Lords: count, calculated result, linked bill (bill_id, calculated from the title); sur_ensemble = third reading in the Commons (calculated).",
+        ["votes"] = "Each member's vote in each division (pour = aye / content, contre = no / not content, abstention = listed in both lobbies). Absent members are not in this file.",
+        ["petitions"] = "Petitions from petition.parliament.uk: title, published status, supporters, government response and debate.",
+        ["petitions_historique"] = "Successive readings of the number of supporters and the status of each petition (one reading per day of change).",
+        ["petitions_anomalies"] = "Findings between two readings: drop in supporters, petition disappearing or reappearing. No cause is stated.",
+        ["bills"] = "UK Parliament bills (sessions 35 to 40, since December 2019): title, originating and current house, current stage, Royal Assent (Act), withdrawal or defeat, as published by bills-api.parliament.uk.",
+        ["bill_etapes"] = "Stages (sittings) of each UK bill: house, stage label, sitting date (empty = no published sitting).",
+    };
+
+    /// <summary>Description anglaise du fichier (« votes.csv.gz », « gb_votes.csv.gz »), ou null si la table ne la connaît pas.</summary>
+    public static string? Anglais(string fichier)
+    {
+        var nom = fichier.Split('.')[0];
+        return nom.StartsWith("gb_") ? EnGb.GetValueOrDefault(nom[3..]) : En.GetValueOrDefault(nom);
+    }
 }
 
 public sealed class FichierDonnees
 {
     public string Fichier { get; set; } = "";
     public string Description { get; set; } = "";
+    /// <summary>« FR » (France et Union européenne) ou « GB » ; absent des anciens manifestes = « FR ».</summary>
+    public string Pays { get; set; } = "FR";
     public long Lignes { get; set; }
     public long Octets { get; set; }
     public string Sha256 { get; set; } = "";

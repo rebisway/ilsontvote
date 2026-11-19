@@ -1,0 +1,100 @@
+@page
+@model IlsOntVote.Web.Pages.Admin.TraductionsModel
+@{
+    ViewData["Title"] = "Traductions";
+    ViewData["NoIndex"] = true;
+}
+<partial name="_AdminNav" />
+<h1 class="titre-page">Traductions de l'interface</h1>
+<p class="chapo">
+    La clé est le <strong>texte français</strong> écrit dans la page. Une traduction enregistrée ici remplace celui du code pour la langue choisie, sans déploiement ; sans traduction, le code s'applique
+    (français, anglais) et l'anglais sert de repli pour les autres langues. Les données (titres de lois, noms de groupes) ne sont pas concernées. Pour ajouter une langue (espagnol, italien…), saisir son
+    code à deux lettres ci-dessous puis traduire les textes de la liste « à traduire » (ceux que les pages ont demandés depuis le démarrage de l'application).
+</p>
+
+@if (Model.Message is not null) { <p class="note" role="status">@Model.Message</p> }
+
+<form method="get" class="filtres">
+    <label>Langue
+        <select name="langue" onchange="this.form.submit()">
+            @foreach (var l in Model.Langues) { <option value="@l" selected="@(l == Model.Langue)">@l</option> }
+            @if (!Model.Langues.Contains(Model.Langue)) { <option value="@Model.Langue" selected>@Model.Langue</option> }
+        </select>
+    </label>
+    <label>ou nouvelle langue <input type="text" name="nouvelle" maxlength="2" size="3" placeholder="es" pattern="[a-z]{2}" aria-label="Code de langue à deux lettres" /></label>
+    <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="Chercher un texte…" aria-label="Chercher" />
+    <button type="submit" class="bouton petit secondaire">Afficher</button>
+</form>
+
+@if (Model.AFaire.Count > 0)
+{
+    <h2>À traduire (@Model.AFaire.Count)</h2>
+    <p class="note-source">Textes demandés par les pages en « @Model.Langue » sans traduction depuis le démarrage. L'anglais s'affiche en attendant.</p>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Français (clé)</th><th>Anglais (repli)</th><th>Traduction « @Model.Langue »</th></tr></thead>
+            <tbody>
+            @foreach (var (cle, repli) in Model.AFaire)
+            {
+                <tr>
+                    <td>@cle</td>
+                    <td>@repli</td>
+                    <td>
+                        <form method="post" asp-page-handler="Enregistrer" class="ligne-form">
+                            <input type="hidden" name="langue" value="@Model.Langue" />
+                            <input type="hidden" name="cle" value="@cle" />
+                            <input type="text" name="texte" class="champ-large" aria-label="Traduction" />
+                            <button type="submit" class="bouton petit">Enregistrer</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+<h2>Traductions enregistrées en « @Model.Langue » (@Model.Lignes.Count)</h2>
+@if (Model.Lignes.Count == 0)
+{
+    <p class="vide">Aucune traduction enregistrée pour cette langue : le texte du code s'applique.</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Français (clé)</th><th>Traduction</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var t in Model.Lignes)
+            {
+                <tr>
+                    <td>@t.Cle</td>
+                    <td>
+                        <form method="post" asp-page-handler="Enregistrer" class="ligne-form">
+                            <input type="hidden" name="langue" value="@Model.Langue" />
+                            <input type="hidden" name="cle" value="@t.Cle" />
+                            <input type="text" name="texte" value="@t.Texte" class="champ-large" aria-label="Traduction" />
+                            <button type="submit" class="bouton petit">Enregistrer</button>
+                        </form>
+                    </td>
+                    <td>
+                        <form method="post" asp-page-handler="Supprimer">
+                            <input type="hidden" name="langue" value="@Model.Langue" />
+                            <input type="hidden" name="cle" value="@t.Cle" />
+                            <button type="submit" class="bouton petit secondaire" title="Revenir au texte du code">Supprimer</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+<h2>Ajouter une traduction</h2>
+<form method="post" asp-page-handler="Enregistrer" class="ligne-form">
+    <input type="hidden" name="langue" value="@Model.Langue" />
+    <input type="text" name="cle" class="champ-large" placeholder="Texte français exact, tel qu'il est dans la page" aria-label="Texte français" />
+    <input type="text" name="texte" class="champ-large" placeholder="Traduction en « @Model.Langue »" aria-label="Traduction" />
+    <button type="submit" class="bouton petit">Ajouter</button>
+</form>

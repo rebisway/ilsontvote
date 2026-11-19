@@ -5,7 +5,7 @@
     ViewData["Description"] = L.T("D'où viennent les données d'Ils ont voté, comment elles sont lues, ce qui est calculé par le site et ce qui reste incertain ou manquant.", "Where the data of Ils ont voté comes from, how it is read, what the site calculates and what remains uncertain or missing.");
 }
 
-@if (L.Pays == "GB")
+@if (L.Pays == "GB" && L.Anglais)
 {
 <h1 class="titre-page">Methodology and limits</h1>
 <p class="chapo">The site judges no one: it displays what the official source publishes. When a piece of data is calculated, doubtful or missing, it says so.</p>
@@ -47,6 +47,51 @@
         <li><strong>Divisions only</strong>: votes without a recorded division (on the voices) leave no individual vote and do not appear.</li>
         <li><strong>History</strong>: the 58th and 59th Parliaments (since December 2019) are loaded; earlier ones are not. Bills are linked to divisions by title, a calculation made by this site (flagged as such on each division).</li>
         <li>To report an error, write to <a href="mailto:contact@rebisway.com">contact@rebisway.com</a>.</li>
+    </ul>
+</section>
+}
+else if (L.Pays == "GB")
+{
+<h1 class="titre-page">Méthodologie et limites</h1>
+<p class="chapo">Le site ne juge personne : il affiche ce que la source officielle publie. Quand une donnée est calculée, douteuse ou manquante, il le dit.</p>
+
+<section class="bloc-texte">
+    <h2>D'où viennent les données</h2>
+    <ul>
+        <li><strong>Divisions de la Chambre des Communes</strong> : l'<a href="https://commonsvotes-api.parliament.uk/">API publique Commons Votes</a> du Parlement britannique (JSON), du début de la 58e législature (17 décembre 2019) à aujourd'hui (la 59e s'est ouverte le 9 juillet 2024). Contient des informations parlementaires sous <a href="https://www.parliament.uk/site-information/copyright-parliament/open-parliament-licence/">Open Parliament Licence v3.0</a>.</li>
+        <li><strong>Divisions de la Chambre des Lords</strong> : l'<a href="https://lordsvotes-api.parliament.uk/">API Lords Votes</a> (divisions : seuls les pairs qui ont voté sont publiés, en « Content » ou « Not content ») et l'<a href="https://members-api.parliament.uk/">API Members</a> (dates d'entrée et de sortie de chaque pair). <strong>Les pairs absents sont déduits</strong> de ces dates d'appartenance et ne sont pas stockés : un pair en congé ou suspendu ne se distingue pas d'un absent, donc les taux d'absence aux Lords sont surestimés ; chaque division le dit. Le parti d'un pair est le dernier connu (les votes portent le parti du jour). Les Lords n'ont pas de vote sur l'ensemble d'un projet de loi : toutes leurs divisions sont affichées, sans filtre « ensemble ».</li>
+        <li><strong>Pétitions</strong> : le JSON public de <a href="https://petition.parliament.uk/">petition.parliament.uk</a> (même licence) : pétitions ouvertes et closes avec leurs soutiens, la réponse du gouvernement (à partir de 10 000 soutiens) et le débat (à partir de 100 000). Le site prend un relevé par jour et les garde tous, pour pouvoir montrer une baisse de soutiens ; elle n'est jamais expliquée, car la source n'en donne pas la cause. Les pétitions rejetées avant publication ne sont pas importées ; l'historique commence le jour du premier import.</li>
+        <li>Mise à jour automatique : les divisions de moins de sept jours sont relues, car la source corrige ses listes après publication. Le <a href="https://github.com/rebisway/ilsontvote">code est un logiciel libre</a> (GPL-3.0).</li>
+    </ul>
+</section>
+
+<section class="bloc-texte">
+    <h2>Comment se lit une division</h2>
+    <ul>
+        <li><strong>Pour (aye), contre (no)</strong> : tels que publiés dans les listes de la division. Les scrutateurs (tellers), listés à part par la source, sont comptés de leur côté.</li>
+        <li><strong>Les deux couloirs</strong> : un membre présent à la fois dans la liste des « ayes » et des « noes » a voté dans les deux couloirs, ce que la pratique parlementaire traite comme une abstention. Le site enregistre une abstention et le dit dans la note de la division. Il n'y a pas d'abstention formelle aux Communes.</li>
+        <li><strong>Absent</strong> : le membre siégeait à la date de la division mais ne figure dans aucune liste. La source publie une liste « no vote recorded » (absents, président et vice-présidents de séance qui ne votent pas, élus abstentionnistes) : le site ne donne <em>aucune raison</em> et les montre tous comme absents.</li>
+        <li><strong>Procuration</strong> : un député peut voter par l'intermédiaire d'un collègue (système de vote par procuration) ; le vote compte et est signalé.</li>
+        <li><strong>Mandats</strong> : la source n'a pas d'annuaire daté. Un mandat va de la première à la dernière division où le membre figure dans une liste (<strong>calculé par le site</strong>) ; le nombre de sièges un jour donné ne dépasse jamais 650.</li>
+    </ul>
+</section>
+
+<section class="bloc-texte">
+    <h2>Calculé par le site (non publié tel quel)</h2>
+    <ul>
+        <li><strong>Résultat « adopté / rejeté »</strong> : calculé d'après les décomptes officiels (plus de pour que de contre) ; une égalité reste indéterminée.</li>
+        <li><strong>Participation</strong> : parmi les membres en fonction à la date d'une division, la part de ceux qui ont voté (pour, contre ou les deux couloirs). Les autres sont absents. Les divisions dont les listes sont incomplètes (voir ci-dessous) ne sont pas comptées.</li>
+        <li><strong>Plan de la salle</strong> : les bancs du gouvernement (à gauche) et tous les autres groupes (à droite) sont dessinés en deux croissants face à face, un point par membre. Le groupe qui siège avec le gouvernement est réglé par l'administrateur du site et revu après chaque changement de majorité ; d'un côté, les groupes sont classés par taille. C'est une mise en page, pas la place réelle de chaque membre.</li>
+    </ul>
+</section>
+
+<section class="bloc-texte">
+    <h2>Limites connues</h2>
+    <ul>
+        <li><strong>Listes incomplètes</strong> : dans la plupart des divisions, la source nomme quelques membres de moins que son propre décompte officiel (2,5 de moins en moyenne). Ces divisions sont marquées « décompte incomplet » et exclues des taux de participation, car leurs absents ne sont pas fiables.</li>
+        <li><strong>Divisions seulement</strong> : les votes sans division enregistrée (à main levée) ne laissent aucun vote individuel et n'apparaissent pas.</li>
+        <li><strong>Historique</strong> : les 58e et 59e législatures (depuis décembre 2019) sont chargées ; les précédentes ne le sont pas. Les projets de loi sont rattachés aux divisions d'après le titre, un calcul de ce site (signalé comme tel sur chaque division).</li>
+        <li>Pour signaler une erreur, écrivez à <a href="mailto:contact@rebisway.com">contact@rebisway.com</a>.</li>
     </ul>
 </section>
 }
