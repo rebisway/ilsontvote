@@ -24,7 +24,7 @@ public static class Chambres
         : chambre switch { Senat => "sénateurs", UE => "eurodéputés", Commons => "députés britanniques", Lords => "pairs", UsHouse => "représentants", UsSenate => "sénateurs américains", _ => "députés" };
     /// <summary>Sigle court pour les étiquettes de tableau.</summary>
     public static string Court(string chambre, bool en = false) => en
-        ? chambre switch { Senat => "Senate", UE => "EU", Commons => "Commons", Lords => "Lords", UsHouse => "House", UsSenate => "US Senate", _ => "NA" }
+        ? chambre switch { Senat => "Senate", UE => "EU", Commons => "Commons", Lords => "Lords", UsHouse => "House", UsSenate => "Senate", _ => "NA" }
         : chambre switch { Senat => "Sénat", UE => "UE", Commons => "Communes", Lords => "Lords", UsHouse => "Chambre", UsSenate => "Sénat US", _ => "AN" };
     /// <summary>Classe CSS de l'étiquette de chambre (couleur propre à chaque assemblée).</summary>
     public static string ClasseTag(string chambre) => chambre switch { Senat => "ch-senat", UE => "ch-ue", Commons => "ch-commons", Lords => "ch-lords", UsHouse => "ch-ushouse", UsSenate => "ch-ussenate", _ => "ch-an" };

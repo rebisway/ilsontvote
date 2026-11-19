@@ -40,6 +40,8 @@ public static class HemicycleLayout
     public const double RayonMax = 420;
     public const double RayonArc = 438;
     public const double RayonEtiquette = 466;
+    /// <summary>Rayon maximal d'un point (unités du viewBox) : au-delà, un hémicycle de peu de sièges ressemble à des ballons.</summary>
+    public const double RayonPointMax = 11;
 
     public static HemicycleVue Construire(IReadOnlyList<Siege> sieges, string disposition)
         => disposition == "face-a-face" ? ConstruireFaceAFace(sieges) : Construire(sieges);
@@ -187,7 +189,8 @@ public static class HemicycleLayout
 
         double espaceRangees = (RayonMax - rMin) / Math.Max(1, rangees - 1);
         double espaceArc = Math.PI * RayonMax / Math.Max(1, parRangee[^1] - 1);
-        return Math.Round(0.42 * Math.Min(espaceRangees, espaceArc), 1);
+        // Plafond : une petite chambre (Sénat des États-Unis, 100 sièges) a de GRANDES rangées espacées, ses points deviendraient énormes (rayon ~27 contre ~9 pour 577 sièges).
+        return Math.Round(Math.Min(RayonPointMax, 0.42 * Math.Min(espaceRangees, espaceArc)), 1);
     }
 
     /// <summary>

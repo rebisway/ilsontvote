@@ -25,11 +25,23 @@ public sealed class HouseClerkSource : IDisposable
 
     public static string Url(int annee, int numero) => $"https://clerk.house.gov/evs/{annee}/roll{numero:000}.xml";
 
-    /// <summary>Lit un vote ; null s'il n'existe pas (fin de la liste de l'année).</summary>
+    /// <summary>
+    /// Lit un vote ; null s'il n'existe pas (fin de la liste de l'année). Les années récentes répondent HTTP 200 avec « Error sanitizing file » pour un vote inexistant, les ANCIENNES
+    /// (constaté dès 2007) répondent 404 : les deux veulent dire « fin de la liste ». Erreur réseau ou 5xx : trois essais avant d'échouer.
+    /// </summary>
     public async Task<AppelChambre?> LireAsync(int annee, int numero)
     {
-        var xml = await _http.GetStringAsync(Url(annee, numero));
-        return Analyser(xml);
+        for (var essai = 1; ; essai++)
+        {
+            try
+            {
+                using var r = await _http.GetAsync(Url(annee, numero));
+                if (r.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
+                r.EnsureSuccessStatusCode();
+                return Analyser(await r.Content.ReadAsStringAsync());
+            }
+            catch (HttpRequestException) when (essai < 3) { await Task.Delay(1500 * essai); }
+        }
     }
 
     /// <summary>Analyse un XML du greffe ; null si le contenu n'est pas un vote (message d'erreur du serveur, fichier vide).</summary>

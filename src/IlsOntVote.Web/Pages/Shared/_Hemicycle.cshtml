@@ -72,10 +72,14 @@
                 var y = HemicycleLayout.CentreY - HemicycleLayout.RayonEtiquette * Math.Sin(a.AngleMilieu);
                 // Aux deux extrémités l'arc est vertical : l'étiquette se place à côté de lui, pas dessus.
                 var extremite = Math.Abs(cos) > 0.85;
+                // Nom LONG (« Democratic », « Republican ») : centré sur l'arc il déborderait sur les sièges voisins ; on l'accroche à l'extérieur de l'arc, du côté où il se trouve.
+                var nomLong = a.Sigle.Length > 6 && Math.Abs(cos) > 0.3;
                 var x = extremite
                     ? HemicycleLayout.CentreX + Math.Sign(cos) * (HemicycleLayout.RayonArc + 14)
+                    : nomLong ? HemicycleLayout.CentreX + (HemicycleLayout.RayonArc + 16) * cos
                     : HemicycleLayout.CentreX + HemicycleLayout.RayonEtiquette * cos;
-                var ancre = extremite ? (cos < 0 ? "end" : "start") : "middle";
+                if (nomLong && !extremite) y = HemicycleLayout.CentreY - (HemicycleLayout.RayonArc + 16) * Math.Sin(a.AngleMilieu);
+                var ancre = extremite || nomLong ? (cos < 0 ? "end" : "start") : "middle";
                 @* <text> est un nom réservé de Razor : on émet l'élément SVG en HTML brut (sigle encodé). *@
                 @Html.Raw($"<text x=\"{F(x)}\" y=\"{F(y)}\" text-anchor=\"{ancre}\" dominant-baseline=\"middle\">{System.Net.WebUtility.HtmlEncode(a.Sigle)}</text>")
             }

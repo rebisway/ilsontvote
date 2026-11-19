@@ -154,13 +154,14 @@ public sealed class UsSource : IDisposable
     // ------------------------------------------------------------------ conversion
 
     /// <summary>Sigle du parti d'après le code Voteview (100 démocrate, 200 républicain, 328 indépendant) ; les autres gardent leur code (« P714 »).</summary>
-    public static (string Sigle, string Libelle, string? Couleur) Parti(int code) => code switch
+    public static (string Id, string Sigle, string Libelle, string? Couleur) Parti(int code) => code switch
     {
-        100 => ("D", "Democratic", "#2a62c9"),
-        200 => ("R", "Republican", "#d6332d"),
-        328 => ("I", "Independent", "#8a8f98"),
-        0 => ("NA", "No party recorded", null),
-        _ => ($"P{code}", $"Other party (Voteview code {code})", null),
+        // Id = clé stable du groupe (ne change jamais) ; Sigle = ce qu'on affiche : le NOM du parti, pas une lettre (« D » ne dit rien à un lecteur non américain).
+        100 => ("D", "Democratic", "Democratic Party", "#2a62c9"),
+        200 => ("R", "Republican", "Republican Party", "#d6332d"),
+        328 => ("I", "Independent", "Independent", "#8a8f98"),
+        0 => ("NA", "No party", "No party recorded", null),
+        _ => ($"P{code}", "Other", $"Other party (Voteview code {code})", null),
     };
 
     /// <summary>Place du parti dans l'hémicycle (gauche vers droite) : démocrates, indépendants, républicains.</summary>

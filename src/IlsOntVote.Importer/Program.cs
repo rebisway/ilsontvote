@@ -568,9 +568,9 @@ async Task<int> ImporterEtatsUnisAsync()
             var groupeDe = new Dictionary<string, Dictionary<string, string>>();   // chambre -> icpsr -> groupe
             foreach (var m in membres)
             {
-                var (sigle, libelle, couleur) = UsSource.Parti(m.CodeParti);
-                var gid = UsSource.IdGroupe(m.Chambre, sigle);
-                groupes[gid] = new GroupeRow(gid, m.Chambre, null, sigle, libelle, couleur, UsSource.OrdreParti(sigle));
+                var (idParti, sigle, libelle, couleur) = UsSource.Parti(m.CodeParti);
+                var gid = UsSource.IdGroupe(m.Chambre, idParti);
+                groupes[gid] = new GroupeRow(gid, m.Chambre, null, sigle, libelle, couleur, UsSource.OrdreParti(idParti));
                 var pid = UsSource.IdMembre(m.Chambre, m.Icpsr);
                 var slug = existants.TryGetValue(pid, out var s0) ? s0 : Slugs.Unique(slugs, m.Prenom, m.Nom, pid);
                 parlementaires.Add(new ParlementaireRow(pid, m.Chambre, null, m.Prenom, m.Nom, slug, m.Etat, m.Circonscription));
@@ -584,7 +584,8 @@ async Task<int> ImporterEtatsUnisAsync()
             {
                 var (deja, plusRecent) = await repo.LireScrutinsAsync(chambre);
                 // Chambre : SOURCE OFFICIELLE (XML du greffe, un fichier par vote) ; Sénat : Voteview (senate.gov refuse les robots).
-                if (chambre == Chambres.UsHouse)
+                // 107e Congrès (2001-2002) : les XML du greffe n'ont pas d'identifiant d'élu (« name-id ») : aucun représentant ne peut y être relié à sa fiche. Repli sur Voteview pour cette seule période.
+                if (chambre == Chambres.UsHouse && c >= 108)
                 {
                     var gdH = groupeDe.GetValueOrDefault(chambre) ?? new();
                     var icpsrDe = membres.Where(m => m.Chambre == chambre && m.Bioguide.Length > 0).GroupBy(m => m.Bioguide).ToDictionary(g => g.Key, g => g.First().Icpsr, StringComparer.OrdinalIgnoreCase);
