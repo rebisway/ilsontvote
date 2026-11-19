@@ -62,7 +62,10 @@
     var promptIA = PromptResume.Construire(L.Anglais, titre, liensPrompt);
 }
 @* Sans bloc « texte » (UE, vote isolé) : le bouton reste seul ; sinon il est dans la rangée des raccourcis du bloc. *@
-@if (Model.Loi is null && Model.Bill is null) { <partial name="_ResumeIA" model="promptIA" /> }
+@if (Model.Loi is null && Model.Bill is null)
+{
+    <section class="bloc-texte" aria-label="@L.T("Résumé par IA", "AI summary")"><div class="bloc-texte-titre"><partial name="_ResumeIA" model="promptIA" /></div></section>
+}
 @if (Model.Bill is { } bill)
 {
     <section class="bloc-texte" aria-label="Bill">

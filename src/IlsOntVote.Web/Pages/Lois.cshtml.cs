@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace IlsOntVote.Web.Pages;
 
 /// <summary>Lois (dossiers législatifs) ayant fait l'objet d'un vote sur l'ensemble : parcours et statut.</summary>
-public class LoisModel(ITexteRepository textes) : ListePageModel
+public class LoisModel(ITexteRepository textes, Langue langue) : ListePageModel
 {
     protected override int ParPageDefaut => 30;
 
@@ -72,6 +72,8 @@ public class LoisModel(ITexteRepository textes) : ListePageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
+        // Les lois sont celles du Parlement français : jamais affichées sous le site d'un autre pays (étanchéité entre pays).
+        if (langue.Pays is not null) return NotFound();
         var (du, au) = Periode.Lire(Du, Au);
         var filtre = new FiltreTextes(Recherche, Statut, Chambre, du, au);
 
