@@ -36,6 +36,19 @@ public class BillsModel(IBillRepository bills, Langue langue) : ListePageModel
         _ => b.EtapeCourante ?? "In progress",
     };
 
+    /// <summary>
+    /// Libellé abrégé pour la puce d'un tableau : « Consideration of Commons amendments and / or reasons » devient « Commons amendments », « Committee stage » « Committee ».
+    /// L'infobulle de la puce garde le libellé complet de la source.
+    /// </summary>
+    public static string StatutCourt(Bill b)
+    {
+        var s = StatutLibelle(b);
+        if (b.StatutCle != "en-cours") return s.Replace("Royal Assent ", "");
+        s = System.Text.RegularExpressions.Regex.Replace(s, @"^Consideration of ", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        s = System.Text.RegularExpressions.Regex.Replace(s, @"\s+and\s*/\s*or reasons$| stage$", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return s;
+    }
+
     /// <summary>Classe de teinte (puce de statut) : mêmes teintes que les pétitions, distinctes des couleurs de vote.</summary>
     public static string StatutClasse(Bill b) => b.StatutCle switch { "loi" => "st-ouverte", "rejete" => "st-archivee", "retire" => "st-neutre", _ => "st-seuil" };
 

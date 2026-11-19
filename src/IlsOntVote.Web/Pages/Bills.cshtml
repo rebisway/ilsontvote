@@ -10,7 +10,7 @@
 }
 
 <h1 class="titre-page">Bills</h1>
-<p class="chapo">Bills of the current Parliament, from <a href="https://bills.parliament.uk/" rel="noopener">bills.parliament.uk</a>: where each one stands, in which house, and whether it became an Act. Status is as published by the source. The number of divisions is computed by this site from the division titles (for example “Finance Bill: Third Reading”), so a division whose title does not name its bill is not counted.</p>
+<p class="chapo">Bills of the 58th and 59th Parliaments (since December 2019), from <a href="https://bills.parliament.uk/" rel="noopener">bills.parliament.uk</a>: where each one stands, in which house, and whether it became an Act. Status is as published by the source. The number of divisions is computed by this site from the division titles (for example “Finance Bill: Third Reading”), so a division whose title does not name its bill is not counted.</p>
 
 @if (Model.ParStatut.Count > 0)
 {
@@ -80,7 +80,7 @@ else
                 <tr>
                     <td class="nowrap col-date" data-label="First sitting">@(b.DateDepot?.ToString("d MMM yyyy", fr) ?? "—")</td>
                     <td class="col-titre"><a href="@L.Lien("/bill/" + b.Id)">@b.Titre</a> <a class="note-source" href="@b.Url" rel="noopener" title="Bill page on bills.parliament.uk">↗</a></td>
-                    <td class="col-statut" data-label="Status"><span class="puce-statut @BillsModel.StatutClasse(b)">@BillsModel.StatutLibelle(b)</span></td>
+                    <td class="col-statut" data-label="Status"><span class="puce-statut @BillsModel.StatutClasse(b)" title="@BillsModel.StatutLibelle(b)">@BillsModel.StatutCourt(b)</span></td>
                     <td data-label="House">@(b.ChambreCourante ?? "—")@if (b.ChambreOrigine is not null && b.ChambreOrigine != b.ChambreCourante) { <span class="note-source"> (from @b.ChambreOrigine)</span> }</td>
                     <td class="num" data-label="Divisions">@if (b.NbDivisions > 0) { <a href="@L.Lien("/bill/" + b.Id)" title="Divisions linked by title (computed)">@b.NbDivisions</a> } else { <span class="note-source">—</span> }</td>
                     <td class="nowrap col-date" data-label="Updated">@(b.DerniereMaj?.ToString("d MMM yyyy", fr) ?? "—")</td>

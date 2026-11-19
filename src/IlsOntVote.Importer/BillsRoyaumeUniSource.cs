@@ -13,14 +13,15 @@ public sealed record BillRow(
     DateTime? RetireLe, bool Rejete, string? EtapeCourante, DateTime? DateDepot, DateTime? DerniereMaj, string Url, IReadOnlyList<EtapeBill> Etapes);
 
 /// <summary>
-/// Projets de loi du Parlement britannique via <c>bills-api.parliament.uk</c> (JSON public, Open Parliament Licence). Parlement courant : sessions <see cref="Sessions"/>
-/// (la 59e législature, ouverte en juillet 2024, compte les sessions 39 et 40 pour la source). Liste par pages de 100 puis un appel « Stages » par projet NOUVEAU OU MODIFIÉ
+/// Projets de loi du Parlement britannique via <c>bills-api.parliament.uk</c> (JSON public, Open Parliament Licence). Sessions <see cref="Sessions"/>
+/// (58e et 59e législatures ; la 59e, ouverte en juillet 2024, compte les sessions 39 et 40 pour la source). Liste par pages de 100 puis un appel « Stages » par projet NOUVEAU OU MODIFIÉ
 /// (lastUpdate plus récent que celui déjà en base) : un passage quotidien ne relit que quelques projets.
 /// </summary>
 public sealed class BillsRoyaumeUniSource : IDisposable
 {
     private const string Racine = "https://bills-api.parliament.uk/api/v1";
-    public static readonly int[] Sessions = [39, 40];
+    // 35 à 38 = 58e législature (2019-2024), 39 et 40 = 59e : les divisions de l'historique des Communes (migration 037) se rattachent ainsi à leur projet.
+    public static readonly int[] Sessions = [35, 36, 37, 38, 39, 40];
     private const int Page = 100;
     private readonly HttpClient _http = Telechargement.CreerClient(TimeSpan.FromMinutes(2));
 
