@@ -31,24 +31,23 @@ public class IndexModel(IScrutinRepository scrutins, Langue langue, PaysSite sit
     {
         var sections = new List<SectionChambre>();
         // Site d'un pays (/uk) : les derniers votes sur l'ensemble (troisièmes lectures) de sa chambre, dessinés selon sa disposition (bancs face à face aux Communes).
-        if (langue.Pays == "GB")
+        if (langue.Pays is not null)
         {
-            var cartes = new List<CarteScrutin>();
-            foreach (var s in await scrutins.GetAccueilAsync(Chambres.Commons, CartesParChambre + 2))
+            foreach (var chambre in site.ChambresVisibles(langue.Pays))
             {
-                var sieges = await scrutins.GetSiegesAsync(s.Id);
-                cartes.Add(new CarteScrutin(s, HemicycleLayout.Construire(sieges, site.Disposition(s.Chambre))));
+                // Votes sur l'ensemble d'abord (troisièmes lectures, adoptions finales) ; les Lords n'en ont pas : leurs dernières divisions.
+                var recents = chambre == Chambres.Lords
+                    ? await scrutins.GetDernieresAsync(chambre, CartesParChambre)
+                    : await scrutins.GetAccueilAsync(chambre, chambre == Chambres.Commons ? CartesParChambre + 2 : CartesParChambre);
+                var cartes = new List<CarteScrutin>();
+                foreach (var s in recents)
+                {
+                    var sieges = await scrutins.GetSiegesAsync(s.Id);
+                    cartes.Add(new CarteScrutin(s, HemicycleLayout.Construire(sieges, site.Disposition(s.Chambre))));
+                }
+                if (cartes.Count > 0 || chambre == Chambres.Commons) sections.Add(new SectionChambre(chambre, cartes));
             }
-            // Lords : leurs dernières divisions (aucun « vote sur l'ensemble » à la Chambre haute), même dessin en bancs face à face.
-            var cartesLords = new List<CarteScrutin>();
-            foreach (var s in await scrutins.GetDernieresAsync(Chambres.Lords, CartesParChambre))
-            {
-                var sieges = await scrutins.GetSiegesAsync(s.Id);
-                cartesLords.Add(new CarteScrutin(s, HemicycleLayout.Construire(sieges, site.Disposition(s.Chambre))));
-            }
-            Sections = cartesLords.Count > 0
-                ? [new SectionChambre(Chambres.Commons, cartes), new SectionChambre(Chambres.Lords, cartesLords)]
-                : [new SectionChambre(Chambres.Commons, cartes)];
+            Sections = sections;
             return;
         }
         foreach (var chambre in new[] { Chambres.AN, Chambres.Senat, Chambres.UE })

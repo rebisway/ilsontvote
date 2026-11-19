@@ -112,6 +112,8 @@ public class PetitionsModel(IPetitionRepository petitions, Langue langue) : List
 
     public async Task<IActionResult> OnGetAsync()
     {
+        // Pétitions : France et Royaume-Uni seulement (aucune plateforme américaine importée) : 404 sous les autres pays.
+        if (langue.Pays is not null && !PaysSite.APetitionsEtProjets(langue.Pays)) return NotFound();
         // Effectifs d'abord : un statut, un type ou une commission qui n'existe pas dans la chambre choisie (changement de chambre avec un
         // filtre déjà posé) est ignoré, au lieu d'afficher une liste vide sans explication.
         ParStatut = await petitions.CompterParStatutAsync();

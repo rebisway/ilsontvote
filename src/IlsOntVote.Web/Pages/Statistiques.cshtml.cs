@@ -24,9 +24,11 @@ public class StatistiquesModel(IStatistiquesRepository stats, Langue langue, Pay
 
     public bool EnsembleSeul => Ensemble == "1";
     /// <summary>Code de chambre validé (liste blanche) : AN par défaut.</summary>
-    public string ChambreCode => langue.Pays == "GB" ? (Chambre == "lords" ? Chambres.Lords : Chambres.Commons) : Chambre switch { "senat" => Chambres.Senat, "ue" => Chambres.UE, _ => Chambres.AN };
+    /// <summary>Chambres du site courant (sélecteur sous un pays).</summary>
+    public string[] ChambresSite => site.ChambresVisibles(langue.Pays);
+    public string ChambreCode => langue.Pays is not null ? Chambres.DepuisFiltre(Chambre, ChambresSite) ?? ChambresSite.FirstOrDefault() ?? Chambres.Commons : Chambre switch { "senat" => Chambres.Senat, "ue" => Chambres.UE, _ => Chambres.AN };
     /// <summary>Chambre affichée sans filtre : l'Assemblée sur le site français, la chambre du pays sinon (le filtre « chambre » n'y existe pas).</summary>
-    private string ChambreDefaut => langue.Pays == "GB" ? Chambres.Commons : Chambres.AN;
+    private string ChambreDefaut => langue.Pays is not null ? ChambresSite.FirstOrDefault() ?? Chambres.Commons : Chambres.AN;
     public string ChambreCle => Chambres.Filtre(ChambreCode);
     /// <summary>Période effective : « perso » si une date est saisie, sinon la période prédéfinie valide (12 derniers mois par défaut).</summary>
     public string PeriodeCle => !string.IsNullOrEmpty(Du) || !string.IsNullOrEmpty(Au) ? "perso" : Periode is "annee" or "tout" ? Periode : "12m";

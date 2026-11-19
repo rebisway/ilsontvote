@@ -36,7 +36,7 @@ public sealed class ScrutinRepository(DapperContext db, PaysSite site, Langue la
         id, chambre, legislature, numero, date_scrutin, titre, titre_en, titre_en_auto, titre_fr_auto, sort, type_vote, sur_ensemble,
         nb_votants, nb_pour, nb_contre, nb_abstentions, nb_non_votants, featured_title,
         nominatif_incomplet, nb_votes_manquants, note,
-        type_vote_libelle, type_majorite, suffrages_exprimes, suffrages_requis
+        type_vote_libelle, type_majorite, suffrages_exprimes, suffrages_requis, dossier_ref
         """;
 
     public async Task<IReadOnlyList<Scrutin>> GetDernieresAsync(string chambre, int max)
@@ -63,8 +63,8 @@ public sealed class ScrutinRepository(DapperContext db, PaysSite site, Langue la
         var recents = await conn.QueryAsync<Scrutin>(
             $"""
              SELECT {Colonnes} FROM scrutins
-              WHERE chambre = @chambre AND sur_ensemble AND (NOT nominatif_incomplet OR chambre = 'COMMONS')
-                AND (chambre IN ('UE', 'COMMONS') OR titre ~* '(projet|proposition) de loi') -- UE : titres anglais, `sur_ensemble` = vote principal de la procédure
+              WHERE chambre = @chambre AND sur_ensemble AND (NOT nominatif_incomplet OR chambre NOT IN ('AN', 'SENAT', 'UE'))
+                AND (chambre NOT IN ('AN', 'SENAT') OR titre ~* '(projet|proposition) de loi') -- UE : titres anglais, `sur_ensemble` = vote principal de la procédure
               ORDER BY date_scrutin DESC, numero DESC LIMIT @max
              """, new { chambre, max });
         return recents.ToList();

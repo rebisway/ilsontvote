@@ -42,11 +42,21 @@ public static class DescriptionsDonnees
         ["bill_etapes"] = "Stages (sittings) of each UK bill: house, stage label, sitting date (empty = no published sitting).",
     };
 
-    /// <summary>Description anglaise du fichier (« votes.csv.gz », « gb_votes.csv.gz »), ou null si la table ne la connaît pas.</summary>
+    private static readonly Dictionary<string, string> EnUs = new()
+    {
+        ["groupes"] = "Parties (groups) of the House of Representatives and the Senate of the United States.",
+        ["parlementaires"] = "Representatives and senators (identity, state, district for the House).",
+        ["mandats"] = "Terms of office, deduced from the votes: from the first to the last roll call where the member appears in the list (calculated). One row per Congress (column legislature = Congress number).",
+        ["appartenances_groupes"] = "Membership of a member in a party, with dates (the party in the Congress concerned).",
+        ["scrutins"] = "Roll call votes of the House and the Senate: official counts, result, question put, required majority (calculated), url_officielle = official record; sur_ensemble = final passage, nomination or “suspend the rules and pass” (calculated from the question).",
+        ["votes"] = "Each member's vote in each roll call (pour = yea, contre = nay, abstention = present). Not voting members and merely announced or paired positions are not in this file.",
+    };
+
+    /// <summary>Description anglaise du fichier (« votes.csv.gz », « gb_votes.csv.gz », « us_votes.csv.gz »), ou null si la table ne la connaît pas.</summary>
     public static string? Anglais(string fichier)
     {
         var nom = fichier.Split('.')[0];
-        return nom.StartsWith("gb_") ? EnGb.GetValueOrDefault(nom[3..]) : En.GetValueOrDefault(nom);
+        return nom.StartsWith("gb_") ? EnGb.GetValueOrDefault(nom[3..]) : nom.StartsWith("us_") ? EnUs.GetValueOrDefault(nom[3..]) : En.GetValueOrDefault(nom);
     }
 }
 

@@ -14,7 +14,11 @@
 <h1 class="titre-page">@L.T("Données ouvertes", "Open data")</h1>
 <p class="chapo">@L.TH("Toutes les données affichées sur le site, en fichiers <strong>CSV compressés (gzip)</strong>, régénérés chaque nuit. Séparateur virgule, encodage UTF-8, une ligne d'en-tête ; les dates sont au format AAAA-MM-JJ et les booléens valent <code>t</code> ou <code>f</code>.", "All the data shown on the site, as <strong>compressed CSV files (gzip)</strong>, regenerated every night. Comma-separated, UTF-8, one header row; dates are YYYY-MM-DD and booleans are <code>t</code> or <code>f</code>.")</p>
 
-@if (royaumeUni)
+@if (L.Pays == "US")
+{
+    <p class="note-source">@L.TH("Ces fichiers ne contiennent que les données des États-Unis (Chambre des représentants et Sénat) : leur nom commence par <code>us_</code>. Les votes nominaux sont dans <code>us_scrutins</code>, les votes individuels dans <code>us_votes</code> ; les absents ne sont pas stockés (ils se déduisent des mandats).", "These files only contain data for the United States (House of Representatives and Senate): their name starts with <code>us_</code>. Roll call votes are in <code>us_scrutins</code>, individual votes in <code>us_votes</code>; absent members are not stored (they are deduced from the mandates).")</p>
+}
+else if (royaumeUni)
 {
     <p class="note-source">@L.TH("Ces fichiers ne contiennent que les données du Royaume-Uni (Chambre des Communes, Chambre des Lords, pétitions, projets de loi) : leur nom commence par <code>gb_</code>. Les divisions sont dans <code>gb_scrutins</code>, les votes individuels dans <code>gb_votes</code> ; les absents ne sont pas stockés (ils se déduisent des mandats).", "These files only contain data for the United Kingdom (House of Commons, House of Lords, petitions, bills): their name starts with <code>gb_</code>. Divisions are in <code>gb_scrutins</code>, individual votes in <code>gb_votes</code>; absent members are not stored (they are deduced from the mandates).")</p>
 }
@@ -46,6 +50,17 @@ else
 
 <section class="definitions" aria-label="@L.T("Lire les fichiers", "Reading the files")">
     <h2>@L.T("Comment lire les fichiers", "How to read the files")</h2>
+    @if (L.Pays == "US")
+    {
+    <dl>
+        <div><dt>us_votes</dt><dd>@L.TH("une ligne par élu et par vote nominal où il s'est exprimé : <code>position</code> = pour (yea), contre (nay) ou abstention (« present »). Les non-votants et les positions seulement annoncées ou appariées n'y figurent pas.", "one row per member and roll call where they voted: <code>position</code> = pour (yea), contre (nay) or abstention (“present”). Not voting members and merely announced or paired positions are not included.")</dd></div>
+        <div><dt>@L.T("absents", "absentees")</dt><dd>@L.TH("<strong>Les absents ne sont pas dans <code>us_votes</code></strong> : ils se déduisent. Un élu est absent à un vote s'il avait un mandat en cours à sa date (fichier <code>us_mandats</code>, dont <code>legislature</code> est le numéro du Congrès) et n'a pas de ligne dans <code>us_votes</code>.", "<strong>Absentees are not in <code>us_votes</code></strong>: they are deduced. A member is absent from a roll call if they held a mandate on its date (file <code>us_mandats</code>, whose <code>legislature</code> is the Congress number) and have no row in <code>us_votes</code>.")</dd></div>
+        <div><dt>us_scrutins</dt><dd>@L.TH("<code>nb_pour</code>, <code>nb_contre</code> : décompte OFFICIEL ; il peut différer d'une voix de la liste des élus (le champ <code>note</code> le dit). <code>sur_ensemble</code> : adoption finale, nomination ou « suspend the rules and pass » (<strong>calculé</strong> d'après la question). <code>type_vote_libelle</code> : la question posée ; <code>suffrages_requis</code> : calculé d'après la règle de majorité ; <code>url_officielle</code> : enregistrement officiel du vote.", "<code>nb_pour</code>, <code>nb_contre</code>: OFFICIAL count; it can differ by one from the member list (the <code>note</code> field says so). <code>sur_ensemble</code>: final passage, nomination or “suspend the rules and pass” (<strong>calculated</strong> from the question). <code>type_vote_libelle</code>: the question put; <code>suffrages_requis</code>: calculated from the majority rule; <code>url_officielle</code>: official record of the vote.")</dd></div>
+        <div><dt>chambre</dt><dd>USHOUSE (@L.T("Chambre des représentants", "House of Representatives")), USSENATE (@L.T("Sénat des États-Unis", "United States Senate")).</dd></div>
+    </dl>
+    }
+    else
+    {
     @if (royaumeUni)
     {
     <dl>
@@ -69,12 +84,17 @@ else
         <div><dt>chambre</dt><dd>AN (@L.T("Assemblée nationale", "National Assembly")), SENAT (@L.T("Sénat", "Senate")), UE (@L.T("Parlement européen", "European Parliament")).</dd></div>
     </dl>
     }
+    }
     <p class="note-source">@L.TH("Un fichier se lit avec n'importe quel tableur après décompression, ou directement par exemple avec Python : <code>pandas.read_csv(\"votes.csv.gz\")</code>. Les empreintes SHA-256 permettent de vérifier un téléchargement.", "A file can be opened in any spreadsheet after decompression, or directly for example with Python: <code>pandas.read_csv(\"votes.csv.gz\")</code>. The SHA-256 fingerprints let you check a download.")</p>
 </section>
 
 <section class="definitions" aria-label="@L.T("Sources et licences", "Sources and licences")">
     <h2>@L.T("Sources et conditions de réutilisation", "Sources and terms of reuse")</h2>
-    @if (royaumeUni)
+    @if (L.Pays == "US")
+    {
+    <p>@L.TH("Les votes de la <strong>Chambre des représentants</strong> viennent du greffe de la Chambre (fichiers officiels) ; ceux du <strong>Sénat</strong> de <strong>Voteview</strong> (UCLA et Université de Géorgie : voteview.com), projet universitaire tiers à citer, car senate.gov refuse les accès automatiques. Les noms des élus viennent de Voteview ; les mandats sont déduits des votes. La source officielle de chaque vote est liée dans <code>us_scrutins</code> (<code>url_officielle</code>). Les rattachements, majorités et mandats calculés par le site sont fournis sans garantie ; voir la page <a href=\"" + L.Lien("/methodologie") + "\">Méthodologie et limites</a>. Aucune photo n'est incluse.", "The <strong>House of Representatives</strong> votes come from the Clerk of the House (official files); the <strong>Senate</strong> votes from <strong>Voteview</strong> (UCLA and the University of Georgia: voteview.com), a third-party academic project to cite, because senate.gov refuses automated access. Members' names come from Voteview; mandates are deduced from the votes. The official source of each vote is linked in <code>us_scrutins</code> (<code>url_officielle</code>). Links, majorities and mandates calculated by the site are provided without warranty; see the <a href=\"" + L.Lien("/methodologie") + "\">Methodology and limits</a> page. No photo is included.")</p>
+    }
+    else if (royaumeUni)
     {
     <p>@L.TH("Les données viennent des services publics du <strong>Parlement britannique</strong> : Commons Votes API, Lords Votes API, Members API, Bills API et petition.parliament.uk, sous <a href=\"https://www.parliament.uk/site-information/copyright-parliament/open-parliament-licence/\">Open Parliament Licence v3.0</a> (réutilisation libre avec mention de la source). Les rattachements (projet de loi, troisième lecture), taux et mandats des Communes calculés par le site sont fournis sans garantie ; voir la page <a href=\"" + L.Lien("/methodologie") + "\">Méthodologie et limites</a>. Aucune photo n'est incluse.", "The data comes from the public services of the <strong>UK Parliament</strong>: Commons Votes API, Lords Votes API, Members API, Bills API and petition.parliament.uk, under the <a href=\"https://www.parliament.uk/site-information/copyright-parliament/open-parliament-licence/\">Open Parliament Licence v3.0</a> (free reuse with attribution). Links (bill, third reading), rates and Commons mandates calculated by the site are provided without warranty; see the <a href=\"" + L.Lien("/methodologie") + "\">Methodology and limits</a> page. No photo is included.")</p>
     }

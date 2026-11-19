@@ -22,7 +22,7 @@ int[] LegislaturesCompletes = [15, 16, 17];
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var argv = args.ToList();
-if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements" or "communes" or "lords" or "bills"))
+if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements" or "communes" or "lords" or "us" or "bills"))
 {
     Console.Error.WriteLine("Usage : IlsOntVote.Importer an [--legislature 17|15,16,17|all] [--scrutins-dir D --amo-dir D]");
     Console.Error.WriteLine("        IlsOntVote.Importer senat [--senateurs-dir D --dosleg-sql F]");
@@ -71,6 +71,7 @@ return argv[0] switch
     "amendements" => await ImporterAmendementsAsync(),
     "communes" => await ImporterCommunesAsync(),
     "lords" => await ImporterLordsAsync(),
+    "us" => await ImporterEtatsUnisAsync(),
     "bills" => await ImporterBillsRoyaumeUniAsync(),
     _ => await ImporterTextesAsync(),
 };
@@ -524,6 +525,138 @@ async Task<int> ImporterLordsAsync()
             Console.WriteLine($"  {nbScrutins}/{divisions.Count} divisions écrites…");
         }
         Console.WriteLine($"  {nbScrutins} divisions, {nbVotes} votes, {pairs.Count} pairs.");
+        await repo.TerminerAsync(runId, true, nbScrutins, nbVotes, null);
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex);
+        await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
+        return 1;
+    }
+}
+
+/// <summary>
+/// Congrès des États-Unis (Chambre des représentants + Sénat) d'après Voteview : <c>--congress N</c> (119 par défaut) ou une plage <c>107-118</c> (historique). Pour chaque Congrès : élus, appels nominaux,
+/// votes de chaque élu (3 fichiers CSV). Mandats DÉDUITS des votes : un élu figure dans la liste de chaque vote tant qu'il siège (même « not voting »), donc du premier au dernier vote où il apparaît ;
+/// les non-votants ne sont pas stockés (absent = absent). Congrès en cours : seuls les votes nouveaux ou de moins de 7 jours sont réécrits ; Congrès terminé : tout, mandats figés.
+/// </summary>
+async Task<int> ImporterEtatsUnisAsync()
+{
+    Console.WriteLine("=== Congrès des États-Unis (Voteview) ===");
+    var runId = await repo.DemarrerAsync("US");
+    try
+    {
+        var spec = Option("--congress") ?? UsSource.Courant.ToString();
+        var bornes = spec.Split('-', 2).Select(int.Parse).ToArray();
+        var congres = Enumerable.Range(bornes[0], (bornes.Length > 1 ? bornes[1] : bornes[0]) - bornes[0] + 1).ToList();
+        using var source = new UsSource();
+        var existants = await repo.LireSlugsAsync();
+        var slugs = existants.Values.ToHashSet();
+        var seuil = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-7);
+        int nbScrutins = 0; long nbVotes = 0;
+
+        foreach (var c in congres)
+        {
+            var terminee = c < UsSource.Courant;
+            var (membres, appels, codes) = await source.LireCongresAsync(c);
+            Console.WriteLine($"  {c}e Congrès : {membres.Count} élus, {appels.Count} votes nominaux, {codes.Count:N0} lignes de vote.");
+
+            // Annuaire : groupes (partis) et élus par chambre.
+            var groupes = new Dictionary<string, GroupeRow>();
+            var parlementaires = new List<ParlementaireRow>();
+            var groupeDe = new Dictionary<string, Dictionary<string, string>>();   // chambre -> icpsr -> groupe
+            foreach (var m in membres)
+            {
+                var (sigle, libelle, couleur) = UsSource.Parti(m.CodeParti);
+                var gid = UsSource.IdGroupe(m.Chambre, sigle);
+                groupes[gid] = new GroupeRow(gid, m.Chambre, null, sigle, libelle, couleur, UsSource.OrdreParti(sigle));
+                var pid = UsSource.IdMembre(m.Chambre, m.Icpsr);
+                var slug = existants.TryGetValue(pid, out var s0) ? s0 : Slugs.Unique(slugs, m.Prenom, m.Nom, pid);
+                parlementaires.Add(new ParlementaireRow(pid, m.Chambre, null, m.Prenom, m.Nom, slug, m.Etat, m.Circonscription));
+                if (!groupeDe.TryGetValue(m.Chambre, out var d)) groupeDe[m.Chambre] = d = new();
+                d[m.Icpsr] = gid;
+            }
+            await repo.EcrireMembresUeAsync(groupes.Values, parlementaires);   // upsert générique (le nom « Ue » est historique)
+            var annuaire = new Annuaire(groupes.Values.ToList(), parlementaires, [], []);
+
+            foreach (var chambre in new[] { Chambres.UsHouse, Chambres.UsSenate })
+            {
+                var (deja, plusRecent) = await repo.LireScrutinsAsync(chambre);
+                // Chambre : SOURCE OFFICIELLE (XML du greffe, un fichier par vote) ; Sénat : Voteview (senate.gov refuse les robots).
+                if (chambre == Chambres.UsHouse)
+                {
+                    var gdH = groupeDe.GetValueOrDefault(chambre) ?? new();
+                    var icpsrDe = membres.Where(m => m.Chambre == chambre && m.Bioguide.Length > 0).GroupBy(m => m.Bioguide).ToDictionary(g => g.Key, g => g.First().Icpsr, StringComparer.OrdinalIgnoreCase);
+                    var vusH = new Dictionary<string, (DateOnly Premier, DateOnly Dernier, string GroupeId)>();
+                    var inconnusH = new HashSet<string>();
+                    var ecritsH = 0;
+                    using var clerk = new HouseClerkSource();
+                    var annee1 = HouseClerkSource.PremiereAnnee(c);
+                    for (var annee = annee1; annee <= Math.Min(annee1 + 1, DateTime.UtcNow.Year); annee++)
+                    {
+                        var (decalage, dernier) = await repo.NumerotationAsync(chambre, c, new DateOnly(annee, 1, 1));
+                        var lot = new List<(AppelChambre A, int Numero)>();
+                        async Task VerserAsync()
+                        {
+                            if (lot.Count == 0) return;
+                            var sc = lot.Select(x => HouseClerkSource.VersScrutin(x.A, x.Numero, icpsrDe, gdH, inconnusH)).ToList();
+                            var (n, v2, _) = await repo.EcrireScrutinsAsync(sc, annuaire);
+                            nbScrutins += n; nbVotes += v2; ecritsH += n;
+                            lot.Clear();
+                        }
+                        for (var roll = dernier + 1; ; roll++)
+                        {
+                            var a = await clerk.LireAsync(annee, roll);
+                            if (a is null) break;
+                            await Task.Delay(100);   // politesse envers le greffe
+                            if (!HouseClerkSource.EstUnVotePourContre(a)) continue;
+                            lot.Add((a, decalage + a.Numero));
+                            foreach (var (bio, _) in a.Votes)
+                            {
+                                if (!icpsrDe.TryGetValue(bio, out var ic) || !gdH.TryGetValue(ic, out var g)) continue;
+                                var pid = UsSource.IdMembre(chambre, ic);
+                                vusH[pid] = vusH.TryGetValue(pid, out var v) ? (a.Date < v.Premier ? a.Date : v.Premier, a.Date >= v.Dernier ? a.Date : v.Dernier, g) : (a.Date, a.Date, g);
+                            }
+                            if (lot.Count >= 100) await VerserAsync();
+                        }
+                        await VerserAsync();
+                    }
+                    // Mandats déduits des seuls votes NOUVEAUX, fusionnés avec l'existant (plusRecent = date du dernier vote déjà en base).
+                    if (vusH.Count > 0) await repo.EcrireMandatsDeduitsAsync(chambre, c, vusH, plusRecent, terminee);
+                    Console.WriteLine($"    {chambre} : {ecritsH} votes écrits (greffe), {vusH.Count} élus avec mandat" + (inconnusH.Count > 0 ? $", {inconnusH.Count} représentant(s) du greffe sans fiche d'élu." : "."));
+                    continue;
+                }
+                var appelsCh = appels.Where(a => a.Chambre == chambre).ToList();
+                var codesParAppel = codes.Where(x => x.Chambre == chambre).GroupBy(x => x.Numero).ToDictionary(g => g.Key, g => (IReadOnlyList<CodeVoteUs>)g.ToList());
+                var dates = appelsCh.ToDictionary(a => a.Numero, a => a.Date);
+                var gd = groupeDe.GetValueOrDefault(chambre) ?? new();
+
+                // Mandats déduits de TOUS les votes du Congrès (pas seulement ceux réécrits) : premier et dernier vote où l'élu figure.
+                var vus = new Dictionary<string, (DateOnly Premier, DateOnly Dernier, string GroupeId)>();
+                var inconnus = new HashSet<string>();
+                foreach (var x in codes.Where(x => x.Chambre == chambre && x.Code != 0))
+                {
+                    if (!dates.TryGetValue(x.Numero, out var date)) continue;
+                    // Un identifiant de vote absent du fichier des élus (la source n'en fournit pas le nom) n'aura ni fiche ni mandat : écarté, compté plus bas.
+                    if (!gd.TryGetValue(x.Icpsr, out var g)) { inconnus.Add(x.Icpsr); continue; }
+                    var pid = UsSource.IdMembre(chambre, x.Icpsr);
+                    vus[pid] = vus.TryGetValue(pid, out var v) ? (date < v.Premier ? date : v.Premier, date >= v.Dernier ? date : v.Dernier, g) : (date, date, g);
+                }
+
+                var aEcrire = appelsCh.Where(a => !deja.Contains(UsSource.IdScrutin(chambre, c, a.Numero)) || (!terminee && a.Date >= seuil)).OrderBy(a => a.Date).ThenBy(a => a.Numero).ToList();
+                foreach (var lot in aEcrire.Chunk(200))
+                {
+                    var scrutins = lot.Select(a => UsSource.VersScrutin(a, codesParAppel.GetValueOrDefault(a.Numero) ?? [], gd)).ToList();
+                    var (n, v2, _) = await repo.EcrireScrutinsAsync(scrutins, annuaire);
+                    nbScrutins += n; nbVotes += v2;
+                }
+                // Le fichier du Congrès est relu en ENTIER à chaque passage : les mandats déduits sont donc autoritaires (ancienPlusRecent = null : fin ouverte pour qui figure au dernier vote).
+                if (vus.Count > 0) await repo.EcrireMandatsDeduitsAsync(chambre, c, vus, null, terminee);
+                Console.WriteLine($"    {chambre} : {aEcrire.Count} votes écrits, {vus.Count} élus avec mandat" + (inconnus.Count > 0 ? $", {inconnus.Count} identifiant(s) de vote sans fiche d'élu ignoré(s)." : "."));
+            }
+        }
+        Console.WriteLine($"  {nbScrutins} votes nominaux, {nbVotes:N0} votes individuels.");
         await repo.TerminerAsync(runId, true, nbScrutins, nbVotes, null);
         return 0;
     }

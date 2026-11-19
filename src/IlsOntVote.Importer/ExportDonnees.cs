@@ -56,10 +56,27 @@ public static class ExportDonnees
         j.Sql.Replace(ChambresActives, ChambresGb).Replace(PlateformesPubliees, PlateformesGb)
             .Replace("nominatif_incomplet, texte_id, texte_lie_id", "nominatif_incomplet, bill_id, bill_etape"), "GB");   // projet de loi britannique rattaché (calculé) au lieu du texte français
 
-    /// <summary>Tous les jeux publiés : France (sans préfixe), puis Royaume-Uni (« gb_… »).</summary>
+    private const string ChambresUs = "chambre IN (SELECT code FROM chambres WHERE actif AND pays = 'US')";
+
+    private static readonly Dictionary<string, string> DescriptionsUs = new()
+    {
+        ["groupes"] = "Partis (groupes) de la Chambre des représentants et du Sénat des États-Unis.",
+        ["parlementaires"] = "Représentants et sénateurs (identité, État, circonscription pour la Chambre).",
+        ["mandats"] = "Périodes de mandat, déduites des votes : du premier au dernier vote nominal où l'élu figure dans la liste (calculé). Une ligne par Congrès (colonne legislature = numéro du Congrès).",
+        ["appartenances_groupes"] = "Appartenance d'un élu à un parti, avec dates (le parti du Congrès considéré).",
+        ["scrutins"] = "Votes nominaux (roll calls) de la Chambre et du Sénat : décomptes officiels, résultat, question posée, majorité requise (calculée), url_officielle = enregistrement officiel ; sur_ensemble = adoption finale, nomination ou « suspend the rules and pass » (calculé d'après la question).",
+        ["votes"] = "Vote de chaque élu à chaque vote nominal (pour = yea, contre = nay, abstention = present). Les non-votants (not voting) et les positions seulement annoncées ou appariées ne figurent pas dans ce fichier.",
+    };
+
+    /// <summary>Déclinaison américaine d'un jeu commun : mêmes colonnes, chambres des États-Unis, fichier « us_… » ; l'adresse officielle du vote remplace le rattachement aux textes français.</summary>
+    private static JeuDonnees PourEtatsUnis(JeuDonnees j) => new("us_" + j.Nom, DescriptionsUs.GetValueOrDefault(j.Nom, j.Description),
+        j.Sql.Replace(ChambresActives, ChambresUs).Replace("nominatif_incomplet, texte_id, texte_lie_id", "nominatif_incomplet, dossier_ref AS url_officielle"), "US");
+
+    /// <summary>Tous les jeux publiés : France (sans préfixe), Royaume-Uni (« gb_… »), États-Unis (« us_… »).</summary>
     public static IReadOnlyList<JeuDonnees> Tous => [.. Jeux.Where(j => j.Pays == "FR" && j.Nom is not ("bills" or "bill_etapes")),
         .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom)).Select(PourRoyaumeUni),
-        .. Jeux.Where(j => j.Nom is "bills" or "bill_etapes").Select(j => j with { Nom = "gb_" + j.Nom, Pays = "GB" })];
+        .. Jeux.Where(j => j.Nom is "bills" or "bill_etapes").Select(j => j with { Nom = "gb_" + j.Nom, Pays = "GB" }),
+        .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom) && !j.Nom.StartsWith("petitions")).Select(PourEtatsUnis)];
 
     public static readonly IReadOnlyList<JeuDonnees> Jeux =
     [

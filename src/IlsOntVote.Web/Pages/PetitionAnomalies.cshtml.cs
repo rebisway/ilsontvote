@@ -75,6 +75,8 @@ public class PetitionAnomaliesModel(IPetitionRepository petitions, Langue langue
 
     public async Task<IActionResult> OnGetAsync()
     {
+        // Pétitions : France et Royaume-Uni seulement (aucune plateforme américaine importée) : 404 sous les autres pays.
+        if (langue.Pays is not null && !PaysSite.APetitionsEtProjets(langue.Pays)) return NotFound();
         var c = Criteres();
         if (ExportDemande)
         {

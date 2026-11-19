@@ -48,6 +48,8 @@ public sealed class Planificateur(string connectionString)
         ["communes"] = ["communes"],
         ["communes_historique"] = ["communes", "--legislature", "58"],
         ["lords"] = ["lords"],
+        ["us"] = ["us"],
+        ["us_historique"] = ["us", "--congress", "107-118"],
         ["lords_historique"] = ["lords", "--legislature", "58"],
         ["amendements"] = ["amendements"],
         ["amendements_historique"] = ["amendements", "--legislature", "all"],

@@ -44,12 +44,12 @@ public sealed class ApercuImage
     /// (constaté : « They voted » et « Who voted what? » coupés sur les côtés avec une mise en page à gauche). Tout ce qui compte tient donc dans la bande centrale de 630 px
     /// (x de 285 à 915) ; les côtés de l'image 1200 × 630 ne portent rien d'essentiel.
     /// </summary>
-    public byte[] Scrutin(Scrutin s, HemicycleVue vue, bool en = false, bool royaumeUni = false)
+    public byte[] Scrutin(Scrutin s, HemicycleVue vue, bool en = false, string? pays = null)
     {
         using var surface = SKSurface.Create(new SKImageInfo(L, H));
         var c = surface.Canvas;
         c.Clear(Fond);
-        MarqueCentree(c, 40, 60, royaumeUni);
+        MarqueCentree(c, 40, 60, pays is not null);
 
         var fr = CultureInfo.GetCultureInfo(en ? "en-GB" : "fr-FR");
         TexteCentre(c, $"{Chambres.Nom(s.Chambre, en)} · {s.DateScrutin.ToString("d MMMM yyyy", fr)}", 104, 24, EncreDouce, _normal);
@@ -109,15 +109,17 @@ public sealed class ApercuImage
     /// Image générale du site (pages sans aperçu propre) : marque, question et un petit hémicycle de points, centrés (voir <see cref="Scrutin"/> : rognage carré des messageries).
     /// Le dessin est un exemple fixe (pas un vrai vote) : il montre à quoi ressemble le site.
     /// </summary>
-    public byte[] Defaut(bool en = false, bool royaumeUni = false)
+    public byte[] Defaut(bool en = false, string? pays = null)
     {
         using var surface = SKSurface.Create(new SKImageInfo(L, H));
         var c = surface.Canvas;
         c.Clear(Fond);
-        MarqueCentree(c, 76, 112, royaumeUni);
+        MarqueCentree(c, 76, 112, pays is not null);
         TexteCentre(c, en ? "Who voted what?" : "Qui a voté quoi ?", 196, 60, Encre, _gras);
-        var phrase = royaumeUni
+        var phrase = pays == "GB"
             ? "How every MP and peer voted in Parliament, division by division. Official data, free software."
+            : pays == "US"
+            ? "How every Representative and Senator voted in Congress, roll call by roll call. Official data, free software."
             : en ? "How every French deputy, senator and MEP voted, law by law. Official data, free software."
                  : "Le vote de chaque député, sénateur et eurodéputé, texte par texte. Données officielles, code libre.";
         var y = 250f;

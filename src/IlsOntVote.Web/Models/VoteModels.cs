@@ -10,40 +10,53 @@ public static class Chambres
     public const string UE = "UE";
     public const string Commons = "COMMONS";
     public const string Lords = "LORDS";
+    public const string UsHouse = "USHOUSE";
+    public const string UsSenate = "USSENATE";
 
     public static string Nom(string chambre, bool en = false) => en
-        ? chambre switch { Senat => "Senate", UE => "European Parliament", Commons => "House of Commons", Lords => "House of Lords", _ => "National Assembly" }
-        : chambre switch { Senat => "Sénat", UE => "Parlement européen", Commons => "Chambre des Communes", Lords => "Chambre des Lords", _ => "Assemblée nationale" };
+        ? chambre switch { Senat => "Senate", UE => "European Parliament", Commons => "House of Commons", Lords => "House of Lords", UsHouse => "House of Representatives", UsSenate => "United States Senate", _ => "National Assembly" }
+        : chambre switch { Senat => "Sénat", UE => "Parlement européen", Commons => "Chambre des Communes", Lords => "Chambre des Lords", UsHouse => "Chambre des représentants", UsSenate => "Sénat des États-Unis", _ => "Assemblée nationale" };
     public static string Membre(string chambre, bool en = false) => en
-        ? chambre switch { Senat => "senator", UE => "MEP", Commons => "MP", Lords => "peer", _ => "deputy" }
-        : chambre switch { Senat => "sénateur", UE => "eurodéputé", Commons => "député britannique", Lords => "pair", _ => "député" };
+        ? chambre switch { Senat => "senator", UE => "MEP", Commons => "MP", Lords => "peer", UsHouse => "Representative", UsSenate => "Senator", _ => "deputy" }
+        : chambre switch { Senat => "sénateur", UE => "eurodéputé", Commons => "député britannique", Lords => "pair", UsHouse => "représentant", UsSenate => "sénateur américain", _ => "député" };
     public static string Membres(string chambre, bool en = false) => en
-        ? chambre switch { Senat => "senators", UE => "MEPs", Commons => "MPs", Lords => "peers", _ => "deputies" }
-        : chambre switch { Senat => "sénateurs", UE => "eurodéputés", Commons => "députés britanniques", Lords => "pairs", _ => "députés" };
+        ? chambre switch { Senat => "senators", UE => "MEPs", Commons => "MPs", Lords => "peers", UsHouse => "Representatives", UsSenate => "Senators", _ => "deputies" }
+        : chambre switch { Senat => "sénateurs", UE => "eurodéputés", Commons => "députés britanniques", Lords => "pairs", UsHouse => "représentants", UsSenate => "sénateurs américains", _ => "députés" };
     /// <summary>Sigle court pour les étiquettes de tableau.</summary>
     public static string Court(string chambre, bool en = false) => en
-        ? chambre switch { Senat => "Senate", UE => "EU", Commons => "Commons", Lords => "Lords", _ => "NA" }
-        : chambre switch { Senat => "Sénat", UE => "UE", Commons => "Communes", Lords => "Lords", _ => "AN" };
+        ? chambre switch { Senat => "Senate", UE => "EU", Commons => "Commons", Lords => "Lords", UsHouse => "House", UsSenate => "US Senate", _ => "NA" }
+        : chambre switch { Senat => "Sénat", UE => "UE", Commons => "Communes", Lords => "Lords", UsHouse => "Chambre", UsSenate => "Sénat US", _ => "AN" };
     /// <summary>Classe CSS de l'étiquette de chambre (couleur propre à chaque assemblée).</summary>
-    public static string ClasseTag(string chambre) => chambre switch { Senat => "ch-senat", UE => "ch-ue", Commons => "ch-commons", Lords => "ch-lords", _ => "ch-an" };
+    public static string ClasseTag(string chambre) => chambre switch { Senat => "ch-senat", UE => "ch-ue", Commons => "ch-commons", Lords => "ch-lords", UsHouse => "ch-ushouse", UsSenate => "ch-ussenate", _ => "ch-an" };
     /// <summary>Valeur du filtre d'URL (?chambre=) pour cette chambre.</summary>
-    public static string Filtre(string chambre) => chambre switch { Senat => "senat", UE => "ue", Commons => "commons", Lords => "lords", _ => "an" };
+    public static string Filtre(string chambre) => chambre switch { Senat => "senat", UE => "ue", Commons => "commons", Lords => "lords", UsHouse => "house", UsSenate => "senate", _ => "an" };
 
     /// <summary>Vrai si la chambre a des fiches d'élus et une liste d'élus (toutes, depuis les pages /members et /member/{slug} des Communes).</summary>
     public static bool AUneFiche(string chambre) => true;
     /// <summary>Mot qui désigne un scrutin de la chambre (« scrutin », « division » aux Communes).</summary>
-    public static string Terme(string chambre, bool en = false) => chambre is Commons or Lords ? (en ? "division" : "division") : (en ? "vote" : "scrutin");
+    public static string Terme(string chambre, bool en = false) => chambre is Commons or Lords ? (en ? "division" : "division") : chambre is UsHouse or UsSenate ? (en ? "roll call vote" : "vote nominal") : (en ? "vote" : "scrutin");
 
     /// <summary>Préfixe d'URL des fiches : /depute/{slug}, /senateur/{slug} ou /eurodepute/{slug}.</summary>
-    public static string Fiche(string chambre) => chambre switch { Senat => "senateur", UE => "eurodepute", Commons => "member", Lords => "lord", _ => "depute" };
+    public static string Fiche(string chambre) => chambre switch { Senat => "senateur", UE => "eurodepute", Commons => "member", Lords => "lord", UsHouse => "representative", UsSenate => "senator", _ => "depute" };
     /// <summary>Adresse de la liste des élus de la chambre.</summary>
-    public static string Liste(string chambre) => chambre switch { Senat => "senateurs", UE => "eurodeputes", Commons => "members", Lords => "lords", _ => "deputes" };
+    public static string Liste(string chambre) => chambre switch { Senat => "senateurs", UE => "eurodeputes", Commons => "members", Lords => "lords", UsHouse => "representatives", UsSenate => "senators", _ => "deputes" };
     /// <summary>Chambre d'après le début d'une adresse (/senateurs, /eurodepute/x…) ; AN par défaut.</summary>
     public static string DepuisChemin(string chemin) =>
         chemin.StartsWith("/senateur", StringComparison.OrdinalIgnoreCase) ? Senat :
         chemin.StartsWith("/eurodepute", StringComparison.OrdinalIgnoreCase) ? UE :
         chemin.StartsWith("/member", StringComparison.OrdinalIgnoreCase) ? Commons :
-        chemin.StartsWith("/lord", StringComparison.OrdinalIgnoreCase) ? Lords : AN;
+        chemin.StartsWith("/lord", StringComparison.OrdinalIgnoreCase) ? Lords :
+        chemin.StartsWith("/representative", StringComparison.OrdinalIgnoreCase) ? UsHouse :
+        chemin.StartsWith("/senators", StringComparison.OrdinalIgnoreCase) || chemin.StartsWith("/senator/", StringComparison.OrdinalIgnoreCase) ? UsSenate : AN;
+
+    /// <summary>
+    /// Chambre désignée par le paramètre d'adresse <c>?chambre=</c> parmi celles du site courant (« commons », « lords », « house », « senate »…), ou null (toutes). Les clés viennent de
+    /// <see cref="Filtre"/> : sur le site d'un pays, le paramètre ne peut jamais désigner la chambre d'un autre pays.
+    /// </summary>
+    public static string? DepuisFiltre(string? cle, IEnumerable<string> visibles) => string.IsNullOrEmpty(cle) ? null : visibles.FirstOrDefault(c => Filtre(c) == cle);
+
+    /// <summary>Vrai pour une chambre du Congrès des États-Unis.</summary>
+    public static bool EstUs(string chambre) => chambre is UsHouse or UsSenate;
 }
 
 /// <summary>Valeurs de <c>Position</c> d'un parlementaire pour un scrutin.</summary>
@@ -92,6 +105,10 @@ public sealed class Scrutin
     public string? TypeMajorite { get; set; }
     public int? SuffragesExprimes { get; set; }
     public int? SuffragesRequis { get; set; }
+    /// <summary>Référence du dossier : pour les États-Unis, l'adresse de l'enregistrement OFFICIEL du vote (greffe de la Chambre, Sénat) ; pour l'UE, la référence de procédure (non affichée).</summary>
+    public string? DossierRef { get; set; }
+    /// <summary>Adresse officielle du vote (États-Unis) ou null.</summary>
+    public string? UrlOfficielle => DossierRef is { } d && d.StartsWith("https://") ? d : null;
 
     public string TitreAffiche => string.IsNullOrWhiteSpace(FeaturedTitle) ? Capitalise(Titre) : FeaturedTitle!;
     // Interface anglaise : titre anglais (HowTheyVote pour l'UE) ou TRADUCTION AUTOMATIQUE du titre français (titre_en_auto).

@@ -117,6 +117,10 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AddPageRoute("/Parlementaire", "/member/{slug}");
     options.Conventions.AddPageRoute("/Parlementaires", "/lords");
     options.Conventions.AddPageRoute("/Parlementaire", "/lord/{slug}");
+    options.Conventions.AddPageRoute("/Parlementaires", "/representatives");
+    options.Conventions.AddPageRoute("/Parlementaire", "/representative/{slug}");
+    options.Conventions.AddPageRoute("/Parlementaires", "/senators");
+    options.Conventions.AddPageRoute("/Parlementaire", "/senator/{slug}");
 });
 
 // Les données ne changent qu'après un import : un cache de quelques minutes suffit. JAMAIS de cache
@@ -264,11 +268,16 @@ app.MapGet("/sitemap-{prefixe}.xml", async (string prefixe, PaysSite pays, Dappe
     var chambres = pays.ChambresVisibles(p.Code);
     var urls = new List<(string, string?)>();
     var aujourdhui = DateTime.UtcNow.ToString("yyyy-MM-dd");
-    foreach (var u in new[] { "/", "/textes", "/members", "/lords", "/elus", "/statistiques", "/bills", "/petitions", "/donnees" }) urls.Add((u, aujourdhui));
+    // Pages communes d'un pays + celles propres au Royaume-Uni (projets de loi, pétitions) ; listes et fiches d'élus de CHAQUE chambre visible du pays.
+    var communes = new List<string> { "/", "/textes", "/elus", "/statistiques", "/donnees" };
+    if (PaysSite.APetitionsEtProjets(p.Code)) communes.AddRange(["/bills", "/petitions"]);
+    communes.AddRange(chambres.Select(ch => "/" + IlsOntVote.Web.Models.Chambres.Liste(ch)));
+    foreach (var u in communes) urls.Add((u, aujourdhui));
     foreach (var u in new[] { "/methodologie", "/mentions-legales" }) urls.Add((u, null));
     urls.AddRange((await cx.QueryAsync<(string, DateTime)>("SELECT '/scrutin/' || id, date_scrutin FROM scrutins WHERE chambre = ANY(@c)", new { c = chambres })).Select(r => (r.Item1, (string?)r.Item2.ToString("yyyy-MM-dd"))));
-    urls.AddRange((await cx.QueryAsync<string>("SELECT CASE chambre WHEN 'LORDS' THEN '/lord/' ELSE '/member/' END || slug FROM parlementaires WHERE chambre = ANY(@c)", new { c = chambres })).Select(u => (u, (string?)null)));
-    urls.AddRange((await cx.QueryAsync<string>("SELECT '/bill/' || id FROM bills")).Select(u => (u, (string?)null)));
+    foreach (var ch in chambres)
+        urls.AddRange((await cx.QueryAsync<string>("SELECT @f || slug FROM parlementaires WHERE chambre = @ch", new { f = "/" + IlsOntVote.Web.Models.Chambres.Fiche(ch) + "/", ch })).Select(u => (u, (string?)null)));
+    if (PaysSite.APetitionsEtProjets(p.Code)) urls.AddRange((await cx.QueryAsync<string>("SELECT '/bill/' || id FROM bills")).Select(u => (u, (string?)null)));
     var sb = new System.Text.StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
     foreach (var (u, date) in urls)
         sb.Append("<url><loc>").Append(System.Security.SecurityElement.Escape(SiteUrl + "/" + prefixe + (u == "/" ? "" : u))).Append("</loc>")
@@ -286,10 +295,10 @@ app.MapGet("/apercu/scrutin/{id}.png", async (string id, IScrutinRepository scru
     var s = await scrutins.GetAsync(id);
     if (s is null) return Results.NotFound();
     var vue = HemicycleLayout.Construire(await scrutins.GetSiegesAsync(id), pays.Disposition(s.Chambre));   // demi-cercle ou croissants selon la chambre
-    return Results.File(image.Scrutin(s, vue, langue.Anglais, langue.Pays == "GB"), "image/png");
-}).CacheOutput(p => p.Expire(TimeSpan.FromHours(12)).SetVaryByRouteValue("id").VaryByValue(c => new KeyValuePair<string, string>("lang", c.Items["lang"] as string ?? "fr")));
-app.MapGet("/apercu/defaut.png", (ApercuImage image, Langue langue) => Results.File(image.Defaut(langue.Anglais, langue.Pays == "GB"), "image/png"))
-    .CacheOutput(p => p.Expire(TimeSpan.FromHours(12)).VaryByValue(c => new KeyValuePair<string, string>("lang", c.Items["lang"] as string ?? "fr")));
+    return Results.File(image.Scrutin(s, vue, langue.Anglais, langue.Pays), "image/png");
+}).CacheOutput(p => p.Expire(TimeSpan.FromHours(12)).SetVaryByRouteValue("id").VaryByValue(c => new KeyValuePair<string, string>("lang", (c.Items["lang"] as string ?? "fr") + "|" + (c.Items["pays"] as string ?? ""))));
+app.MapGet("/apercu/defaut.png", (ApercuImage image, Langue langue) => Results.File(image.Defaut(langue.Anglais, langue.Pays), "image/png"))
+    .CacheOutput(p => p.Expire(TimeSpan.FromHours(12)).VaryByValue(c => new KeyValuePair<string, string>("lang", (c.Items["lang"] as string ?? "fr") + "|" + (c.Items["pays"] as string ?? ""))));   // la clé inclut le PAYS : /uk et /en n'ont pas la même image
 
 app.MapRazorPages();
 

@@ -722,6 +722,22 @@ public sealed class ImportRepository(string connectionString)
         return (rows.Select(r => r.Id).ToHashSet(), rows.Count == 0 ? null : DateOnly.FromDateTime(rows.Max(r => r.Date)));
     }
 
+    /// <summary>
+    /// Numérotation continue d'un Congrès pour la Chambre des États-Unis (le greffe numérote de 1 à chaque session) : <c>Decalage</c> = plus grand numéro écrit AVANT <paramref name="debutAnnee"/>
+    /// (0 pour la première année : la 2e session reprend après le dernier numéro de la 1re), <c>Dernier</c> = dernier numéro écrit dans l'année (l'import ne lit que les votes suivants).
+    /// </summary>
+    public async Task<(int Decalage, int Dernier)> NumerotationAsync(string chambre, int legislature, DateOnly debutAnnee)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        var (avant, dans) = await conn.QuerySingleAsync<(int, int)>(
+            """
+            SELECT COALESCE(max(numero) FILTER (WHERE date_scrutin < @debut), 0)::int,
+                   COALESCE(max(numero) FILTER (WHERE date_scrutin >= @debut AND date_scrutin < @fin), 0)::int
+              FROM scrutins WHERE chambre = @chambre AND legislature = @leg
+            """, new { chambre, leg = (short)legislature, debut = debutAnnee.ToDateTime(default), fin = debutAnnee.AddYears(1).ToDateTime(default) });
+        return (avant, dans > 0 ? dans - avant : 0);
+    }
+
     /// <summary>Identifiants des scrutins UE déjà en base (l'import UE ne relit que les votes nouveaux) et date du plus récent.</summary>
     public async Task<(HashSet<string> Ids, DateOnly? PlusRecent)> LireScrutinsUeAsync()
     {

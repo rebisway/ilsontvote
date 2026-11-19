@@ -65,6 +65,12 @@ public sealed class PaysSite(DapperContext db)
     }
 
     /// <summary>
+    /// Pays à préfixe pour lesquels le site propose les pages britanniques-seulement (projets de loi, pétitions) : le Royaume-Uni. Les autres pays (États-Unis…) n'ont que les
+    /// pages communes (votes, élus, statistiques, données).
+    /// </summary>
+    public static bool APetitionsEtProjets(string? paysSite) => paysSite == "GB";
+
+    /// <summary>
     /// Plateformes de pétitions visibles sur le site d'un pays (colonne petitions.chambre : AN, SENAT, UK). La France montre les plateformes françaises ; /uk celle du Parlement britannique.
     /// Même garde-fou que pour les chambres : les pétitions d'un pays ne paraissent jamais sur le site d'un autre.
     /// </summary>

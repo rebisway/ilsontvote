@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace IlsOntVote.Web.Pages;
 
 /// <summary>Liste des scrutins publics (tous les votes), triable et exportable.</summary>
-public class TextesModel(IScrutinRepository scrutins, Langue langue) : ListePageModel
+public class TextesModel(IScrutinRepository scrutins, Langue langue, PaysSite site) : ListePageModel
 {
     // 30 lignes : un tableau lisible d'un coup d'œil ; au-delà on pagine (l'export, lui, n'est pas paginé).
     protected override int ParPageDefaut => 30;
@@ -29,6 +29,8 @@ public class TextesModel(IScrutinRepository scrutins, Langue langue) : ListePage
     public bool Resolutions => Nature == "resolution";
     /// <summary>Vrai sur le site d'un pays hors France : la liste de chambres de la France est masquée.</summary>
     public bool SitePays => langue.Pays is not null;
+    /// <summary>Chambres du site courant (sélecteur de chambre sous un pays : Communes et Lords, Chambre et Sénat des États-Unis…).</summary>
+    public string[] ChambresSite => site.ChambresVisibles(langue.Pays);
 
     public Resultats<Scrutin> Resultats { get; private set; } = new([], 0, 1, 30);
 
@@ -66,7 +68,7 @@ public class TextesModel(IScrutinRepository scrutins, Langue langue) : ListePage
     {
         // Site d'un pays (/uk) : sa seule chambre (Communes) ; le paramètre « chambre » de la France n'a pas de sens. Les chambres des autres pays sont de toute façon
         // écartées par ScrutinRepository (chambres visibles du site).
-        var chambre = langue.Pays == "GB" ? Chambre switch { "commons" => Chambres.Commons, "lords" => Chambres.Lords, _ => null }
+        var chambre = langue.Pays is not null ? Chambres.DepuisFiltre(Chambre, ChambresSite)
             : Chambre switch { "an" => Chambres.AN, "senat" => Chambres.Senat, "ue" => Chambres.UE, _ => null };
 
         var (du, au) = Periode.Lire(Du, Au);

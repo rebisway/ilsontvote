@@ -24,7 +24,9 @@ public class ElusModel(IStatistiquesRepository stats, Langue langue, PaysSite si
     public bool EnsembleSeul => Ensemble == "1";
     public bool AvecVotes => Votants == "1";
     /// <summary>Sur le site d'un pays (/uk) : sa seule chambre, quel que soit le paramètre « chambre ».</summary>
-    public string ChambreCode => langue.Pays == "GB" ? (Chambre == "lords" ? Chambres.Lords : Chambres.Commons)
+    /// <summary>Chambres du site courant (sélecteur sous un pays).</summary>
+    public string[] ChambresSite => site.ChambresVisibles(langue.Pays);
+    public string ChambreCode => langue.Pays is not null ? Chambres.DepuisFiltre(Chambre, ChambresSite) ?? ChambresSite.FirstOrDefault() ?? Chambres.Commons
         : Chambre switch { "senat" => Chambres.Senat, "ue" => Chambres.UE, "commons" => Chambres.Commons, _ => Chambres.AN };
     public string ChambreCle => Chambres.Filtre(ChambreCode);
     /// <summary>« perso » si une date est saisie, sinon « 12m » (défaut), « annee » ou « tout ».</summary>

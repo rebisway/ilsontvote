@@ -4,7 +4,7 @@
 @using IlsOntVote.Web.Services
 @{
     var lords = Model.ChambreCode == Chambres.Lords;
-    var titreElus = lords ? L.T("Participation aux votes des pairs", "Voting participation of peers") : L.T("Taux de présence des élus", "Attendance rates of elected officials");
+    var titreElus = lords ? L.T("Participation aux votes des pairs", "Voting participation of peers") : L.Pays == "US" ? L.T("Participation aux votes des élus du Congrès", "Voting participation of members of Congress") : L.T("Taux de présence des élus", "Attendance rates of elected officials");
     ViewData["Title"] = titreElus;
     ViewData["Description"] = L.T("Tous les élus avec leur taux de participation, de présence, de délégation et de mise au point sur la période choisie : triez, filtrez, exportez.", "All elected officials with their participation, presence, proxy and vote-correction rates over the chosen period: sort, filter, export.");
     var fr = L.Culture;
@@ -31,10 +31,15 @@
     <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("Chercher un nom ou un groupe…", "Search a name or a group…")" aria-label="@L.T("Chercher un élu", "Search an official")" />
     @if (L.Pays is not null)
     {
+    @if (Model.ChambresSite.Length > 1)
+    {
     <select name="chambre" aria-label="@L.T("Chambre", "House")">
-        <option value="commons" selected="@(Model.ChambreCode == Chambres.Commons)">@L.T("Chambre des Communes", "House of Commons")</option>
-        <option value="lords" selected="@(Model.ChambreCode == Chambres.Lords)">@L.T("Chambre des Lords", "House of Lords")</option>
+        @foreach (var ch in Model.ChambresSite)
+        {
+            <option value="@Chambres.Filtre(ch)" selected="@(Model.ChambreCode == ch)">@Chambres.Nom(ch, L.Anglais)</option>
+        }
     </select>
+    }
     }
     @if (L.Pays is null)
     {

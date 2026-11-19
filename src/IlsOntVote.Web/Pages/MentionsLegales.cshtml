@@ -21,7 +21,11 @@
 
 <section class="bloc-texte">
     <h2>Intellectual property and data</h2>
-    @if (L.Pays == "GB")
+    @if (L.Pays == "US")
+    {
+    <p>The site's source code is published under the GNU GPL v3.0 licence. The roll call votes come from the <a href="https://clerk.house.gov/Votes">Clerk of the House of Representatives</a> (official files) and, for the Senate, from <a href="https://voteview.com/">Voteview</a> (UCLA and the University of Georgia), a third-party academic project that reprocesses the <a href="https://www.senate.gov/legislative/votes_new.htm">Senate</a> records. It is reproduced as published, with the calculations described in the <a href="@L.Lien("/methodologie")">methodology</a>. Other content (texts, layout) is protected by copyright.</p>
+    }
+    else if (L.Pays == "GB")
     {
     <p>The site's source code is published under the GNU GPL v3.0 licence. The voting data and petitions come from the UK Parliament's public
     <a href="https://commonsvotes-api.parliament.uk/">Commons Votes API</a>, <a href="https://lordsvotes-api.parliament.uk/">Lords Votes API</a> and <a href="https://petition.parliament.uk/">petitions site</a>. Contains Parliamentary information licensed under the
@@ -72,7 +76,11 @@ else
 
 <section class="bloc-texte">
     <h2>Propriété intellectuelle et données</h2>
-    @if (L.Pays == "GB")
+    @if (L.Pays == "US")
+    {
+    <p>Le code source du site est publié sous licence GNU GPL v3.0. Les votes nominaux proviennent du <a href="https://clerk.house.gov/Votes">greffe de la Chambre des représentants</a> (fichiers officiels) et, pour le Sénat, de <a href="https://voteview.com/">Voteview</a> (UCLA et Université de Géorgie), un projet universitaire tiers qui retraite les enregistrements du <a href="https://www.senate.gov/legislative/votes_new.htm">Sénat</a>. Ils sont repris tels que publiés, avec les calculs décrits dans la <a href="@L.Lien("/methodologie")">méthodologie</a>. Les autres contenus (textes, mise en page) sont protégés par le droit d'auteur.</p>
+    }
+    else if (L.Pays == "GB")
     {
     <p>Le code source du site est publié sous licence GNU GPL v3.0. Les données de vote et les pétitions proviennent des services publics du Parlement britannique :
     <a href="https://commonsvotes-api.parliament.uk/">Commons Votes API</a>, <a href="https://lordsvotes-api.parliament.uk/">Lords Votes API</a> et <a href="https://petition.parliament.uk/">site des pétitions</a>. Contient des informations parlementaires sous
