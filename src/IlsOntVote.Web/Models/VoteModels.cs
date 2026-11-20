@@ -12,34 +12,36 @@ public static class Chambres
     public const string Lords = "LORDS";
     public const string UsHouse = "USHOUSE";
     public const string UsSenate = "USSENATE";
+    public const string ItCamera = "ITCAMERA";
+    public const string ItSenate = "ITSENATE";
 
     public static string Nom(string chambre, bool en = false) => en
-        ? chambre switch { Senat => "Senate", UE => "European Parliament", Commons => "House of Commons", Lords => "House of Lords", UsHouse => "House of Representatives", UsSenate => "United States Senate", _ => "National Assembly" }
-        : chambre switch { Senat => "Sénat", UE => "Parlement européen", Commons => "Chambre des Communes", Lords => "Chambre des Lords", UsHouse => "Chambre des représentants", UsSenate => "Sénat des États-Unis", _ => "Assemblée nationale" };
+        ? chambre switch { Senat => "Senate", UE => "European Parliament", Commons => "House of Commons", Lords => "House of Lords", UsHouse => "House of Representatives", UsSenate => "United States Senate", ItCamera => "Chamber of Deputies", ItSenate => "Senate of the Republic", _ => "National Assembly" }
+        : chambre switch { Senat => "Sénat", UE => "Parlement européen", Commons => "Chambre des Communes", Lords => "Chambre des Lords", UsHouse => "Chambre des représentants", UsSenate => "Sénat des États-Unis", ItCamera => "Chambre des députés", ItSenate => "Sénat de la République", _ => "Assemblée nationale" };
     public static string Membre(string chambre, bool en = false) => en
-        ? chambre switch { Senat => "senator", UE => "MEP", Commons => "MP", Lords => "peer", UsHouse => "Representative", UsSenate => "Senator", _ => "deputy" }
-        : chambre switch { Senat => "sénateur", UE => "eurodéputé", Commons => "député britannique", Lords => "pair", UsHouse => "représentant", UsSenate => "sénateur américain", _ => "député" };
+        ? chambre switch { Senat => "senator", UE => "MEP", Commons => "MP", Lords => "peer", UsHouse => "Representative", UsSenate => "Senator", ItSenate => "senator", _ => "deputy" }
+        : chambre switch { Senat => "sénateur", UE => "eurodéputé", Commons => "député britannique", Lords => "pair", UsHouse => "représentant", UsSenate => "sénateur américain", ItCamera => "député italien", ItSenate => "sénateur italien", _ => "député" };
     public static string Membres(string chambre, bool en = false) => en
-        ? chambre switch { Senat => "senators", UE => "MEPs", Commons => "MPs", Lords => "peers", UsHouse => "Representatives", UsSenate => "Senators", _ => "deputies" }
-        : chambre switch { Senat => "sénateurs", UE => "eurodéputés", Commons => "députés britanniques", Lords => "pairs", UsHouse => "représentants", UsSenate => "sénateurs américains", _ => "députés" };
+        ? chambre switch { Senat => "senators", UE => "MEPs", Commons => "MPs", Lords => "peers", UsHouse => "Representatives", UsSenate => "Senators", ItSenate => "senators", _ => "deputies" }
+        : chambre switch { Senat => "sénateurs", UE => "eurodéputés", Commons => "députés britanniques", Lords => "pairs", UsHouse => "représentants", UsSenate => "sénateurs américains", ItCamera => "députés italiens", ItSenate => "sénateurs italiens", _ => "députés" };
     /// <summary>Sigle court pour les étiquettes de tableau.</summary>
     public static string Court(string chambre, bool en = false) => en
-        ? chambre switch { Senat => "Senate", UE => "EU", Commons => "Commons", Lords => "Lords", UsHouse => "House", UsSenate => "Senate", _ => "NA" }
-        : chambre switch { Senat => "Sénat", UE => "UE", Commons => "Communes", Lords => "Lords", UsHouse => "Chambre", UsSenate => "Sénat US", _ => "AN" };
+        ? chambre switch { Senat => "Senate", UE => "EU", Commons => "Commons", Lords => "Lords", UsHouse => "House", UsSenate => "Senate", ItCamera => "Chamber", ItSenate => "Senate", _ => "NA" }
+        : chambre switch { Senat => "Sénat", UE => "UE", Commons => "Communes", Lords => "Lords", UsHouse => "Chambre", UsSenate => "Sénat US", ItCamera => "Chambre", ItSenate => "Sénat", _ => "AN" };
     /// <summary>Classe CSS de l'étiquette de chambre (couleur propre à chaque assemblée).</summary>
-    public static string ClasseTag(string chambre) => chambre switch { Senat => "ch-senat", UE => "ch-ue", Commons => "ch-commons", Lords => "ch-lords", UsHouse => "ch-ushouse", UsSenate => "ch-ussenate", _ => "ch-an" };
+    public static string ClasseTag(string chambre) => chambre switch { Senat => "ch-senat", UE => "ch-ue", Commons => "ch-commons", Lords => "ch-lords", UsHouse => "ch-ushouse", UsSenate => "ch-ussenate", ItCamera => "ch-itcamera", ItSenate => "ch-itsenate", _ => "ch-an" };
     /// <summary>Valeur du filtre d'URL (?chambre=) pour cette chambre.</summary>
-    public static string Filtre(string chambre) => chambre switch { Senat => "senat", UE => "ue", Commons => "commons", Lords => "lords", UsHouse => "house", UsSenate => "senate", _ => "an" };
+    public static string Filtre(string chambre) => chambre switch { Senat => "senat", UE => "ue", Commons => "commons", Lords => "lords", UsHouse => "house", UsSenate => "senate", ItCamera => "camera", ItSenate => "senato", _ => "an" };
 
     /// <summary>Vrai si la chambre a des fiches d'élus et une liste d'élus (toutes, depuis les pages /members et /member/{slug} des Communes).</summary>
     public static bool AUneFiche(string chambre) => true;
     /// <summary>Mot qui désigne un scrutin de la chambre (« scrutin », « division » aux Communes).</summary>
-    public static string Terme(string chambre, bool en = false) => chambre is Commons or Lords ? (en ? "division" : "division") : chambre is UsHouse or UsSenate ? (en ? "roll call vote" : "vote nominal") : (en ? "vote" : "scrutin");
+    public static string Terme(string chambre, bool en = false) => chambre is Commons or Lords ? (en ? "division" : "division") : chambre is UsHouse or UsSenate or ItCamera or ItSenate ? (en ? "roll call vote" : "vote nominal") : (en ? "vote" : "scrutin");
 
     /// <summary>Préfixe d'URL des fiches : /depute/{slug}, /senateur/{slug} ou /eurodepute/{slug}.</summary>
-    public static string Fiche(string chambre) => chambre switch { Senat => "senateur", UE => "eurodepute", Commons => "member", Lords => "lord", UsHouse => "representative", UsSenate => "senator", _ => "depute" };
+    public static string Fiche(string chambre) => chambre switch { Senat => "senateur", UE => "eurodepute", Commons => "member", Lords => "lord", UsHouse => "representative", UsSenate => "senator", ItCamera => "deputy", ItSenate => "senatore", _ => "depute" };
     /// <summary>Adresse de la liste des élus de la chambre.</summary>
-    public static string Liste(string chambre) => chambre switch { Senat => "senateurs", UE => "eurodeputes", Commons => "members", Lords => "lords", UsHouse => "representatives", UsSenate => "senators", _ => "deputes" };
+    public static string Liste(string chambre) => chambre switch { Senat => "senateurs", UE => "eurodeputes", Commons => "members", Lords => "lords", UsHouse => "representatives", UsSenate => "senators", ItCamera => "deputies", ItSenate => "senatori", _ => "deputes" };
     /// <summary>Chambre d'après le début d'une adresse (/senateurs, /eurodepute/x…) ; AN par défaut.</summary>
     public static string DepuisChemin(string chemin) =>
         chemin.StartsWith("/senateur", StringComparison.OrdinalIgnoreCase) ? Senat :
@@ -47,6 +49,8 @@ public static class Chambres
         chemin.StartsWith("/member", StringComparison.OrdinalIgnoreCase) ? Commons :
         chemin.StartsWith("/lord", StringComparison.OrdinalIgnoreCase) ? Lords :
         chemin.StartsWith("/representative", StringComparison.OrdinalIgnoreCase) ? UsHouse :
+        chemin.StartsWith("/deputies", StringComparison.OrdinalIgnoreCase) || chemin.StartsWith("/deputy/", StringComparison.OrdinalIgnoreCase) ? ItCamera :
+        chemin.StartsWith("/senatori", StringComparison.OrdinalIgnoreCase) || chemin.StartsWith("/senatore/", StringComparison.OrdinalIgnoreCase) ? ItSenate :
         chemin.StartsWith("/senators", StringComparison.OrdinalIgnoreCase) || chemin.StartsWith("/senator/", StringComparison.OrdinalIgnoreCase) ? UsSenate : AN;
 
     /// <summary>
@@ -57,6 +61,8 @@ public static class Chambres
 
     /// <summary>Vrai pour une chambre du Congrès des États-Unis.</summary>
     public static bool EstUs(string chambre) => chambre is UsHouse or UsSenate;
+    /// <summary>Vrai pour une chambre dont les scrutins sont des « votes nominaux » à source officielle liée (Congrès des États-Unis, Chambre des députés d'Italie).</summary>
+    public static bool EstNominal(string chambre) => chambre is UsHouse or UsSenate or ItCamera or ItSenate;
 }
 
 /// <summary>Valeurs de <c>Position</c> d'un parlementaire pour un scrutin.</summary>

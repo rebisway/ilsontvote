@@ -52,11 +52,21 @@ public static class DescriptionsDonnees
         ["votes"] = "Each member's vote in each roll call (pour = yea, contre = nay, abstention = present). Not voting members and merely announced or paired positions are not in this file.",
     };
 
+    private static readonly Dictionary<string, string> EnIt = new()
+    {
+        ["groupes"] = "Parliamentary groups of the Italian Chamber of Deputies and Senate (one identifier per legislature).",
+        ["parlementaires"] = "Deputies and senators (identity).",
+        ["mandats"] = "Terms of office, deduced from the votes: from the first to the last imported vote where the deputy appears in the list (calculated). One row per legislature.",
+        ["appartenances_groupes"] = "Membership of a deputy in a group, with dates (the group at the time of the votes).",
+        ["scrutins"] = "Votes of the Chamber and the Senate: official counts, result (official field), majority threshold, url_officielle = official page of the vote; sur_ensemble = final vote as flagged by the Chamber. By default only final votes (and the Chamber's confidence votes) are imported; secret ballots have totals only (nominatif_incomplet).",
+        ["votes"] = "Each deputy's vote in each vote (pour = in favour, contre = against, abstention). Deputies who did not vote are not in this file; in secret ballots the Chamber does not publish positions.",
+    };
+
     /// <summary>Description anglaise du fichier (« votes.csv.gz », « gb_votes.csv.gz », « us_votes.csv.gz »), ou null si la table ne la connaît pas.</summary>
     public static string? Anglais(string fichier)
     {
         var nom = fichier.Split('.')[0];
-        return nom.StartsWith("gb_") ? EnGb.GetValueOrDefault(nom[3..]) : nom.StartsWith("us_") ? EnUs.GetValueOrDefault(nom[3..]) : En.GetValueOrDefault(nom);
+        return nom.StartsWith("gb_") ? EnGb.GetValueOrDefault(nom[3..]) : nom.StartsWith("us_") ? EnUs.GetValueOrDefault(nom[3..]) : nom.StartsWith("it_") ? EnIt.GetValueOrDefault(nom[3..]) : En.GetValueOrDefault(nom);
     }
 }
 

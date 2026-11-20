@@ -49,6 +49,51 @@
     </ul>
 </section>
 }
+else if (L.Pays == "IT")
+{
+<h1 class="titre-page">@L.T("Méthodologie et limites", "Methodology and limits")</h1>
+<p class="chapo">@L.T("Le site ne juge personne : il affiche ce que la source publie. Quand une donnée est calculée, douteuse ou manquante, il le dit.", "The site judges no one: it displays what the source publishes. When a piece of data is calculated, doubtful or missing, it says so.")</p>
+
+<section class="bloc-texte">
+    <h2>@L.T("D'où viennent les données", "Where the data comes from")</h2>
+    <ul>
+        <li>@L.TH("<strong>Chambre des députés</strong> : source <strong>officielle</strong>, l'open data de la Chambre (<a href=\"https://dati.camera.it/\">dati.camera.it</a>, point d'accès SPARQL), sous licence <a href=\"https://creativecommons.org/licenses/by-sa/4.0/deed.fr\">CC BY-SA 4.0</a> : totaux officiels, résultat et vote de chaque député. Chaque vote renvoie à sa fiche officielle.", "<strong>Chamber of Deputies</strong>: <strong>official</strong> source, the Chamber's open data (<a href=\"https://dati.camera.it/\">dati.camera.it</a>, SPARQL endpoint), under the <a href=\"https://creativecommons.org/licenses/by-sa/4.0/\">CC BY-SA 4.0</a> licence: official totals, result and each deputy's vote. Each vote links to its official page.")</li>
+        <li>@L.TH("<strong>Sénat</strong> : source <strong>officielle</strong>, l'open data du Sénat (<a href=\"https://dati.senato.it/\">dati.senato.it</a>, point d'accès SPARQL) : totaux, résultat, liste des sénateurs pour, contre et abstenus, <strong>mandats et groupes datés</strong>. Licence : <a href='https://creativecommons.org/licenses/by/3.0/'>CC BY 3.0</a> (attribution), indiquée sur la page d'accueil de dati.senato.it.", "<strong>Senate</strong>: <strong>official</strong> source, the Senate's open data (<a href=\"https://dati.senato.it/\">dati.senato.it</a>, SPARQL endpoint): totals, result, the lists of senators for, against and abstaining, <strong>dated mandates and groups</strong>. Licence: <a href='https://creativecommons.org/licenses/by/3.0/'>CC BY 3.0</a> (attribution), stated on the home page of dati.senato.it.")</li>
+        <li>@L.T("Mise à jour automatique chaque nuit : les votes de moins de sept jours sont relus. Le code est un logiciel libre (GPL-3.0).", "Automatic update every night: votes less than seven days old are read again. The code is free software (GPL-3.0).")</li>
+    </ul>
+</section>
+
+<section class="bloc-texte">
+    <h2>@L.T("Comment se lit un vote", "How a vote is read")</h2>
+    <ul>
+        <li>@L.TH("<strong>Sénat</strong> : au Sénat, les <strong>abstentions comptent parmi les votants</strong> (votants = pour + contre + abstenus). Les mandats et les groupes viennent de la source, avec leurs dates : le groupe affiché est celui du sénateur <em>le jour du vote</em>. Un sénateur sans vote ni congé ce jour-là est absent, sans raison affichée. Un sénateur « en congé ou mission » apparaît absent.", "<strong>Senate</strong>: in the Senate, <strong>abstentions are counted among the voters</strong> (voters = for + against + abstentions). Mandates and groups come from the source, with their dates: the group shown is the senator's <em>on the day of the vote</em>. A senator with neither a vote nor leave that day is absent, with no reason shown. A senator “on leave or mission” appears absent.")</li>
+        <li>@L.TH("<strong>Favorable, contraire, abstention</strong> : tels que publiés. Les <strong>abstentions ne comptent pas</strong> parmi les votants : en Italie, votants = pour + contre, et les présents = votants + abstentions.", "<strong>In favour, against, abstention</strong>: as published. <strong>Abstentions are not counted</strong> among the voters: in Italy, voters = for + against, and those present = voters + abstentions.")</li>
+        <li>@L.TH("<strong>Absent</strong> : le député siégeait à la date du vote mais n'a pas voté (« non ha votato », y compris « en mission »). Le site ne donne <em>aucune raison</em>.", "<strong>Absent</strong>: the deputy was in office on the date of the vote but did not vote (“non ha votato”, including “on mission”). The site gives <em>no reason</em>.")</li>
+        <li>@L.TH("<strong>Scrutin secret</strong> : la Chambre ne publie que les totaux, pas la position de chaque député. Le vote est affiché avec ses totaux, sans points, et marqué « décompte incomplet » : il n'entre dans aucun taux de participation.", "<strong>Secret ballot</strong>: the Chamber publishes only the totals, not each deputy's position. The vote is shown with its totals, without dots, and marked “incomplete count”: it enters no participation rate.")</li>
+        <li>@L.TH("<strong>Groupe</strong> : celui du député au moment du vote, d'après la source ; « No group » = député sans groupe. <strong>Mandats</strong> : la source n'a pas d'annuaire daté ici ; un mandat va du premier au dernier vote <em>importé</em> où le député figure dans la liste (<strong>calculé par le site</strong>).", "<strong>Group</strong>: the deputy's group at the time of the vote, as given by the source; “No group” = deputy without a group. <strong>Mandates</strong>: the source has no dated directory here; a mandate runs from the first to the last <em>imported</em> vote where the deputy appears in the list (<strong>calculated by the site</strong>).")</li>
+    </ul>
+</section>
+
+<section class="bloc-texte">
+    <h2>@L.T("Calculé par le site (non publié tel quel)", "Calculated by the site (not published as is)")</h2>
+    <ul>
+        <li>@L.T("Le résultat « adopté / rejeté » et le seuil de majorité sont ceux de la Chambre ; le libellé « majorité simple des votants, abstentions exclues » est celui du site.", "The “adopted / rejected” result and the majority threshold are the Chamber's; the label “simple majority of those voting, abstentions not counted” is the site's.")</li>
+        <li>@L.T("Les noms sont publiés en majuscules par la source : la casse (« De Luca ») est refaite par le site.", "Names are published in capitals by the source: the capitalisation (“De Luca”) is rebuilt by the site.")</li>
+        <li>@L.T("Le numéro d'un vote est calculé par le site (séance × 10 000 + numéro du vote dans la séance) ; la note de chaque vote donne la séance et le numéro d'origine.", "The number of a vote is calculated by the site (sitting × 10,000 + vote number within the sitting); the note of each vote gives the original sitting and number.")</li>
+        <li>@L.T("Participation : parmi les députés en fonction à la date d'un vote importé, la part de ceux qui ont voté. Les autres sont absents.", "Participation: among the deputies in office on the date of an imported vote, the share who voted. The others are absent.")</li>
+    </ul>
+</section>
+
+<section class="bloc-texte">
+    <h2>@L.T("Limites connues", "Known limits")</h2>
+    <ul>
+        <li>@L.TH("<strong>Tous les votes ne sont pas importés.</strong> Seuls les votes <em>finaux</em> (et, pour la Chambre, les <em>questions de confiance</em>) le sont pour l'instant ; les amendements, ordres du jour, motions et articles (la grande majorité des votes de la Chambre) ne le sont pas. Les taux de participation ne portent donc que sur ces votes.", "<strong>Not every vote is imported.</strong> Only <em>final votes</em> (and, for the Chamber, <em>confidence votes</em>) are for now; amendments, orders of the day, motions and articles (the large majority of the Chamber's votes) are not. Participation rates therefore only cover those votes.")</li>
+        <li>@L.T("Au Sénat, seuls les votes finaux (libellé « Votazione finale ») sont importés ; la source ne les marque pas autrement. Le titre d'un vote final est celui du projet de loi qui lui est relié, quand la source le donne.", "In the Senate, only final votes (label “Votazione finale”) are imported; the source marks them in no other way. The title of a final vote is that of the bill linked to it, when the source gives one.")</li>
+        <li>@L.T("Les titres sont dans la langue de la source (italien) ; certains caractères accentués peuvent être mal encodés dans la source.", "Titles are in the source's language (Italian); some accented characters may be badly encoded in the source.")</li>
+        <li>@L.TH("Pour signaler une erreur, écrivez à <a href=\"mailto:contact@rebisway.com\">contact@rebisway.com</a>.", "To report an error, write to <a href=\"mailto:contact@rebisway.com\">contact@rebisway.com</a>.")</li>
+    </ul>
+</section>
+}
 else if (L.Pays == "GB" && L.Anglais)
 {
 <h1 class="titre-page">Methodology and limits</h1>

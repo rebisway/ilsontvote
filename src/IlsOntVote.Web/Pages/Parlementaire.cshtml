@@ -53,6 +53,7 @@
     else
     {
         <p class="bilan-chiffre"><strong>@b.TauxParticipation.ToString("0", fr) %</strong> <span>@L.T("des", "of the") @b.Total.ToString("N0", fr) @L.T("scrutins publics tenus pendant son mandat : a pris part au vote (pour, contre ou abstention)", "roll-call votes held during their term: took part in the vote (for, against or abstention)")</span></p>
+        @if (L.Pays == "IT") { <p class="note-source">@Doute.Html(NiveauDoute.Incertain, L.T("import partiel", "partial import"), L.T("Seuls les votes finaux (et, pour la Chambre, les questions de confiance) sont importés pour l'instant : amendements, ordres du jour et motions ne le sont pas. Ce taux ne porte que sur ces votes.", "Only final votes (and, for the Chamber, confidence votes) are imported for now: amendments, orders of the day and motions are not. This rate only covers those votes."))</p> }
         <div class="barre-empilee" role="img" aria-label="@L.T("Répartition de ses votes", "Breakdown of their votes")">
             <span class="b-pour" style="width:@Pct(b.Pour).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%"></span>
             <span class="b-contre" style="width:@Pct(b.Contre).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%"></span>

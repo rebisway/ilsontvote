@@ -22,7 +22,7 @@ int[] LegislaturesCompletes = [15, 16, 17];
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var argv = args.ToList();
-if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements" or "communes" or "lords" or "us" or "bills"))
+if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements" or "communes" or "lords" or "us" or "italie" or "bills"))
 {
     Console.Error.WriteLine("Usage : IlsOntVote.Importer an [--legislature 17|15,16,17|all] [--scrutins-dir D --amo-dir D]");
     Console.Error.WriteLine("        IlsOntVote.Importer senat [--senateurs-dir D --dosleg-sql F]");
@@ -72,6 +72,7 @@ return argv[0] switch
     "communes" => await ImporterCommunesAsync(),
     "lords" => await ImporterLordsAsync(),
     "us" => await ImporterEtatsUnisAsync(),
+    "italie" => Option("--chambre") == "senat" ? await ImporterItalieSenatAsync() : await ImporterItalieAsync(),
     "bills" => await ImporterBillsRoyaumeUniAsync(),
     _ => await ImporterTextesAsync(),
 };
@@ -658,6 +659,172 @@ async Task<int> ImporterEtatsUnisAsync()
             }
         }
         Console.WriteLine($"  {nbScrutins} votes nominaux, {nbVotes:N0} votes individuels.");
+        await repo.TerminerAsync(runId, true, nbScrutins, nbVotes, null);
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex);
+        await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
+        return 1;
+    }
+}
+
+/// <summary>
+/// Sénat d'Italie (SPARQL officiel) : <c>italie --chambre senat [--legislature N|17-18] [--tout]</c>. Contrairement à la Chambre, la source donne les MANDATS (début, fin) et les groupes DATÉS : ils sont
+/// écrits tels quels (rien n'est déduit des votes) et chaque vote prend le groupe du sénateur À LA DATE du vote. Par défaut seulement les votes FINAUX ; <c>--tout</c> importe aussi amendements et articles.
+/// Les sénateurs qui n'ont ni voté ni été en congé ne figurent dans aucune liste : leur absence se déduit des mandats (absent = absent).
+/// </summary>
+async Task<int> ImporterItalieSenatAsync()
+{
+    Console.WriteLine("=== Sénat d'Italie (SPARQL officiel) ===");
+    var runId = await repo.DemarrerAsync("IT-SENAT");
+    try
+    {
+        var spec = Option("--legislature") ?? ItalySenateSource.Courante.ToString();
+        var bornes = spec.Split('-', 2).Select(int.Parse).ToArray();
+        var legislatures = Enumerable.Range(bornes[0], (bornes.Length > 1 ? bornes[1] : bornes[0]) - bornes[0] + 1).ToList();
+        var tout = argv.Contains("--tout");
+        using var source = new ItalySenateSource();
+        var existants = await repo.LireSlugsAsync();
+        var slugs = existants.Values.ToHashSet();
+        var seuil = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-7);
+        int nbScrutins = 0; long nbVotes = 0;
+
+        foreach (var l in legislatures)
+        {
+            if (!ItalySenateSource.Legislatures.TryGetValue(l, out var b)) throw new InvalidOperationException($"Législature {l} inconnue (bornes à déclarer dans ItalySenateSource.Legislatures).");
+            var terminee = b.Fin is not null;
+            var fin = b.Fin ?? DateOnly.FromDateTime(DateTime.UtcNow);
+            var senateurs = await source.LireSenateursAsync(l);
+            var adesioni = await source.LireAdesioniAsync(l);
+            var noms = await source.LireDenominazioniAsync(l);
+            var groupes = adesioni.Select(a => a.GroupeNumero).Distinct().Select(g => ItalySenateSource.Groupe(g, l, noms, fin)).ToList();
+            var parlementaires = senateurs.Select(s =>
+            {
+                var pid = ItalySenateSource.IdMembre(s.Id);
+                var slug = existants.TryGetValue(pid, out var s0) ? s0 : Slugs.Unique(slugs, s.Prenom, s.Nom, pid);
+                return new ParlementaireRow(pid, Chambres.ItSenate, null, s.Prenom, s.Nom, slug, null, null);
+            }).ToList();
+            var connus = senateurs.Select(s => s.Id).ToHashSet();
+            var mandats = senateurs.Select(s => new MandatRow(ItalySenateSource.IdMembre(s.Id), l, s.Debut, s.Fin)).ToList();
+            var appartenances = adesioni.Where(a => connus.Contains(a.SenateurId))
+                .Select(a => new AppartenanceRow(ItalySenateSource.IdMembre(a.SenateurId), ItalySenateSource.IdGroupe(l, a.GroupeNumero), a.Debut, a.Fin)).ToList();
+            await repo.EcrireAnnuaireAsync(new Annuaire(groupes, parlementaires, mandats, appartenances), Chambres.ItSenate, [l]);
+            var annuaire = new Annuaire(groupes, parlementaires, [], []);
+            var (deja, _) = await repo.LireScrutinsAsync(Chambres.ItSenate);
+
+            var votazioni = await source.ListerVotazioniAsync(l, b.Debut, fin, tout);
+            var aEcrire = votazioni.Where(v => !deja.Contains(ItalySenateSource.IdScrutin(l, ItalySenateSource.Numero(v))) || (!terminee && v.Date >= seuil)).ToList();
+            Console.WriteLine($"  {l}e législature : {senateurs.Count} sénateurs, {groupes.Count} groupes, {votazioni.Count} votations ({(tout ? "toutes" : "votes finaux")}), {aEcrire.Count} à écrire.");
+
+            var inconnus = new HashSet<string>();
+            var fait = 0;
+            foreach (var lot in aEcrire.Chunk(20))
+            {
+                var votes = await source.LireVotesAsync(lot.Select(v => v.Uri).ToList());
+                var parUri = votes.GroupBy(x => x.VotazioneUri).ToDictionary(g => g.Key, g => (IReadOnlyList<VotoSen>)g.ToList());
+                var scrutins = lot.Select(v => ItalySenateSource.VersScrutin(v, parUri.GetValueOrDefault(v.Uri) ?? [], connus, inconnus, (s, d) => ItalySenateSource.GroupeA(adesioni, s, d))).ToList();
+                var (n, v2, _) = await repo.EcrireScrutinsAsync(scrutins, annuaire);
+                nbScrutins += n; nbVotes += v2; fait += lot.Length;
+                if (fait % 100 < 20) Console.WriteLine($"    {fait}/{aEcrire.Count} votations…");
+                await Task.Delay(300);   // politesse envers le point d'accès
+            }
+            if (inconnus.Count > 0) Console.WriteLine($"    {inconnus.Count} identifiant(s) de vote sans fiche de sénateur ignoré(s).");
+        }
+        Console.WriteLine($"  {nbScrutins} votations, {nbVotes:N0} votes individuels.");
+        await repo.TerminerAsync(runId, true, nbScrutins, nbVotes, null);
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex);
+        await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
+        return 1;
+    }
+}
+
+/// <summary>
+/// Chambre des députés d'Italie (SPARQL officiel) : <c>--legislature N</c> (19 par défaut) ou plage <c>17-18</c>. Par défaut seulement les votes FINAUX et les questions de CONFIANCE ; <c>--tout</c> importe
+/// aussi amendements, ordres du jour, motions (environ 20 800 votations pour la XIXe, ~7 M de votes). Lecture incrémentale : les votations déjà en base ne sont relues que si elles ont moins de 7 jours.
+/// Mandats DÉDUITS des votes (un député figure dans chaque votation tant qu'il siège, même « n'a pas voté ») : fidèles aux seuls scrutins importés. Les non-votants ne sont pas stockés (absent = absent).
+/// </summary>
+async Task<int> ImporterItalieAsync()
+{
+    Console.WriteLine("=== Chambre des députés d'Italie (SPARQL officiel) ===");
+    var runId = await repo.DemarrerAsync("IT");
+    try
+    {
+        var spec = Option("--legislature") ?? ItalyCameraSource.Courante.ToString();
+        var bornes = spec.Split('-', 2).Select(int.Parse).ToArray();
+        var legislatures = Enumerable.Range(bornes[0], (bornes.Length > 1 ? bornes[1] : bornes[0]) - bornes[0] + 1).ToList();
+        var tout = argv.Contains("--tout");
+        using var source = new ItalyCameraSource();
+        var existants = await repo.LireSlugsAsync();
+        var slugs = existants.Values.ToHashSet();
+        var seuil = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-7);
+        int nbScrutins = 0; long nbVotes = 0;
+
+        foreach (var l in legislatures)
+        {
+            if (!ItalyCameraSource.Legislatures.TryGetValue(l, out var b)) throw new InvalidOperationException($"Législature {l} inconnue (bornes à déclarer dans ItalyCameraSource.Legislatures).");
+            var terminee = b.Fin is not null;
+            var fin = b.Fin ?? DateOnly.FromDateTime(DateTime.UtcNow);
+            var deputes = await source.LireDeputesAsync(l);
+            var parlementaires = deputes.Select(d =>
+            {
+                var pid = ItalyCameraSource.IdMembre(d.Id);
+                var slug = existants.TryGetValue(pid, out var s0) ? s0 : Slugs.Unique(slugs, d.Prenom, d.Nom, pid);
+                return new ParlementaireRow(pid, Chambres.ItCamera, null, d.Prenom, d.Nom, slug, null, null);
+            }).ToList();
+            await repo.EcrireMembresUeAsync([], parlementaires);
+            var connus = deputes.Select(d => d.Id).ToHashSet();
+            var (deja, plusRecent) = await repo.LireScrutinsAsync(Chambres.ItCamera);
+
+            var votazioni = await source.ListerVotazioniAsync(l, b.Debut, fin, tout);
+            var aEcrire = votazioni.Where(v => !deja.Contains(ItalyCameraSource.IdScrutin(l, ItalyCameraSource.Numero(v))) || (!terminee && v.Date >= seuil)).ToList();
+            Console.WriteLine($"  {l}e législature : {deputes.Count} députés, {votazioni.Count} votations ({(tout ? "toutes" : "votes finaux et confiance")}), {aEcrire.Count} à écrire.");
+
+            var vus = new Dictionary<string, (DateOnly Premier, DateOnly Dernier, string GroupeId)>();
+            var inconnus = new HashSet<string>();
+            var typesInattendus = new Dictionary<string, int>();
+            var fait = 0;
+            foreach (var lot in aEcrire.Chunk(15))
+            {
+                var votes = await source.LireVotesAsync(lot.Select(v => v.Uri).ToList());
+                var parUri = votes.GroupBy(x => x.VotazioneUri).ToDictionary(g => g.Key, g => (IReadOnlyList<VotoIt>)g.ToList());
+                var groupes = new Dictionary<string, GroupeRow>();
+                foreach (var x in votes)
+                {
+                    if (ItalyCameraSource.Groupe(x, l) is { } g) groupes[g.Id] = g;
+                    if (ItalyCameraSource.Position(x.Type) is null && !x.Type.Equals("Non ha votato", StringComparison.OrdinalIgnoreCase) && !x.Type.Equals("Ha votato", StringComparison.OrdinalIgnoreCase))
+                        typesInattendus[x.Type] = typesInattendus.GetValueOrDefault(x.Type) + 1;
+                }
+                await repo.EcrireMembresUeAsync(groupes.Values, []);   // groupes AVANT les votes qui les référencent
+                var annuaire = new Annuaire(groupes.Values.ToList(), parlementaires, [], []);
+                var scrutins = new List<ScrutinAvecVotes>();
+                foreach (var v in lot)
+                {
+                    var vv = parUri.GetValueOrDefault(v.Uri) ?? [];
+                    scrutins.Add(ItalyCameraSource.VersScrutin(v, vv, connus, inconnus));
+                    // Mandats : tout député LISTÉ à la votation siège ce jour-là (même « n'a pas voté »), y compris au scrutin secret.
+                    foreach (var x in vv)
+                    {
+                        if (!connus.Contains(x.DeputeId) || ItalyCameraSource.Groupe(x, l) is not { } g) continue;
+                        var pid = ItalyCameraSource.IdMembre(x.DeputeId);
+                        vus[pid] = vus.TryGetValue(pid, out var o) ? (v.Date < o.Premier ? v.Date : o.Premier, v.Date >= o.Dernier ? v.Date : o.Dernier, g.Id) : (v.Date, v.Date, g.Id);
+                    }
+                }
+                var (n, v2, _) = await repo.EcrireScrutinsAsync(scrutins, annuaire);
+                nbScrutins += n; nbVotes += v2; fait += lot.Length;
+                if (fait % 150 < 15) Console.WriteLine($"    {fait}/{aEcrire.Count} votations…");
+                await Task.Delay(200);   // politesse envers le point d'accès
+            }
+            if (vus.Count > 0) await repo.EcrireMandatsDeduitsAsync(Chambres.ItCamera, l, vus, terminee ? null : plusRecent, terminee);
+            Console.WriteLine($"    {vus.Count} députés avec mandat" + (inconnus.Count > 0 ? $", {inconnus.Count} identifiant(s) de vote sans fiche ignoré(s)" : "") + ".");
+            if (typesInattendus.Count > 0) Console.WriteLine("    Types de vote non reconnus (traités comme absents) : " + string.Join(", ", typesInattendus.Select(k => $"{k.Key} ×{k.Value}")));
+        }
+        Console.WriteLine($"  {nbScrutins} votations, {nbVotes:N0} votes individuels.");
         await repo.TerminerAsync(runId, true, nbScrutins, nbVotes, null);
         return 0;
     }

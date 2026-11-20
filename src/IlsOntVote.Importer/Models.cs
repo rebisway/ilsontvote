@@ -9,6 +9,8 @@ public static class Chambres
     public const string Lords = "LORDS";
     public const string UsHouse = "USHOUSE";
     public const string UsSenate = "USSENATE";
+    public const string ItCamera = "ITCAMERA";
+    public const string ItSenate = "ITSENATE";
 }
 
 /// <summary>Position d'un vote, telle que stockée en base (colonne votes.position).</summary>

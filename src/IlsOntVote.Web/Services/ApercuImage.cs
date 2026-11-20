@@ -120,6 +120,8 @@ public sealed class ApercuImage
             ? "How every MP and peer voted in Parliament, division by division. Official data, free software."
             : pays == "US"
             ? "How every Representative and Senator voted in Congress, roll call by roll call. Official data, free software."
+            : pays == "IT"
+            ? "How every Italian deputy voted, final vote by final vote. Official data, free software."
             : en ? "How every French deputy, senator and MEP voted, law by law. Official data, free software."
                  : "Le vote de chaque député, sénateur et eurodéputé, texte par texte. Données officielles, code libre.";
         var y = 250f;

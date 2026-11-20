@@ -278,7 +278,8 @@ public sealed class ImportRepository(string connectionString)
         {
             // AN : on remplace les mandats et appartenances de CES législatures seulement.
             var legs = legislatures.Select(x => (short)x).ToArray();
-            await conn.ExecuteAsync("DELETE FROM mandats WHERE legislature = ANY(@legs)", new { legs }, tx);
+            // Limité à la chambre : un numéro de législature se retrouve dans plusieurs pays (AN 17 = Chambre italienne 17), un DELETE global effacerait les mandats d'une autre chambre.
+            await conn.ExecuteAsync("DELETE FROM mandats WHERE legislature = ANY(@legs) AND parlementaire_id IN (SELECT id FROM parlementaires WHERE chambre = @chambre)", new { legs, chambre }, tx);
             await conn.ExecuteAsync(
                 "DELETE FROM groupe_appartenances WHERE groupe_id IN (SELECT id FROM groupes WHERE chambre = @chambre AND legislature = ANY(@legs))",
                 new { chambre, legs }, tx);

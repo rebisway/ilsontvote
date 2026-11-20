@@ -26,7 +26,7 @@
 
 <header class="scrutin-tete">
     <p class="meta">
-        @Chambres.Nom(s.Chambre, L.Anglais) · @(s.Chambre is Chambres.Commons or Chambres.Lords ? L.T("division n°", "division no.") : Chambres.EstUs(s.Chambre) ? L.T("vote nominal n°", "roll call no.") : L.T("scrutin n°", "vote no.")) @s.Numero · <time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMMM yyyy", fr)</time>
+        @Chambres.Nom(s.Chambre, L.Anglais) · @(s.Chambre is Chambres.Commons or Chambres.Lords ? L.T("division n°", "division no.") : Chambres.EstNominal(s.Chambre) ? L.T("vote nominal n°", "roll call no.") : L.T("scrutin n°", "vote no.")) @s.Numero · <time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMMM yyyy", fr)</time>
         @if (s.Sort is not null) { <text>· </text><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span> }
     </p>
     <h1>@titre</h1>
@@ -63,16 +63,16 @@
     var promptIA = PromptResume.Construire(L.Anglais, titre, liensPrompt);
 }
 @* Sans bloc « texte » (UE, vote isolé) : le bouton reste seul ; sinon il est dans la rangée des raccourcis du bloc. *@
-@if (Model.Loi is null && Model.Bill is null && !Chambres.EstUs(s.Chambre))
+@if (Model.Loi is null && Model.Bill is null && !Chambres.EstNominal(s.Chambre))
 {
     <section class="bloc-texte" aria-label="@L.T("Résumé par IA", "AI summary")"><div class="bloc-texte-titre"><partial name="_ResumeIA" model="promptIA" /></div></section>
 }
-@if (Chambres.EstUs(s.Chambre))
+@if (Chambres.EstNominal(s.Chambre))
 {
     <section class="bloc-texte" aria-label="@L.T("Source", "Source")">
         <div class="bloc-texte-titre">@if (s.Chambre == Chambres.UsSenate) { @Doute.Html(NiveauDoute.Calcule, L.T("source tierce", "third-party source"), L.T("Votes du Sénat retraités par Voteview (UCLA, Université de Géorgie) d'après les enregistrements officiels : senate.gov n'est pas accessible aux robots.", "Senate votes reprocessed by Voteview (UCLA, University of Georgia) from the official records: senate.gov is not open to automated clients.")) }
             @if (s.UrlOfficielle is { } urlOff) { <a class="raccourci" href="@urlOff" rel="noopener" target="_blank">@L.T("Enregistrement officiel", "Official record") ↗</a> }
-            @if (s.SurEnsemble) { @Doute.Html(NiveauDoute.Calcule, L.T("vote sur l'ensemble", "vote on the whole"), L.T("Repéré par ce site d'après la question posée (adoption finale, nomination, « suspend the rules and pass ») : le Congrès ne publie pas cette distinction.", "Found by this site from the question put (final passage, nomination, “suspend the rules and pass”): Congress does not publish that distinction.")) }
+            @if (s.SurEnsemble && s.Chambre is not (Chambres.ItCamera or Chambres.ItSenate)) { @Doute.Html(NiveauDoute.Calcule, L.T("vote sur l'ensemble", "vote on the whole"), L.T("Repéré par ce site d'après la question posée (adoption finale, nomination, « suspend the rules and pass ») : le Congrès ne publie pas cette distinction.", "Found by this site from the question put (final passage, nomination, “suspend the rules and pass”): Congress does not publish that distinction.")) }
             <partial name="_ResumeIA" model="promptIA" />
         </div>
     </section>

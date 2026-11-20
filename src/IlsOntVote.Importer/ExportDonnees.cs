@@ -72,11 +72,28 @@ public static class ExportDonnees
     private static JeuDonnees PourEtatsUnis(JeuDonnees j) => new("us_" + j.Nom, DescriptionsUs.GetValueOrDefault(j.Nom, j.Description),
         j.Sql.Replace(ChambresActives, ChambresUs).Replace("nominatif_incomplet, texte_id, texte_lie_id", "nominatif_incomplet, dossier_ref AS url_officielle"), "US");
 
-    /// <summary>Tous les jeux publiés : France (sans préfixe), Royaume-Uni (« gb_… »), États-Unis (« us_… »).</summary>
+    private const string ChambresIt = "chambre IN (SELECT code FROM chambres WHERE actif AND pays = 'IT')";
+
+    private static readonly Dictionary<string, string> DescriptionsIt = new()
+    {
+        ["groupes"] = "Groupes parlementaires de la Chambre des députés et du Sénat d'Italie (un identifiant par législature).",
+        ["parlementaires"] = "Députés et sénateurs italiens (identité).",
+        ["mandats"] = "Périodes de mandat. Chambre : déduites des votes (du premier au dernier vote importé où le député figure, calculé) ; Sénat : dates officielles de la source. Une ligne par législature.",
+        ["appartenances_groupes"] = "Appartenance à un groupe, avec dates (Sénat : dates officielles ; Chambre : le groupe au moment des votes).",
+        ["scrutins"] = "Votes de la Chambre et du Sénat : décomptes officiels, résultat (champ officiel), majorité, url_officielle = fiche officielle du vote ; sur_ensemble = vote final signalé par la Chambre. Par défaut seulement les votes finaux (et les questions de confiance de la Chambre) ; scrutin secret = totaux seuls (nominatif_incomplet).",
+        ["votes"] = "Vote de chaque député à chaque vote (pour = favorable, contre = contraire, abstention). Les députés qui n'ont pas voté ne figurent pas dans ce fichier ; au scrutin secret la Chambre ne publie pas les positions.",
+    };
+
+    /// <summary>Déclinaison italienne d'un jeu commun : chambre d'Italie, fichier « it_… », fiche officielle du vote à la place du rattachement aux textes français.</summary>
+    private static JeuDonnees PourItalie(JeuDonnees j) => new("it_" + j.Nom, DescriptionsIt.GetValueOrDefault(j.Nom, j.Description),
+        j.Sql.Replace(ChambresActives, ChambresIt).Replace("nominatif_incomplet, texte_id, texte_lie_id", "nominatif_incomplet, dossier_ref AS url_officielle"), "IT");
+
+    /// <summary>Tous les jeux publiés : France (sans préfixe), Royaume-Uni (« gb_… »), États-Unis (« us_… »), Italie (« it_… »).</summary>
     public static IReadOnlyList<JeuDonnees> Tous => [.. Jeux.Where(j => j.Pays == "FR" && j.Nom is not ("bills" or "bill_etapes")),
         .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom)).Select(PourRoyaumeUni),
         .. Jeux.Where(j => j.Nom is "bills" or "bill_etapes").Select(j => j with { Nom = "gb_" + j.Nom, Pays = "GB" }),
-        .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom) && !j.Nom.StartsWith("petitions")).Select(PourEtatsUnis)];
+        .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom) && !j.Nom.StartsWith("petitions")).Select(PourEtatsUnis),
+        .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom) && !j.Nom.StartsWith("petitions")).Select(PourItalie)];
 
     public static readonly IReadOnlyList<JeuDonnees> Jeux =
     [

@@ -4,7 +4,7 @@
 @using IlsOntVote.Web.Services
 @{
     var lords = Model.ChambreCode == Chambres.Lords;
-    var titreElus = lords ? L.T("Participation aux votes des pairs", "Voting participation of peers") : L.Pays == "US" ? L.T("Participation aux votes des élus du Congrès", "Voting participation of members of Congress") : L.T("Taux de présence des élus", "Attendance rates of elected officials");
+    var titreElus = lords ? L.T("Participation aux votes des pairs", "Voting participation of peers") : L.Pays == "US" ? L.T("Participation aux votes des élus du Congrès", "Voting participation of members of Congress") : L.Pays == "IT" ? L.T("Participation aux votes des parlementaires italiens", "Voting participation of Italian members of Parliament") : L.T("Taux de présence des élus", "Attendance rates of elected officials");
     ViewData["Title"] = titreElus;
     ViewData["Description"] = L.T("Tous les élus avec leur taux de participation, de présence, de délégation et de mise au point sur la période choisie : triez, filtrez, exportez.", "All elected officials with their participation, presence, proxy and vote-correction rates over the chosen period: sort, filter, export.");
     var fr = L.Culture;
@@ -17,6 +17,7 @@
 
 <section class="definitions" aria-label="@L.T("Définitions", "Definitions")">
     <p class="def-base">@L.TH("Chaque taux est calculé sur les <strong>scrutins publics tenus pendant le mandat de l'élu</strong>, sur la période choisie.", "Each rate is computed over the <strong>roll-call votes held during the official's term</strong>, over the chosen period.")</p>
+    @if (L.Pays == "IT") { <p class="note-source">@Doute.Html(NiveauDoute.Incertain, L.T("import partiel", "partial import"), L.T("Seuls les votes finaux (et, pour la Chambre, les questions de confiance) sont importés pour l'instant : amendements, ordres du jour et motions ne le sont pas. Ce taux ne porte que sur ces votes.", "Only final votes (and, for the Chamber, confidence votes) are imported for now: amendments, orders of the day and motions are not. This rate only covers those votes."))</p> }
     <dl>
         <div><dt>Participation</dt><dd>@L.T("un vote a été exprimé (pour, contre ou abstention), par l'élu ou par délégation", "a vote was cast (for, against or abstention), by the official or by proxy")</dd></div>
         <div><dt>@L.T("Présence", "Presence")</dt><dd>@L.T("vote exprimé par l'élu lui-même, sans délégation", "vote cast by the official in person, without proxy")</dd></div>
