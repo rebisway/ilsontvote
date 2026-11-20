@@ -24,7 +24,19 @@
     };
 }
 
-<p class="retour"><a href="@L.Lien("/textes")">@L.T("← Tous les textes", "← All votes")</a></p>
+<div class="retour retour-nav">
+    <a href="@L.Lien("/textes")">@L.T("← Tous les textes", "← All votes")</a>
+    <nav class="voisins" aria-label="@L.T("Scrutin précédent et suivant", "Previous and next vote")">
+        @if (Model.Voisins.Precedent is { } prec)
+        {
+            <a rel="prev" href="@L.Lien("/scrutin/" + prec.Id)" title="@prec.DateScrutin.ToString("d MMM yyyy", fr) — @prec.TitreLangue(L.Anglais)">← @L.T("Précédent", "Previous")</a>
+        }
+        @if (Model.Voisins.Suivant is { } suiv)
+        {
+            <a rel="next" href="@L.Lien("/scrutin/" + suiv.Id)" title="@suiv.DateScrutin.ToString("d MMM yyyy", fr) — @suiv.TitreLangue(L.Anglais)">@L.T("Suivant", "Next") →</a>
+        }
+    </nav>
+</div>
 
 <header class="scrutin-tete">
     <p class="meta">
@@ -136,7 +148,6 @@
         <span class="c-pour"><b>@s.NbPour</b> @L.T("pour", "for")</span>
         <span class="c-contre"><b>@s.NbContre</b> @L.T("contre", "against")</span>
         <span class="c-abstention"><b>@s.NbAbstentions</b> @L.T("abstention", "abstention")@(s.NbAbstentions > 1 ? "s" : "")</span>
-        @if (s.SuffragesRequis is not null) { <span class="seuil">▏@L.T("seuil", "threshold") : @s.SuffragesRequis @L.T("voix", "votes")</span> }
     </p>
 </section>
 

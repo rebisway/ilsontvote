@@ -6,13 +6,16 @@ using Microsoft.AspNetCore.Mvc;
 namespace IlsOntVote.Web.Pages;
 
 /// <summary>Lois (dossiers législatifs) ayant fait l'objet d'un vote sur l'ensemble : parcours et statut.</summary>
-public class LoisModel(ITexteRepository textes, Langue langue) : ListePageModel
+public class LoisModel(ITexteRepository textes, Langue langue, Themes themes) : ListePageModel
 {
     protected override int ParPageDefaut => 30;
 
     [BindProperty(SupportsGet = true, Name = "q")] public string? Recherche { get; set; }
     [BindProperty(SupportsGet = true)] public string? Statut { get; set; }
     [BindProperty(SupportsGet = true)] public string? Chambre { get; set; }
+    /// <summary>Code de thème (approximatif, mots-clés du titre) : ne garde que les lois de ce thème.</summary>
+    [BindProperty(SupportsGet = true)] public string? Theme { get; set; }
+    public IReadOnlyList<Theme> ThemesListe => themes.Lister();
     /// <summary>Période (yyyy-MM-dd) : textes dont une date (vote, promulgation, JO, Conseil constitutionnel) est dans l'intervalle.</summary>
     [BindProperty(SupportsGet = true)] public string? Du { get; set; }
     [BindProperty(SupportsGet = true)] public string? Au { get; set; }
@@ -43,7 +46,7 @@ public class LoisModel(ITexteRepository textes, Langue langue) : ListePageModel
     protected override bool DecroissantInitial(string cle) => cle is "vote" or "promulgation" or "jo" or "scrutins" or "amendements";
 
     protected override IEnumerable<(string Nom, string? Valeur)> Filtres =>
-        [("q", Recherche), ("statut", Statut), ("chambre", Chambre), ("du", Du), ("au", Au)];
+        [("q", Recherche), ("statut", Statut), ("chambre", Chambre), ("du", Du), ("au", Au), ("theme", themes.Valider(Theme))];
 
     // Colonnes de l'export CSV/JSON. Plus complètes que le tableau affiché : un export sert à analyser,
     // il garde donc les deux chambres, les liens et la décision du Conseil constitutionnel.
@@ -53,6 +56,7 @@ public class LoisModel(ITexteRepository textes, Langue langue) : ListePageModel
         new("Titre", t => t.TitreAffiche),
         new("Type", t => t.TypeLibelle),
         new("Statut", t => t.Statut.Libelle),
+        new("Thèmes (estimés par mots-clés du titre)", t => string.Join(", ", t.Themes)),
         new("Scrutins", t => t.NbScrutins),
         new("Amendements déposés (officiel)", t => t.NbAmendements),
         new("Amendements adoptés (officiel)", t => t.NbAmendementsAdoptes),
@@ -77,7 +81,7 @@ public class LoisModel(ITexteRepository textes, Langue langue) : ListePageModel
         // Les lois sont celles du Parlement français : jamais affichées sous le site d'un autre pays (étanchéité entre pays).
         if (langue.Pays is not null) return NotFound();
         var (du, au) = Periode.Lire(Du, Au);
-        var filtre = new FiltreTextes(Recherche, Statut, Chambre, du, au);
+        var filtre = new FiltreTextes(Recherche, Statut, Chambre, du, au, themes.Valider(Theme));
 
         // Export : mêmes filtres et même tri que l'écran, mais SANS pagination (parPage = 0 => tout, plafonné côté SQL).
         if (ExportDemande)

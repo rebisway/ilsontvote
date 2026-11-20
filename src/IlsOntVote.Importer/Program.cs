@@ -22,7 +22,7 @@ int[] LegislaturesCompletes = [15, 16, 17];
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var argv = args.ToList();
-if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements" or "communes" or "lords" or "us" or "italie" or "irlande" or "bills"))
+if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements" or "communes" or "lords" or "us" or "italie" or "irlande" or "themes" or "bills"))
 {
     Console.Error.WriteLine("Usage : IlsOntVote.Importer an [--legislature 17|15,16,17|all] [--scrutins-dir D --amo-dir D]");
     Console.Error.WriteLine("        IlsOntVote.Importer senat [--senateurs-dir D --dosleg-sql F]");
@@ -63,6 +63,7 @@ return argv[0] switch
     "senat" => await ImporterSenatAsync(),
     "ue" => await ImporterUeAsync(),
     "stats" => await RafraichirStatsAsync(),
+    "themes" => await RecalculerThemesAsync(),
     "dossiers" => await ImporterDossiersAsync(),
     "traductions" => await TraduireTitresAsync(),
     "export" => await ExporterDonneesAsync(),
@@ -1144,6 +1145,26 @@ async Task<int> ExporterDonneesAsync()
 }
 
 /// <summary>Recalcule les statistiques de participation (à lancer après les imports ; plusieurs minutes).</summary>
+/// <summary>Classement thématique approximatif (mots-clés du titre, voir la migration 048) : recalcule les thèmes des scrutins et des lois.</summary>
+async Task<int> RecalculerThemesAsync()
+{
+    Console.WriteLine("=== Thèmes des votes et des lois ===");
+    var runId = await repo.DemarrerAsync("THEMES");
+    try
+    {
+        var (s, t) = await repo.RecalculerThemesAsync();
+        Console.WriteLine($"  {s} scrutin(s) et {t} loi(s) modifié(s).");
+        await repo.TerminerAsync(runId, true, s + t, 0, null);
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex);
+        await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
+        return 1;
+    }
+}
+
 async Task<int> RafraichirStatsAsync()
 {
     Console.WriteLine("=== Statistiques de participation ===");

@@ -50,6 +50,7 @@ public sealed class Planificateur(string connectionString)
         ["lords"] = ["lords"],
         ["us"] = ["us"],
         ["italie"] = ["italie"],
+        ["themes"] = ["themes"],
         ["irlande"] = ["irlande"],
         ["irlande_seanad"] = ["irlande", "--chambre", "seanad"],
         ["irlande_historique"] = ["irlande", "--mandature", "31-33"],

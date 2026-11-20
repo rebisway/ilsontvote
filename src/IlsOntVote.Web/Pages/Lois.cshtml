@@ -19,6 +19,16 @@
             <option value="@cle" selected="@((Model.Statut ?? "") == cle)">@L.T(libelle, anglais)</option>
         }
     </select>
+    @if (Model.ThemesListe.Count > 0)
+    {
+    <select name="theme" aria-label="@L.T("Thème", "Topic")" title="@L.T("Thème estimé d'après les mots du titre : peut être inexact", "Topic estimated from the words of the title: may be inexact")">
+        <option value="" selected="@string.IsNullOrEmpty(Model.Theme)">@L.T("Tous les thèmes", "All topics")</option>
+        @foreach (var th in Model.ThemesListe)
+        {
+            <option value="@th.Code" selected="@(Model.Theme == th.Code)">@L.T(th.NomFr, th.NomEn)</option>
+        }
+    </select>
+    }
     <select name="chambre" aria-label="@L.T("Chambre", "Chamber")">
         <option value="" selected="@string.IsNullOrEmpty(Model.Chambre)">@L.T("Assemblée et Sénat", "National Assembly and Senate")</option>
         <option value="an" selected="@(Model.Chambre == "an")">@L.T("Votée à l'Assemblée", "Voted in the National Assembly")</option>

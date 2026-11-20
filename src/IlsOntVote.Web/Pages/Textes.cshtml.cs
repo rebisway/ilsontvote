@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace IlsOntVote.Web.Pages;
 
 /// <summary>Liste des scrutins publics (tous les votes), triable et exportable.</summary>
-public class TextesModel(IScrutinRepository scrutins, Langue langue, PaysSite site) : ListePageModel
+public class TextesModel(IScrutinRepository scrutins, Langue langue, PaysSite site, Themes themes) : ListePageModel
 {
     // 30 lignes : un tableau lisible d'un coup d'œil ; au-delà on pagine (l'export, lui, n'est pas paginé).
     protected override int ParPageDefaut => 30;
@@ -27,6 +27,11 @@ public class TextesModel(IScrutinRepository scrutins, Langue langue, PaysSite si
     /// <summary>« resolution » : ne garde que les votes sur des propositions de résolution (menu « Résolutions »).</summary>
     [BindProperty(SupportsGet = true)] public string? Nature { get; set; }
     public bool Resolutions => Nature == "resolution";
+
+    /// <summary>Code de thème (approximatif, mots-clés du titre) : ne garde que les votes de ce thème.</summary>
+    [BindProperty(SupportsGet = true)] public string? Theme { get; set; }
+    /// <summary>Thèmes proposés par le filtre.</summary>
+    public IReadOnlyList<Theme> ThemesListe => themes.Lister();
     /// <summary>Vrai sur le site d'un pays hors France : la liste de chambres de la France est masquée.</summary>
     public bool SitePays => langue.Pays is not null;
     /// <summary>Chambres du site courant (sélecteur de chambre sous un pays : Communes et Lords, Chambre et Sénat des États-Unis…).</summary>
@@ -44,7 +49,7 @@ public class TextesModel(IScrutinRepository scrutins, Langue langue, PaysSite si
     protected override bool DecroissantInitial(string cle) => cle is "date" or "votants" or "pour" or "contre" or "abst";
 
     protected override IEnumerable<(string Nom, string? Valeur)> Filtres =>
-        [("q", Recherche), ("chambre", Chambre), ("portee", ToutAfficher ? "tout" : null), ("du", Du), ("au", Au), ("texte", TexteId), ("nature", Resolutions ? "resolution" : null)];
+        [("q", Recherche), ("chambre", Chambre), ("portee", ToutAfficher ? "tout" : null), ("du", Du), ("au", Au), ("texte", TexteId), ("nature", Resolutions ? "resolution" : null), ("theme", themes.Valider(Theme))];
 
     private static readonly IReadOnlyList<Colonne<Scrutin>> ColonnesExport =
     [
@@ -52,6 +57,7 @@ public class TextesModel(IScrutinRepository scrutins, Langue langue, PaysSite si
         new("Chambre", s => Chambres.Nom(s.Chambre)),
         new("Numéro", s => s.Numero),
         new("Titre", s => s.TitreAffiche),
+        new("Thèmes (estimés par mots-clés du titre)", s => string.Join(", ", s.Themes)),
         new("Type de vote", s => s.TypeVoteLibelle),
         new("Résultat", s => s.Adopte ? "adopté" : "rejeté"),
         new("Votants", s => s.NbVotants),
@@ -75,11 +81,11 @@ public class TextesModel(IScrutinRepository scrutins, Langue langue, PaysSite si
 
         if (ExportDemande)
         {
-            var tout = await scrutins.ListerAsync(chambre, Recherche, !ToutAfficher, 1, 0, TriEffectif, Decroissant, du, au, TexteId, Resolutions);
+            var tout = await scrutins.ListerAsync(chambre, Recherche, !ToutAfficher, 1, 0, TriEffectif, Decroissant, du, au, TexteId, Resolutions, themes.Valider(Theme));
             return Exporteur.Ecrire(Format!, "scrutins", ColonnesExport, tout.Lignes);
         }
 
-        Resultats = await scrutins.ListerAsync(chambre, Recherche, !ToutAfficher, NumeroPage, ParPage, TriEffectif, Decroissant, du, au, TexteId, Resolutions);
+        Resultats = await scrutins.ListerAsync(chambre, Recherche, !ToutAfficher, NumeroPage, ParPage, TriEffectif, Decroissant, du, au, TexteId, Resolutions, themes.Valider(Theme));
         return Page();
     }
 }

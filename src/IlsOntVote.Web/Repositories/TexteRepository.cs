@@ -5,7 +5,7 @@ using IlsOntVote.Web.Models;
 namespace IlsOntVote.Web.Repositories;
 
 /// <summary>Filtres de la liste des lois : mots du titre, statut (clé de liste blanche) et chambre (an | senat).</summary>
-public sealed record FiltreTextes(string? Recherche, string? Statut, string? Chambre, DateTime? Du = null, DateTime? Au = null);
+public sealed record FiltreTextes(string? Recherche, string? Statut, string? Chambre, DateTime? Du = null, DateTime? Au = null, string? Theme = null);
 
 /// <summary>Accès aux textes de loi (dossiers législatifs) et à leur parcours : lecture, liste filtrée, triée et paginée.</summary>
 public interface ITexteRepository
@@ -28,7 +28,7 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
         """
         t.id, t.type_libelle, t.titre, t.titre_en, t.titre_en_auto, t.etat_code, t.etat_libelle, t.numero_loi, t.date_promulgation, t.date_jo, t.numero_jo,
         t.url_legifrance, t.url_dossier_senat, t.url_dossier_an, t.saisine_cc_date, t.saisine_cc_par, t.decision_cc_numero,
-        t.decision_cc_date, t.decision_cc_code, t.decision_cc_libelle, t.decision_cc_url
+        t.decision_cc_date, t.decision_cc_code, t.decision_cc_libelle, t.decision_cc_url, t.themes
         """;
 
     // Agrégat des scrutins rattachés à un texte. L'adoption se lit sur le résultat du vote sur l'ensemble
@@ -195,6 +195,7 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
                  SELECT {ColonnesTexte}, {Agregat}
                    FROM textes t LEFT JOIN scrutins s ON s.texte_id = t.id AND (@chambre IS NULL OR s.chambre = @chambre)
                   WHERE (recherche_norm(t.titre) ILIKE ALL (@mots) OR recherche_norm(t.titre_en) ILIKE ALL (@mots))   -- aussi dans le titre anglais ; tirets = espaces
+                    AND (@theme::text IS NULL OR @theme = ANY(t.themes))   -- thème approximatif (migration 048) ; code validé par Themes.Valider
                     -- Au moins un vote nominatif, OU des étapes de lecture à l'Assemblée sans scrutin public (main levée) : ces textes
                     -- ne sont pas omis faute de nominatif. Les étapes suivent le filtre de chambre (Assemblée ou Sénat ; aucune pour l'UE).
                     AND (s.id IS NOT NULL
@@ -206,7 +207,7 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
              )
              """;
         var where = $"WHERE TRUE {FiltreStatut(filtre.Statut)}";
-        var p = new { chambre, mots, du = filtre.Du, au = filtre.Au, limit = parPage, offset = (page - 1) * parPage };
+        var p = new { chambre, mots, du = filtre.Du, au = filtre.Au, theme = filtre.Theme, limit = parPage, offset = (page - 1) * parPage };
 
         var total = await conn.ExecuteScalarAsync<int>($"{cte} SELECT count(*) FROM classe {where}", p);
         var pagination = parPage > 0 ? "LIMIT @limit OFFSET @offset" : "LIMIT 50000";

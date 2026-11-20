@@ -46,6 +46,8 @@ public static class StatutTraduction
 
 public class Texte
 {
+    /// <summary>Thèmes APPROXIMATIFS (mots-clés du titre, migration 048) : codes de la table <c>themes</c> ; vide = aucun thème repéré.</summary>
+    public string[] Themes { get; set; } = [];
     public string Id { get; set; } = "";
     public string? TypeLibelle { get; set; }
     public string Titre { get; set; } = "";

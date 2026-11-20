@@ -53,6 +53,16 @@ else
         }
     </select>
     }
+    @if (Model.ThemesListe.Count > 0)
+    {
+    <select name="theme" aria-label="@L.T("Thème", "Topic")" title="@L.T("Thème estimé d'après les mots du titre : peut être inexact", "Topic estimated from the words of the title: may be inexact")">
+        <option value="" selected="@string.IsNullOrEmpty(Model.Theme)">@L.T("Tous les thèmes", "All topics")</option>
+        @foreach (var th in Model.ThemesListe)
+        {
+            <option value="@th.Code" selected="@(Model.Theme == th.Code)">@L.T(th.NomFr, th.NomEn)</option>
+        }
+    </select>
+    }
     @if (!Model.SitePays)
     {
     <select name="chambre" aria-label="@L.T("Chambre", "Chamber")">

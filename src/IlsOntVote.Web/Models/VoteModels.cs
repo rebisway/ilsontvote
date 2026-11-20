@@ -96,6 +96,8 @@ public static class Pos
 /// <summary>Un scrutin public (un vote), tel qu'importé de l'Assemblée nationale ou du Sénat.</summary>
 public sealed class Scrutin
 {
+    /// <summary>Thèmes APPROXIMATIFS (mots-clés du titre, migration 048) : codes de la table <c>themes</c> ; vide = aucun thème repéré.</summary>
+    public string[] Themes { get; set; } = [];
     public string Id { get; set; } = "";
     public string Chambre { get; set; } = Chambres.AN;
     public int Legislature { get; set; }

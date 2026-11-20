@@ -23,6 +23,8 @@ public class ScrutinModel(IScrutinRepository scrutins, ITexteRepository textes, 
     public Texte? Loi { get; private set; }
     /// <summary>Projet de loi britannique auquel la division est rattachée (calculé d'après le titre) ; null ailleurs ou sans rattachement.</summary>
     public BillResume? Bill { get; private set; }
+    /// <summary>Scrutin précédent (plus ancien) et suivant (plus récent) de la même chambre ; null aux extrémités.</summary>
+    public (Scrutin? Precedent, Scrutin? Suivant) Voisins { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(string id)
     {
@@ -30,6 +32,7 @@ public class ScrutinModel(IScrutinRepository scrutins, ITexteRepository textes, 
         if (s is null) return NotFound();
 
         Scrutin = s;
+        Voisins = await scrutins.GetVoisinsAsync(s);
         Sieges = await scrutins.GetSiegesAsync(id);
         Vue = HemicycleLayout.Construire(Sieges, site.Disposition(s.Chambre));   // demi-cercle ou bancs face à face selon la chambre
         Groupes = HemicycleLayout.DecompteParGroupe(Sieges);

@@ -19,8 +19,10 @@ public interface IScrutinRepository
     Task<IReadOnlyList<Siege>> GetSiegesAsync(string scrutinId);
 
     /// <summary>Liste paginée de scrutins. <paramref name="chambre"/> null = Assemblée nationale et Sénat (pas le Parlement européen).</summary>
+    /// <summary>Scrutin précédent (plus ancien) et suivant (plus récent) dans la même chambre ; null aux extrémités.</summary>
+    Task<(Scrutin? Precedent, Scrutin? Suivant)> GetVoisinsAsync(Scrutin s);
     Task<Resultats<Scrutin>> ListerAsync(string? chambre, string? recherche, bool surEnsembleSeulement, int page, int parPage,
-        string tri = "date", bool decroissant = true, DateTime? du = null, DateTime? au = null, string? texteId = null, bool resolutionsSeulement = false);
+        string tri = "date", bool decroissant = true, DateTime? du = null, DateTime? au = null, string? texteId = null, bool resolutionsSeulement = false, string? theme = null);
 }
 
 public sealed class ScrutinRepository(DapperContext db, PaysSite site, Langue langue) : IScrutinRepository
@@ -36,7 +38,7 @@ public sealed class ScrutinRepository(DapperContext db, PaysSite site, Langue la
         id, chambre, legislature, numero, date_scrutin, titre, titre_en, titre_en_auto, titre_fr_auto, sort, type_vote, sur_ensemble,
         nb_votants, nb_pour, nb_contre, nb_abstentions, nb_non_votants, featured_title,
         nominatif_incomplet, nb_votes_manquants, note,
-        type_vote_libelle, type_majorite, suffrages_exprimes, suffrages_requis, dossier_ref
+        type_vote_libelle, type_majorite, suffrages_exprimes, suffrages_requis, dossier_ref, themes
         """;
 
     public async Task<IReadOnlyList<Scrutin>> GetDernieresAsync(string chambre, int max)
@@ -129,8 +131,28 @@ public sealed class ScrutinRepository(DapperContext db, PaysSite site, Langue la
 
     public static IEnumerable<string> ClesTri => Tris.Keys;
 
+    /// <summary>
+    /// Voisins chronologiques d'un scrutin DANS SA CHAMBRE, pour la navigation « précédent / suivant ». Un vote sur l'ensemble navigue parmi les votes sur l'ensemble (comme la liste par défaut :
+    /// sauter d'un texte à l'autre sans traverser des milliers d'amendements) ; un autre vote navigue parmi tous les votes de la chambre. Les chambres sans « vote sur l'ensemble » exploitable
+    /// (Lords, Irlande) parcourent toutes leurs divisions. Ordre = date puis numéro, comme le tri par défaut ; la comparaison de lignes (date, numéro) s'appuie sur l'index (chambre, date).
+    /// </summary>
+    public async Task<(Scrutin? Precedent, Scrutin? Suivant)> GetVoisinsAsync(Scrutin s)
+    {
+        using var conn = db.CreateConnection();
+        var ens = s.SurEnsemble && !Chambres.SansVoteSurEnsemble(s.Chambre);
+        const string filtre = """
+            FROM scrutins
+            WHERE chambre = @chambre
+              AND (NOT @ens OR (sur_ensemble AND NOT (nominatif_incomplet AND chambre <> 'COMMONS')))
+            """;
+        var p = new { chambre = s.Chambre, ens, d = s.DateScrutin.Date, n = s.Numero };
+        var prec = await conn.QueryFirstOrDefaultAsync<Scrutin>($"SELECT {Colonnes} {filtre} AND (date_scrutin, numero) < (@d::date, @n) ORDER BY date_scrutin DESC, numero DESC LIMIT 1", p);
+        var suiv = await conn.QueryFirstOrDefaultAsync<Scrutin>($"SELECT {Colonnes} {filtre} AND (date_scrutin, numero) > (@d::date, @n) ORDER BY date_scrutin ASC, numero ASC LIMIT 1", p);
+        return (prec, suiv);
+    }
+
     public async Task<Resultats<Scrutin>> ListerAsync(string? chambre, string? recherche, bool surEnsembleSeulement, int page, int parPage,
-        string tri = "date", bool decroissant = true, DateTime? du = null, DateTime? au = null, string? texteId = null, bool resolutionsSeulement = false)
+        string tri = "date", bool decroissant = true, DateTime? du = null, DateTime? au = null, string? texteId = null, bool resolutionsSeulement = false, string? theme = null)
     {
         using var conn = db.CreateConnection();
         page = Math.Max(1, page);
@@ -153,8 +175,10 @@ public sealed class ScrutinRepository(DapperContext db, PaysSite site, Langue la
               -- Résolutions : le titre cite une « proposition de résolution » (européenne, article 34-1, commission d'enquête...). Elles n'ont pas force
               -- de loi : elles ont leur propre entrée de menu et ne sont pas rattachées à un texte de loi.
               AND (NOT @resolutions OR titre ~* 'proposition de r[ée]solution')
+              -- Thème (approximatif, mots-clés du titre : migration 048) ; le code vient de Themes.Valider, jamais de l'adresse brute.
+              AND (@theme::text IS NULL OR @theme = ANY(themes))
             """;
-        var p = new { chambre, visibles = Visibles, ensemble = surEnsembleSeulement, mots, du, au, texte = texteId, resolutions = resolutionsSeulement, limit = parPage, offset = (page - 1) * parPage };
+        var p = new { chambre, visibles = Visibles, ensemble = surEnsembleSeulement, mots, du, au, texte = texteId, resolutions = resolutionsSeulement, theme, limit = parPage, offset = (page - 1) * parPage };
 
         var total = await conn.ExecuteScalarAsync<int>($"SELECT count(*) FROM scrutins {where}", p);
         var colonne = Tris.GetValueOrDefault(tri, "date_scrutin");
