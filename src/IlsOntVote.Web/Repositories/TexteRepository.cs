@@ -11,6 +11,8 @@ public sealed record FiltreTextes(string? Recherche, string? Statut, string? Cha
 public interface ITexteRepository
 {
     Task<Texte?> GetAsync(string id);
+    /// <summary>Loi précédente et suivante dans l'ordre de la liste /lois (date du dernier vote) ; null aux extrémités ou si la loi n'a aucun vote rattaché.</summary>
+    Task<(Voisin? Precedent, Voisin? Suivant)> GetVoisinsAsync(string id);
     Task<Texte?> GetParScrutinAsync(string scrutinId);
     Task<IReadOnlyList<ScrutinDuTexte>> GetScrutinsAsync(string texteId);
     /// <summary>Autres scrutins publics liés au texte (amendements, articles…) : leur nombre et les plus récents.</summary>
@@ -111,6 +113,19 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
         "49-3" => "AND adopte_493",
         _ => "",
     };
+
+    public async Task<(Voisin? Precedent, Voisin? Suivant)> GetVoisinsAsync(string id)
+    {
+        using var conn = db.CreateConnection();
+        // Ordre de la liste /lois par défaut : date du DERNIER vote rattaché au texte (puis identifiant). Un texte sans vote rattaché n'est pas dans cette liste : pas de voisins.
+        var d = await conn.ExecuteScalarAsync<DateTime?>("SELECT max(date_scrutin) FROM scrutins WHERE texte_id = @id", new { id });
+        if (d is null) return (null, null);
+        const string agregat = "SELECT s.texte_id AS id, max(s.date_scrutin) AS d FROM scrutins s WHERE s.texte_id IS NOT NULL GROUP BY s.texte_id";
+        var p = new { id, d = d.Value.Date };
+        var prec = await conn.QueryFirstOrDefaultAsync<Voisin>($"SELECT t.id AS Cle, t.titre AS Titre FROM ({agregat}) x JOIN textes t ON t.id = x.id WHERE (x.d, x.id) < (@d::date, @id) ORDER BY x.d DESC, x.id DESC LIMIT 1", p);
+        var suiv = await conn.QueryFirstOrDefaultAsync<Voisin>($"SELECT t.id AS Cle, t.titre AS Titre FROM ({agregat}) x JOIN textes t ON t.id = x.id WHERE (x.d, x.id) > (@d::date, @id) ORDER BY x.d ASC, x.id ASC LIMIT 1", p);
+        return (prec, suiv);
+    }
 
     public async Task<Texte?> GetAsync(string id)
     {

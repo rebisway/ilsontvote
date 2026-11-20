@@ -17,7 +17,10 @@
     }
 }
 
-<p class="chapo"><a href="@L.Lien("/petitions")">← @L.T("Pétitions", "Petitions")</a> · <a href="@L.Lien("/petitions/anomalies")">@L.T("Anomalies", "Anomalies")</a></p>
+<div class="retour-nav chapo">
+    <span><a href="@L.Lien("/petitions")">← @L.T("Pétitions", "Petitions")</a> · <a href="@L.Lien("/petitions/anomalies")">@L.T("Anomalies", "Anomalies")</a></span>
+    <partial name="_Voisins" model="Model.Voisins" />
+</div>
 <h1 class="titre-page">@f.Titre</h1>
 
 <section class="definitions fiche-petition @PetitionsModel.StatutClasse(f.Statut)" aria-label="@L.T("Fiche", "Details")">

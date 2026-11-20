@@ -19,7 +19,10 @@
     double Pct(int n) => b.Total == 0 ? 0 : 100.0 * n / b.Total;
 }
 
-<p class="retour"><a href="@L.Lien("/" + Chambres.Liste(e.Chambre))">@L.T("← Tous les ", "← All ")@L.T(Chambres.Membres(e.Chambre), Chambres.Membres(e.Chambre, true))</a></p>
+<div class="retour retour-nav">
+    <a href="@L.Lien("/" + Chambres.Liste(e.Chambre))">@L.T("← Tous les ", "← All ")@L.T(Chambres.Membres(e.Chambre), Chambres.Membres(e.Chambre, true))</a>
+    <partial name="_Voisins" model="Model.Voisins" />
+</div>
 
 <header class="fiche-tete">
     <h1>@Noms.Html(e.Prenom, e.Nom)</h1>

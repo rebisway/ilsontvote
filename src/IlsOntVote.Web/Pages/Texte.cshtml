@@ -23,7 +23,10 @@
     ViewData["Description"] = L.T($"{t.TitreAffiche} : {st.Libelle}. Votes, décision du Conseil constitutionnel, promulgation et parution au Journal officiel.", $"{titre}: {st.Libelle}. Votes, Constitutional Council decision, promulgation and publication in the Official Journal.");
 }
 
-<p class="retour"><a href="@L.Lien("/lois")">@L.T("← Toutes les lois", "← All laws")</a></p>
+<div class="retour retour-nav">
+    <a href="@L.Lien("/lois")">@L.T("← Toutes les lois", "← All laws")</a>
+    <partial name="_Voisins" model="Model.Voisins" />
+</div>
 
 <header class="scrutin-tete">
     <p class="meta">@(t.TypeLibelle is null ? L.T("Texte", "Text") : char.ToUpperInvariant(LibellesEn.TypeTexte(t.TypeLibelle, L.Anglais)[0]) + LibellesEn.TypeTexte(t.TypeLibelle, L.Anglais)[1..])@(string.IsNullOrEmpty(t.NumeroLoi) ? "" : L.T($" · loi n° {t.NumeroLoi}", $" · law no. {t.NumeroLoi}"))</p>

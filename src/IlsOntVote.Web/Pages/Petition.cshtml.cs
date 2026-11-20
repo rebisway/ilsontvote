@@ -1,3 +1,4 @@
+using IlsOntVote.Web.Models;
 using IlsOntVote.Web.Services;
 using IlsOntVote.Web.Repositories;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +16,9 @@ public class PetitionModel(IPetitionRepository petitions, Langue langue) : PageM
     public IReadOnlyList<RelevePetition> Releves { get; private set; } = [];
     public IReadOnlyList<AnomaliePetition> Anomalies { get; private set; } = [];
 
+    /// <summary>Pétitions voisines (précédente / suivante) pour la navigation.</summary>
+    public VoisinsVue Voisins { get; private set; } = new("/petition/", null, null);
+
     public async Task<IActionResult> OnGetAsync(string id)
     {
         if (langue.Pays is not null && !PaysSite.APetitionsEtProjets(langue.Pays)) return NotFound();
@@ -22,6 +26,8 @@ public class PetitionModel(IPetitionRepository petitions, Langue langue) : PageM
         if (Fiche is null) return NotFound();
         Releves = await petitions.GetHistoriqueAsync(id);
         Anomalies = await petitions.GetAnomaliesAsync(id);
+        var (prec, suiv) = await petitions.GetVoisinsAsync(Fiche);
+        Voisins = new VoisinsVue("/petition/", prec, suiv);
         return Page();
     }
 }

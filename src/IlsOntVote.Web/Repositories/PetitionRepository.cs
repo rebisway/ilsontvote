@@ -86,6 +86,8 @@ public interface IPetitionRepository
     Task<IReadOnlyList<EffectifPetition>> CompterParTypeAsync();
     Task<IReadOnlyList<EffectifPetition>> CompterParCommissionAsync();
     Task<Petition?> GetAsync(string id);
+    /// <summary>Pétition précédente (publiée avant) et suivante (publiée après) de la même plateforme ; null aux extrémités.</summary>
+    Task<(Voisin? Precedent, Voisin? Suivant)> GetVoisinsAsync(Petition p);
     Task<IReadOnlyList<RelevePetition>> GetHistoriqueAsync(string id);
     Task<IReadOnlyList<AnomaliePetition>> GetAnomaliesAsync(string id);
     Task<Resultats<AnomaliePetition>> ListerAnomaliesAsync(CriteresAnomalies c, string tri, bool decroissant, int page, int parPage);
@@ -172,6 +174,19 @@ public sealed class PetitionRepository(DapperContext db, Langue langue) : IPetit
         ["baisse"] = "(a.valeur_avant - a.valeur_apres)",
         ["pct"] = "((a.valeur_avant - a.valeur_apres) * 100.0 / NULLIF(a.valeur_avant, 0))",
     };
+
+    public async Task<(Voisin? Precedent, Voisin? Suivant)> GetVoisinsAsync(Petition p)
+    {
+        using var cx = db.CreateConnection();
+        // Ordre = date de publication puis identifiant (comme le tri par défaut de la liste) ; une date absente compte comme très ancienne.
+        // Même plateforme (chambre : AN, SENAT, UK) : le site d'un pays ne mène jamais à la pétition d'un autre.
+        const string base_ = "SELECT id AS Cle, titre AS Titre FROM petitions WHERE chambre = @chambre AND";
+        const string cle = "(COALESCE(date_publication, DATE '1900-01-01'), id)";
+        var a = new { chambre = p.Chambre, d = p.DatePublication ?? new DateTime(1900, 1, 1), id = p.Id };
+        var prec = await cx.QueryFirstOrDefaultAsync<Voisin>($"{base_} {cle} < (@d::date, @id) ORDER BY COALESCE(date_publication, DATE '1900-01-01') DESC, id DESC LIMIT 1", a);
+        var suiv = await cx.QueryFirstOrDefaultAsync<Voisin>($"{base_} {cle} > (@d::date, @id) ORDER BY COALESCE(date_publication, DATE '1900-01-01') ASC, id ASC LIMIT 1", a);
+        return (prec, suiv);
+    }
 
     public async Task<Petition?> GetAsync(string id)
     {

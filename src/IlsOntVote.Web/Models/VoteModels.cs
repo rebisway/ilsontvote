@@ -306,3 +306,9 @@ public sealed record Resultats<T>(IReadOnlyList<T> Lignes, int Total, int Page, 
 {
     public int NbPages => Math.Max(1, (int)Math.Ceiling(Total / (double)ParPage));
 }
+
+/// <summary>Une fiche voisine (précédente ou suivante) pour la navigation : clé d'adresse (identifiant ou slug) et libellé de l'infobulle.</summary>
+public sealed record Voisin(string Cle, string Titre);
+
+/// <summary>Voisins d'une fiche et début de l'adresse (« /texte/ », « /petition/ »…) ; null aux extrémités de la liste.</summary>
+public sealed record VoisinsVue(string Base, Voisin? Precedent, Voisin? Suivant);

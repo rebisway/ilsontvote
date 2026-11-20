@@ -11,6 +11,8 @@ public class TexteModel(ITexteRepository textes, Langue langue) : PageModel
 {
     /// <summary>Le texte (dossier législatif) : statut, promulgation, parution au JO, Conseil constitutionnel.</summary>
     public Texte Loi { get; private set; } = null!;
+    /// <summary>Lois voisines (précédente / suivante dans l'ordre de la liste /lois) pour la navigation.</summary>
+    public VoisinsVue Voisins { get; private set; } = new("/texte/", null, null);
     /// <summary>Tous les votes sur l'ensemble rattachés à ce texte (Assemblée, Sénat, CMP, nouvelles lectures…), du plus ancien au plus récent.</summary>
     public IReadOnlyList<ScrutinDuTexte> Scrutins { get; private set; } = [];
     /// <summary>Décisions de séance à l'Assemblée sur ce texte, y compris celles sans scrutin public (votes à main levée).</summary>
@@ -28,6 +30,8 @@ public class TexteModel(ITexteRepository textes, Langue langue) : PageModel
         if (loi is null) return NotFound();
 
         Loi = loi;
+        var (prec, suiv) = await textes.GetVoisinsAsync(id);
+        Voisins = new VoisinsVue("/texte/", prec, suiv);
         Scrutins = await textes.GetScrutinsAsync(id);
         Etapes = await textes.GetEtapesAsync(id);
         (NbLies, Lies) = await textes.GetScrutinsLiesAsync(id, 10);

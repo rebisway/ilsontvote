@@ -1,0 +1,13 @@
+@model IlsOntVote.Web.Models.VoisinsVue
+@inject IlsOntVote.Web.Services.Langue L
+@* Navigation « précédent / suivant » commune aux fiches (texte, pétition, élu) : les liens manquent aux extrémités de la liste. *@
+<nav class="voisins" aria-label="@L.T("Précédent et suivant", "Previous and next")">
+    @if (Model.Precedent is { } p)
+    {
+        <a rel="prev" href="@L.Lien(Model.Base + p.Cle)" title="@p.Titre">← @L.T("Précédent", "Previous")</a>
+    }
+    @if (Model.Suivant is { } s)
+    {
+        <a rel="next" href="@L.Lien(Model.Base + s.Cle)" title="@s.Titre">@L.T("Suivant", "Next") →</a>
+    }
+</nav>

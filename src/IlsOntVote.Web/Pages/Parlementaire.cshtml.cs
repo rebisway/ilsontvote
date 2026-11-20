@@ -51,6 +51,9 @@ public class ParlementaireModel(IParlementaireRepository parlementaires, PaysSit
     /// </summary>
     public bool ToutAfficher => Portee == "tout" || Chambres.SansVoteSurEnsemble(Chambre);
 
+    /// <summary>Élus voisins (précédent / suivant dans l'ordre alphabétique de la liste) pour la navigation.</summary>
+    public VoisinsVue Voisins { get; private set; } = new("/", null, null);
+
     public async Task<IActionResult> OnGetAsync(string slug)
     {
         var chambre = Chambres.DepuisChemin(Request.Path.Value ?? "");
@@ -63,6 +66,11 @@ public class ParlementaireModel(IParlementaireRepository parlementaires, PaysSit
         if (elu is null) return NotFound();
 
         Elu = elu;
+        // Voisins = ordre de la liste des élus en exercice (nom, prénom) : un ancien élu, absent de cette liste, n'a pas de navigation.
+        var liste = await parlementaires.ListerEnExerciceAsync(chambre);
+        var i = liste.ToList().FindIndex(x => x.Id == elu.Id);
+        Voisin Vers(Parlementaire x) => new(x.Slug, $"{x.Prenom} {x.Nom}");
+        Voisins = new VoisinsVue("/" + Chambres.Fiche(chambre) + "/", i > 0 ? Vers(liste[i - 1]) : null, i >= 0 && i < liste.Count - 1 ? Vers(liste[i + 1]) : null);
         Bilan = await parlementaires.GetBilanAsync(elu.Id, chambre);
         Mensuel = await parlementaires.GetParticipationMensuelleAsync(elu.Id);
         Mandats = await parlementaires.GetMandatsAsync(elu.Id);
