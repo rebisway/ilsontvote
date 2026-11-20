@@ -67,10 +67,9 @@ public class ParlementaireModel(IParlementaireRepository parlementaires, PaysSit
 
         Elu = elu;
         // Voisins = ordre de la liste des élus en exercice (nom, prénom) : un ancien élu, absent de cette liste, n'a pas de navigation.
-        var liste = await parlementaires.ListerEnExerciceAsync(chambre);
-        var i = liste.ToList().FindIndex(x => x.Id == elu.Id);
+        var (prec, suiv) = await parlementaires.GetVoisinsAsync(chambre, elu.Id);
         Voisin Vers(Parlementaire x) => new(x.Slug, $"{x.Prenom} {x.Nom}");
-        Voisins = new VoisinsVue("/" + Chambres.Fiche(chambre) + "/", i > 0 ? Vers(liste[i - 1]) : null, i >= 0 && i < liste.Count - 1 ? Vers(liste[i + 1]) : null);
+        Voisins = new VoisinsVue("/" + Chambres.Fiche(chambre) + "/", prec is null ? null : Vers(prec), suiv is null ? null : Vers(suiv));
         Bilan = await parlementaires.GetBilanAsync(elu.Id, chambre);
         Mensuel = await parlementaires.GetParticipationMensuelleAsync(elu.Id);
         Mandats = await parlementaires.GetMandatsAsync(elu.Id);

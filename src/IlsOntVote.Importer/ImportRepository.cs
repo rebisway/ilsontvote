@@ -476,7 +476,7 @@ public sealed class ImportRepository(string connectionString)
     {
         await using var conn = new NpgsqlConnection(connectionString);
         await conn.OpenAsync();
-        foreach (var vue in new[] { "stats_participation_groupe", "stats_participation_elu" })
+        foreach (var vue in new[] { "stats_participation_groupe", "stats_participation_elu", "bilan_elu" })
         {
             var remplie = await conn.ExecuteScalarAsync<bool>("SELECT ispopulated FROM pg_matviews WHERE matviewname = @vue", new { vue });
             await conn.ExecuteAsync(remplie ? $"REFRESH MATERIALIZED VIEW CONCURRENTLY {vue}" : $"REFRESH MATERIALIZED VIEW {vue}", commandTimeout: 3600);

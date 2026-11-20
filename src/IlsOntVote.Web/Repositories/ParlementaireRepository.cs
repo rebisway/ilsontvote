@@ -9,6 +9,8 @@ public interface IParlementaireRepository
 {
     /// <summary>Parlementaires en exercice aujourd'hui, avec leur groupe courant.</summary>
     Task<IReadOnlyList<Parlementaire>> ListerEnExerciceAsync(string chambre);
+    /// <summary>Élus précédent et suivant dans l'ordre alphabétique des élus en exercice de la chambre (liste mise en cache 10 min) ; null aux extrémités ou pour un ancien élu.</summary>
+    Task<(Parlementaire? Precedent, Parlementaire? Suivant)> GetVoisinsAsync(string chambre, string id);
 
     Task<Parlementaire?> GetParSlugAsync(string chambre, string slug);
 
@@ -48,11 +50,30 @@ public sealed class ParlementaireRepository(DapperContext db) : IParlementaireRe
         LEFT JOIN groupes g ON g.id = cur.groupe_id
         """;
 
+    // Liste des élus en exercice par chambre, gardée en mémoire : elle ne change qu'après un import et sert à chaque fiche (navigation précédent/suivant).
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (DateTime Charge, IReadOnlyList<Parlementaire> Liste)> CacheEnExercice = new();
+
+    public async Task<(Parlementaire? Precedent, Parlementaire? Suivant)> GetVoisinsAsync(string chambre, string id)
+    {
+        if (!CacheEnExercice.TryGetValue(chambre, out var c) || DateTime.UtcNow - c.Charge > TimeSpan.FromMinutes(10))
+        {
+            c = (DateTime.UtcNow, await ListerEnExerciceAsync(chambre));
+            CacheEnExercice[chambre] = c;
+        }
+        var liste = c.Liste;
+        var i = -1;
+        for (var k = 0; k < liste.Count; k++) if (liste[k].Id == id) { i = k; break; }
+        return (i > 0 ? liste[i - 1] : null, i >= 0 && i < liste.Count - 1 ? liste[i + 1] : null);
+    }
+
     public async Task<IReadOnlyList<Parlementaire>> ListerEnExerciceAsync(string chambre)
     {
         using var conn = db.CreateConnection();
         var rows = await conn.QueryAsync<Parlementaire>(
             $"""
+             -- Législature la plus récente de la chambre calculée UNE fois (CTE matérialisée) : en sous-requête corrélée elle était recalculée pour chaque élu
+             -- (574 lignes : 2 s, au lieu de 20 ms) et ralentissait aussi la navigation précédent/suivant des fiches.
+             WITH cur AS MATERIALIZED (SELECT max(m2.legislature) AS l FROM mandats m2 JOIN parlementaires p2 ON p2.id = m2.parlementaire_id WHERE p2.chambre = @chambre)
              SELECT {Colonnes}, true AS en_exercice
                FROM parlementaires p
                {JointureGroupe}
@@ -60,7 +81,7 @@ public sealed class ParlementaireRepository(DapperContext db) : IParlementaireRe
                 AND EXISTS (SELECT 1 FROM mandats m
                              WHERE m.parlementaire_id = p.id AND m.date_debut <= CURRENT_DATE
                                -- législature la plus récente DE LA MÊME CHAMBRE (AN = 17, PE = 10 : un max global exclurait le PE)
-                               AND (m.legislature IS NULL OR m.legislature = (SELECT max(m2.legislature) FROM mandats m2 JOIN parlementaires p2 ON p2.id = m2.parlementaire_id WHERE p2.chambre = p.chambre))
+                               AND (m.legislature IS NULL OR m.legislature = (SELECT l FROM cur))
                                AND (m.date_fin IS NULL OR m.date_fin >= CURRENT_DATE))
               ORDER BY p.nom, p.prenom
              """, new { chambre });
@@ -86,6 +107,16 @@ public sealed class ParlementaireRepository(DapperContext db) : IParlementaireRe
     public async Task<BilanParlementaire> GetBilanAsync(string parlementaireId, string chambre)
     {
         using var conn = db.CreateConnection();
+
+        // Lecture du bilan PRÉCALCULÉ (vue matérialisée bilan_elu, migration 052, rafraîchie par la tâche « stats ») : le calcul à la volée parcourt tous les scrutins de la chambre
+        // (1,7 s à froid pour un député). Repli sur le calcul direct pour un élu absent de la vue (importé depuis le dernier rafraîchissement) ou si la vue n'existe pas encore.
+        try
+        {
+            var precalcule = await conn.QuerySingleOrDefaultAsync<BilanParlementaire>(
+                "SELECT total, pour, contre, abstention, non_votant, absent, delegation, mise_au_point FROM bilan_elu WHERE parlementaire_id = @parlementaireId", new { parlementaireId });
+            if (precalcule is not null) return precalcule;
+        }
+        catch (Npgsql.PostgresException) { /* migration 052 non appliquée : calcul direct ci-dessous */ }
 
         // Base de calcul : les scrutins publics tenus pendant SES mandats (un mandat = une période de dates ;
         // un élu peut en avoir plusieurs). On écarte les scrutins à la source incomplète : leurs « absents » ne sont
