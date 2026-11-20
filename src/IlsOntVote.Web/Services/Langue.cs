@@ -19,8 +19,11 @@ public sealed class Langue(IHttpContextAccessor accessor, Traductions? traductio
 
     private HttpContext Ctx => accessor.HttpContext!;
 
-    /// <summary>Vrai pour l'interface anglaise (adresses <c>/en/…</c>).</summary>
-    public bool Anglais => Code == "en";
+    /// <summary>
+    /// Vrai pour toute interface NON française (adresses <c>/en/…</c>, mais aussi l'italien sous /it) : les pages qui écrivent « Anglais ? x : y » en dur prennent la branche anglaise
+    /// pour une langue traduite par la table (elles ne sauraient pas afficher du français à un lecteur italien). Pour tester la langue exacte : <see cref="Code"/>.
+    /// </summary>
+    public bool Anglais => Code != "fr";
     /// <summary>Code de la langue de la page : « fr », « en », ou une langue ajoutée dans la table de traduction (« es », « it »…). Attribut <c>lang</c>, balises <c>hreflang</c>.</summary>
     public string Code => Ctx.Items[Cle_Items] as string is { Length: > 0 } c ? c : "fr";
     /// <summary>Culture pour les dates et les nombres (jamais la culture du serveur).</summary>

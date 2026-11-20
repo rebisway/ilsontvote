@@ -5,13 +5,15 @@
 @{
     var s = Model.Scrutin;
     ViewData["OgImage"] = L.Lien("/apercu/scrutin/" + s.Id + ".png");
-    ViewData["Description"] = L.Anglais
+    ViewData["Description"] = L.Code == "it"
+        ? $"{(s.Adopte ? "Approvato" : "Respinto")}: {s.NbPour} a favore, {s.NbContre} contro, {s.NbAbstentions} astenuti ({s.DateScrutin.ToString("d MMMM yyyy", L.Culture)}, {L.T(Chambres.Nom(s.Chambre), Chambres.Nom(s.Chambre, true))}). Vedete chi ha votato cosa, gruppo per gruppo."
+        : L.Anglais
         ? $"{(s.Adopte ? "Adopted" : "Rejected")}: {s.NbPour} for, {s.NbContre} against, {s.NbAbstentions} abstentions ({s.DateScrutin.ToString("d MMMM yyyy", L.Culture)}, {Chambres.Nom(s.Chambre, true)}). See who voted what, group by group."
         : $"{(s.Adopte ? "Adopté" : "Rejeté")} : {s.NbPour} pour, {s.NbContre} contre, {s.NbAbstentions} abstentions ({s.DateScrutin.ToString("d MMMM yyyy", L.Culture)}, {Chambres.Nom(s.Chambre)}). Voyez qui a voté quoi, groupe par groupe.";
     var titre = s.TitreLangue(L.Anglais);
     ViewData["Title"] = titre.Length > 60 ? titre[..60] + "…" : titre;
     var fr = L.Culture;
-    string Libelle(string p) => Pos.Libelle(p, L.Anglais);
+    string Libelle(string p) => L.T(Pos.Libelle(p), Pos.Libelle(p, true));
     // Types de vote publiés par les assemblées (données françaises) : traduits quand on les connaît, sinon laissés tels quels.
     string TypeVoteLangue(string t) => !L.Anglais ? t : t.ToLowerInvariant() switch
     {
@@ -26,7 +28,7 @@
 
 <header class="scrutin-tete">
     <p class="meta">
-        @Chambres.Nom(s.Chambre, L.Anglais) · @(s.Chambre is Chambres.Commons or Chambres.Lords ? L.T("division n°", "division no.") : Chambres.EstNominal(s.Chambre) ? L.T("vote nominal n°", "roll call no.") : L.T("scrutin n°", "vote no.")) @s.Numero · <time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMMM yyyy", fr)</time>
+        @L.T(Chambres.Nom(s.Chambre), Chambres.Nom(s.Chambre, true)) · @(s.Chambre is Chambres.Commons or Chambres.Lords ? L.T("division n°", "division no.") : Chambres.EstNominal(s.Chambre) ? L.T("vote nominal n°", "roll call no.") : L.T("scrutin n°", "vote no.")) @s.Numero · <time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMMM yyyy", fr)</time>
         @if (s.Sort is not null) { <text>· </text><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span> }
     </p>
     <h1>@titre</h1>
@@ -110,7 +112,7 @@
 <section class="fiche-vote" aria-label="@L.T("Caractéristiques du vote", "Vote details")">
     <dl>
         <div><dt>@L.T("Type de vote", "Type of vote")</dt><dd>@typeVote</dd></div>
-        <div><dt>@L.T("Votants", "Voters")</dt><dd>@(s.NbVotants?.ToString("N0", fr) ?? "—")</dd><dd class="detail">@(s.NbNonVotants is > 0 ? (L.Anglais ? $"{s.NbNonVotants} non-voting" : $"{s.NbNonVotants} non-votant{(s.NbNonVotants > 1 ? "s" : "")}") : "")</dd></div>
+        <div><dt>@L.T("Votants", "Voters")</dt><dd>@(s.NbVotants?.ToString("N0", fr) ?? "—")</dd><dd class="detail">@(s.NbNonVotants is > 0 ? (L.Code == "it" ? $"{s.NbNonVotants} non votanti" : L.Anglais ? $"{s.NbNonVotants} non-voting" : $"{s.NbNonVotants} non-votant{(s.NbNonVotants > 1 ? "s" : "")}") : "")</dd></div>
         <div><dt>@L.T("Suffrages exprimés", "Votes cast")</dt><dd>@exprimes.ToString("N0", fr)</dd><dd class="detail">@L.T("pour + contre (hors abstentions)", "for + against (excluding abstentions)")</dd></div>
         @if (s.SuffragesRequis is not null)
         {
@@ -142,7 +144,11 @@
 {
     <p class="alerte" role="note">
         @Doute.Html(NiveauDoute.Incertain, L.T("décompte incomplet", "incomplete count"), L.T("La source ne détaille pas tous les votes de ce scrutin.", "The source does not detail every vote of this ballot."))
-        @if (L.Anglais)
+        @if (L.Code == "it")
+        {
+            <text>Dati ufficiali incompleti: per questa votazione, la @L.T(Chambres.Nom(s.Chambre), Chambres.Nom(s.Chambre, true)) non dettaglia il voto di @s.NbVotesManquants @L.T(s.NbVotesManquants > 1 ? Chambres.Membres(s.Chambre) : Chambres.Membre(s.Chambre), s.NbVotesManquants > 1 ? Chambres.Membres(s.Chambre, true) : Chambres.Membre(s.Chambre, true)). Alcuni «assenti» qui sotto potrebbero quindi aver votato; fanno fede solo i totali ufficiali.</text>
+        }
+        else if (L.Anglais)
         {
             <text>Incomplete official data: for this vote, the @Chambres.Nom(s.Chambre, true) does not detail the vote of @s.NbVotesManquants @(s.NbVotesManquants > 1 ? Chambres.Membres(s.Chambre, true) : Chambres.Membre(s.Chambre, true)). Some “absent” members below may therefore have voted; only the official totals are authoritative.</text>
         }
@@ -246,11 +252,11 @@
     </table>
 </div>
 
-<h2>@L.T("Tous les ", "All ")@Chambres.Membres(s.Chambre, L.Anglais)</h2>
+<h2>@L.T("Tous les ", "All ")@L.T(Chambres.Membres(s.Chambre), Chambres.Membres(s.Chambre, true))</h2>
 <input id="filtre" class="filtre" type="search" placeholder="@L.T("Chercher un nom, un groupe…", "Search a name, a group…")" aria-label="@L.T("Chercher un élu", "Search an elected official")" autocomplete="off" />
 <div class="table-wrap">
     <table class="deputes" id="deputes">
-        <thead><tr><th>@char.ToUpper(Chambres.Membre(s.Chambre, L.Anglais)[0])@Chambres.Membre(s.Chambre, L.Anglais)[1..]</th><th>@L.T("Groupe", "Group")</th><th>Vote</th></tr></thead>
+        <thead><tr><th>@char.ToUpper(L.T(Chambres.Membre(s.Chambre), Chambres.Membre(s.Chambre, true))[0])@L.T(Chambres.Membre(s.Chambre), Chambres.Membre(s.Chambre, true))[1..]</th><th>@L.T("Groupe", "Group")</th><th>@L.T("Vote", "Vote")</th></tr></thead>
         <tbody>
         @foreach (var d in Model.Sieges.OrderBy(x => x.Nom).ThenBy(x => x.Prenom))
         {

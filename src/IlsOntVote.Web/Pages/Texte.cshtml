@@ -93,7 +93,7 @@
             {
                 <tr>
                     <td data-label="Date" class="col-date">@e.DateActe.ToString("d MMM yyyy", fr)</td>
-                    <td data-label="@L.T("Lecture", "Reading")"><span class="chambre-tag @Chambres.ClasseTag(e.Chambre)">@Chambres.Court(e.Chambre, L.Anglais)</span> @e.LectureEn(L.Anglais)</td>
+                    <td data-label="@L.T("Lecture", "Reading")"><span class="chambre-tag @Chambres.ClasseTag(e.Chambre)">@L.T(Chambres.Court(e.Chambre), Chambres.Court(e.Chambre, true))</span> @e.LectureEn(L.Anglais)</td>
                     <td data-label="@L.T("Décision", "Decision")">@(e.EstMotion ? L.T("Votée par scrutin public", "Voted by roll call") : string.IsNullOrWhiteSpace(e.Resultat) ? "—" : char.ToUpper(LibellesEn.ResultatLecture(e.Resultat, L.Anglais)[0]) + LibellesEn.ResultatLecture(e.Resultat, L.Anglais)[1..])</td>
                     <td data-label="@L.T("Vote des élus", "Members' vote")">
                         @if (e.ScrutinId is not null)
@@ -141,7 +141,7 @@ else
             {
                 <tr>
                     <td class="nowrap" data-label="Date">@s.DateScrutin.ToString("d MMM yyyy", fr)</td>
-                    <td data-label="@L.T("Chambre", "Chamber")"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@Chambres.Court(s.Chambre, L.Anglais)</span></td>
+                    <td data-label="@L.T("Chambre", "Chamber")"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@L.T(Chambres.Court(s.Chambre), Chambres.Court(s.Chambre, true))</span></td>
                     <td><a href="@L.Lien("/scrutin/" + s.Id)" title="@s.InfobulleTitre(L.Anglais)">@s.TitreLangue(L.Anglais)</a></td>
                     <td data-label="@L.T("Résultat", "Result")"><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span></td>
                     <td class="num" data-label="@L.T("Pour", "For")">@s.NbPour</td><td class="num" data-label="@L.T("Contre", "Against")">@s.NbContre</td><td class="num" data-label="Abstentions">@s.NbAbstentions</td>
@@ -164,7 +164,7 @@ else
             {
                 <tr>
                     <td class="nowrap" data-label="Date">@s.DateScrutin.ToString("d MMM yyyy", fr)</td>
-                    <td data-label="@L.T("Chambre", "Chamber")"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@Chambres.Court(s.Chambre, L.Anglais)</span></td>
+                    <td data-label="@L.T("Chambre", "Chamber")"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@L.T(Chambres.Court(s.Chambre), Chambres.Court(s.Chambre, true))</span></td>
                     <td><a href="@L.Lien("/scrutin/" + s.Id)" title="@s.InfobulleTitre(L.Anglais)">@s.TitreLangue(L.Anglais)</a></td>
                     <td data-label="@L.T("Résultat", "Result")"><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span></td>
                 </tr>

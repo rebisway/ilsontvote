@@ -4,7 +4,38 @@
     ViewData["Description"] = L.T("Éditeur, hébergeur, propriété intellectuelle, comptage des visites et cookies du site Ils ont voté.", "Publisher, host, intellectual property, visit counting and cookies of the Ils ont voté site.");
 }
 
-@if (L.Anglais)
+@if (L.Code == "it")
+{
+@* Versione italiana (sotto /it, Italia soltanto) : stesso contenuto della versione inglese. *@
+<h1 class="titre-page">Note legali e privacy</h1>
+
+<section class="bloc-texte">
+    <h2>Editore</h2>
+    <p>Questo sito è pubblicato da Thomas Gourgnier, a titolo personale.<br />
+    Contatto: <a href="mailto:contact@rebisway.com">contact@rebisway.com</a></p>
+</section>
+
+<section class="bloc-texte">
+    <h2>Hosting</h2>
+    <p>OVH SAS, 2 rue Kellermann, 59100 Roubaix, Francia · <a href="https://www.ovhcloud.com/">www.ovhcloud.com</a></p>
+</section>
+
+<section class="bloc-texte">
+    <h2>Proprietà intellettuale e dati</h2>
+    <p>Il codice sorgente del sito è pubblicato con licenza GNU GPL v3.0. Le votazioni provengono dai dati aperti della <a href="https://dati.camera.it/">Camera dei deputati</a> italiana, pubblicati con licenza <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> (attribuzione e condivisione alla pari), e dai dati aperti del <a href="https://dati.senato.it/">Senato italiano</a> (licenza <a href='https://creativecommons.org/licenses/by/3.0/'>CC BY 3.0</a>, attribuzione). Sono riprodotti come pubblicati, con i calcoli descritti nella <a href="@L.Lien("/methodologie")">metodologia</a>. Gli altri contenuti (testi, impaginazione) sono protetti dal diritto d'autore.</p>
+    <p>I nomi e i voti degli eletti sono dati pubblici relativi all'esercizio di un mandato. Per segnalare un errore, scrivete al contatto indicato sopra.</p>
+</section>
+
+<section class="bloc-texte" id="confidentialite">
+    <h2>Privacy</h2>
+    <p><strong>Conteggio delle visite.</strong> Per sapere quante persone visitano il sito, ogni visualizzazione di pagina è registrata nel nostro database, ospitato sul nostro server, senza servizi di analisi di terzi né script esterni. Registriamo solo: la data, la pagina visualizzata, il paese (dedotto dal vostro indirizzo IP con un file conservato sul nostro server, senza chiamare alcun servizio esterno), se il visitatore è un robot e un'impronta del vostro indirizzo IP.</p>
+    <p><strong>Il vostro indirizzo IP non viene mai conservato.</strong> È trasformato in un codice a senso unico, calcolato con una chiave segreta nota solo al nostro server: questo codice ci permette di contare la stessa persona una sola volta, ma da esso non si può risalire all'indirizzo. Il codice cambia all'inizio di ogni mese: non può servire a seguirvi oltre un mese. Le visite sono cancellate automaticamente dopo 400 giorni. Se il vostro browser invia il segnale «Do Not Track» (DNT) o «Global Privacy Control» (GPC), la vostra visita non viene contata.</p>
+    <p><strong>Cookie e archiviazione.</strong> Nessun cookie pubblicitario o di misurazione dell'audience, nessun tracciatore di terzi. La vostra scelta dell'ordine dei nomi («Nome Cognome» / «Cognome Nome») è ricordata solo nel vostro browser (archiviazione locale); non viene mai inviata al server. Un cookie funzionale ricorda per un anno la vostra scelta della lingua (e, quando saranno pubblicati più paesi, del paese): non contiene alcun dato personale e non serve mai a tracciarvi. Un cookie di accesso esiste solo per l'amministrazione del sito.</p>
+    <p>Come ogni server, anche questo può annotare errori di funzionamento nei propri log tecnici, per il funzionamento e la sicurezza. I link ai siti ufficiali vi portano fuori da questo sito: valgono allora le loro regole.</p>
+    <p><strong>I vostri diritti.</strong> Per qualsiasi domanda o richiesta sui vostri dati (accesso, cancellazione), scrivete a <a href="mailto:contact@rebisway.com">contact@rebisway.com</a>. Poiché non conserviamo account né elenchi di utenti, in genere non deteniamo alcun dato su di voi oltre a questo conteggio anonimizzato.</p>
+</section>
+}
+else if (L.Anglais)
 {
 <h1 class="titre-page">Legal notice and privacy</h1>
 

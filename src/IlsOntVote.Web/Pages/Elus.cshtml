@@ -37,7 +37,7 @@
     <select name="chambre" aria-label="@L.T("Chambre", "House")">
         @foreach (var ch in Model.ChambresSite)
         {
-            <option value="@Chambres.Filtre(ch)" selected="@(Model.ChambreCode == ch)">@Chambres.Nom(ch, L.Anglais)</option>
+            <option value="@Chambres.Filtre(ch)" selected="@(Model.ChambreCode == ch)">@L.T(Chambres.Nom(ch), Chambres.Nom(ch, true))</option>
         }
     </select>
     }
@@ -85,7 +85,7 @@
     @if (Model.FiltreActif) { <a class="effacer" href="@L.Lien("/elus")" title="@L.T("Effacer le filtre", "Clear filter")" aria-label="@L.T("Effacer le filtre", "Clear filter")"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></a> }
 </form>
 
-<p class="periode-rappel">@Chambres.Nom(Model.ChambreCode, L.Anglais) · <strong>@Model.PeriodeLibelle</strong>@(Model.EnsembleSeul ? L.T(" · votes sur l'ensemble seulement", " · votes on the whole text only") : "")</p>
+<p class="periode-rappel">@L.T(Chambres.Nom(Model.ChambreCode), Chambres.Nom(Model.ChambreCode, true)) · <strong>@Model.PeriodeLibelle</strong>@(Model.EnsembleSeul ? L.T(" · votes sur l'ensemble seulement", " · votes on the whole text only") : "")</p>
 @if (Model.ChambreCode == Chambres.Lords)
 {
     <p class="note-source">@Doute.Html(NiveauDoute.Incertain, L.T("absences surestimées", "absences overstated"), L.T("Seuls les pairs ayant voté sont publiés : les absents sont déduits des dates d'appartenance. Un pair en congé ou suspendu est compté absent, ce qui abaisse les taux de participation.", "Only peers who voted are published: absentees are deduced from membership dates. A peer on leave of absence or suspended is counted as absent, which lowers the participation rates.")) @L.T("Les taux des Lords sont à lire avec cette réserve.", "Read the Lords rates with this caveat.") @L.T("Ces taux comptent les votes exprimés, pas la présence : un pair peut siéger et parler sans voter.", "These rates count votes cast, not attendance: a peer can sit and speak without voting.")</p>

@@ -100,7 +100,7 @@
         if (Model.Detaille)
         {
             <circle class="p-@s.Position@(s.Rectifie ? " rectifie" : "")@g" cx="@s.X.ToString(inv)" cy="@s.Y.ToString(inv)" r="@vue.Rayon.ToString(inv)">
-                <title>@s.NomComplet (@s.GroupeSigle) — @Pos.Libelle(s.Position, L.Anglais)@(s.Rectifie ? L.T(" (mise au point)", " (vote correction)") : "")@(s.ParDelegation ? L.T(" — par délégation", " — by proxy") : "")</title>
+                <title>@s.NomComplet (@s.GroupeSigle) — @L.T(Pos.Libelle(s.Position), Pos.Libelle(s.Position, true))@(s.Rectifie ? L.T(" (mise au point)", " (vote correction)") : "")@(s.ParDelegation ? L.T(" — par délégation", " — by proxy") : "")</title>
             </circle>
         }
         else

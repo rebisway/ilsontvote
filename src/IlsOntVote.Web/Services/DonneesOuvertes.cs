@@ -76,6 +76,8 @@ public sealed class FichierDonnees
     public string Description { get; set; } = "";
     /// <summary>« FR » (France et Union européenne) ou « GB » ; absent des anciens manifestes = « FR ».</summary>
     public string Pays { get; set; } = "FR";
+    /// <summary>Licence du fichier telle qu'écrite au manifeste (Italie seulement pour l'instant) ; null = non affirmée.</summary>
+    public string? Licence { get; set; }
     public long Lignes { get; set; }
     public long Octets { get; set; }
     public string Sha256 { get; set; } = "";

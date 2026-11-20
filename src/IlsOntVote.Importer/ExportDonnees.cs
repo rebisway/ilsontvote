@@ -11,7 +11,7 @@ public sealed record JeuDonnees(string Nom, string Description, string Sql, stri
 
 /// <summary>Une ligne du manifeste (manifest.json) lu par la page « Données ouvertes ».</summary>
 /// <summary><c>Pays</c> : « FR » (France et Union européenne, fichiers sans préfixe) ou « GB » (fichiers « gb_… ») ; chaque site n'affiche que les fichiers de son pays.</summary>
-public sealed record EntreeManifeste(string Fichier, string Description, long Lignes, long Octets, string Sha256, DateTime GenereLe, string Pays = "FR");
+public sealed record EntreeManifeste(string Fichier, string Description, long Lignes, long Octets, string Sha256, DateTime GenereLe, string Pays = "FR", string? Licence = null);
 
 /// <summary>
 /// Export des données du site en fichiers téléchargeables (CSV UTF-8 virgule, compressés en gzip), régénérés à chaque import.
@@ -87,6 +87,14 @@ public static class ExportDonnees
     /// <summary>Déclinaison italienne d'un jeu commun : chambre d'Italie, fichier « it_… », fiche officielle du vote à la place du rattachement aux textes français.</summary>
     private static JeuDonnees PourItalie(JeuDonnees j) => new("it_" + j.Nom, DescriptionsIt.GetValueOrDefault(j.Nom, j.Description),
         j.Sql.Replace(ChambresActives, ChambresIt).Replace("nominatif_incomplet, texte_id, texte_lie_id", "nominatif_incomplet, dossier_ref AS url_officielle"), "IT");
+
+    /// <summary>
+    /// Licence à porter dans le manifeste, pour qu'elle accompagne le fichier téléchargé (et pas seulement la page). Seule l'Italie est renseignée : la Chambre est en CC BY-SA 4.0
+    /// (partage à l'identique : les données dérivées republiées ici le restent) et le Sénat en CC BY 3.0, compatible dans ce sens. Les autres pays : null (non affirmé, jamais inventé).
+    /// </summary>
+    private static string? LicenceDe(string pays) => pays == "IT"
+        ? "CC BY-SA 4.0 (Camera dei deputati, dati.camera.it) ; CC BY 3.0 (Senato della Repubblica, dati.senato.it) — attribution required, share-alike for derived data"
+        : null;
 
     /// <summary>Tous les jeux publiés : France (sans préfixe), Royaume-Uni (« gb_… »), États-Unis (« us_… »), Italie (« it_… »).</summary>
     public static IReadOnlyList<JeuDonnees> Tous => [.. Jeux.Where(j => j.Pays == "FR" && j.Nom is not ("bills" or "bill_etapes")),
@@ -176,7 +184,7 @@ public static class ExportDonnees
             string sha;
             await using (var f = File.OpenRead(temporaire)) sha = Convert.ToHexString(await SHA256.HashDataAsync(f)).ToLowerInvariant();
             File.Move(temporaire, final, overwrite: true);   // remplacement atomique : le site ne sert jamais un fichier à moitié écrit
-            manifeste.Add(new EntreeManifeste(jeu.Nom + ".csv.gz", jeu.Description, lignes, octets, sha, DateTime.UtcNow, jeu.Pays));
+            manifeste.Add(new EntreeManifeste(jeu.Nom + ".csv.gz", jeu.Description, lignes, octets, sha, DateTime.UtcNow, jeu.Pays, LicenceDe(jeu.Pays)));
             journal($"  {jeu.Nom}.csv.gz : {lignes:N0} lignes, {octets / 1024.0 / 1024.0:N1} Mo");
         }
 

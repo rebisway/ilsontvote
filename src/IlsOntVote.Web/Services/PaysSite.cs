@@ -103,6 +103,12 @@ public sealed class PaysSite(DapperContext db)
 
     /// <summary>Middleware à placer AVANT <see cref="Langue.Middleware"/> : lit le préfixe de pays, applique le choix explicite et la détection de l'accueil.</summary>
     /// <summary>Cookie de la langue choisie sous un préfixe de pays (« fr » ou « en »).</summary>
+    /// <summary>Langues proposées par le sélecteur d'un pays : français et anglais partout, plus la langue du pays quand l'interface est traduite (Italie : « it »).</summary>
+    public static IReadOnlyList<string> LanguesDuPays(string? pays) => pays == "IT" ? ["fr", "en", "it"] : ["fr", "en"];
+
+    /// <summary>Langue de l'interface sans choix du lecteur : la langue du pays si elle est traduite (Italie), anglais sinon.</summary>
+    public static string LangueParDefaut(string? pays) => pays == "IT" ? "it" : "en";
+
     public const string CookieLanguePays = "ilsontvote_lang_pays";
 
     public static async Task Middleware(HttpContext ctx, Func<Task> suite)
@@ -156,7 +162,7 @@ public sealed class PaysSite(DapperContext db)
             // Langue de l'interface : anglaise par défaut (le site d'un pays est écrit pour ses lecteurs), française si le lecteur l'a choisi (?hl=fr, cookie propre au pays :
             // distinct du cookie de langue du site français, sinon un lecteur français sur la racine verrait /uk en français sans l'avoir demandé).
             var hl = req.Query["hl"].ToString();
-            if (lecture && hl is "fr" or "en")
+            if (lecture && LanguesDuPays(pays.Code).Contains(hl))
             {
                 ctx.Response.Cookies.Append(CookieLanguePays, hl, new CookieOptions
                 { MaxAge = TimeSpan.FromDays(365), SameSite = SameSiteMode.Lax, Secure = req.IsHttps, HttpOnly = true, IsEssential = true });
@@ -166,7 +172,9 @@ public sealed class PaysSite(DapperContext db)
                 ctx.Response.Redirect(cible);
                 return;
             }
-            ctx.Items["lang"] = req.Cookies[CookieLanguePays] == "fr" ? "fr" : "en";
+            // Cookie invalide pour CE pays (« it » mémorisé sous /it, puis lu sous /uk) : on retombe sur la langue par défaut du pays.
+            var choisie = req.Cookies[CookieLanguePays];
+            ctx.Items["lang"] = choisie is not null && LanguesDuPays(pays.Code).Contains(choisie) ? choisie : LangueParDefaut(pays.Code);
             await suite();
             return;
         }

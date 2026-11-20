@@ -19,19 +19,19 @@
     double Pct(int n) => b.Total == 0 ? 0 : 100.0 * n / b.Total;
 }
 
-<p class="retour"><a href="@L.Lien("/" + Chambres.Liste(e.Chambre))">@L.T("← Tous les ", "← All ")@Chambres.Membres(e.Chambre, L.Anglais)</a></p>
+<p class="retour"><a href="@L.Lien("/" + Chambres.Liste(e.Chambre))">@L.T("← Tous les ", "← All ")@L.T(Chambres.Membres(e.Chambre), Chambres.Membres(e.Chambre, true))</a></p>
 
 <header class="fiche-tete">
     <h1>@Noms.Html(e.Prenom, e.Nom)</h1>
 <partial name="_OrdreNom" />
     <p class="meta">
-        @Chambres.Nom(e.Chambre, L.Anglais)
+        @L.T(Chambres.Nom(e.Chambre), Chambres.Nom(e.Chambre, true))
         @if (!string.IsNullOrEmpty(e.GroupeSigle))
         {
             <text> · </text><span class="pastille" style="background:@(e.GroupeCouleur ?? "#8d949a")"></span><span title="@e.GroupeLibelle">@e.GroupeSigle</span>
         }
         @if (!string.IsNullOrEmpty(e.Departement)) { <text> · @Drapeaux.Avec(e.Chambre, e.Departement, L.Anglais)</text> }
-        @if (!e.EnExercice) { <text> · @L.T("ancien ", "former ")@Chambres.Membre(e.Chambre, L.Anglais)</text> }
+        @if (!e.EnExercice) { <text> · @L.T("ancien ", "former ")@L.T(Chambres.Membre(e.Chambre), Chambres.Membre(e.Chambre, true))</text> }
         @if (e.EnExercice && e.Statut is not null) { <text> · </text>@Doute.Html(NiveauDoute.Incertain, e.StatutLibelle(L.Anglais)!, L.T("Statut du jour d'après l'annuaire des membres (la source ne donne pas l'historique) : un pair en congé ou suspendu ne peut pas voter.", "Status as of today in the members directory (the source gives no history): a peer on leave or suspended cannot vote.")) }
     </p>
     @if (Model.Mandats.Count > 0)
@@ -164,10 +164,10 @@
                         <td><a href="@L.Lien("/scrutin/" + v.ScrutinId)" title="@v.InfobulleTitre(L.Anglais)">@v.TitreLangue(L.Anglais)</a></td>
                         <td data-label="@L.T("Résultat", "Result")">@if (v.Sort is not null) { <span class="sort @(v.Sort.StartsWith("adopt") ? "adopte" : "rejete")">@(v.Sort.StartsWith("adopt") ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span> }</td>
                         <td data-label="@L.T("Son vote", "Their vote")">
-                            <span class="badge b-@v.Position">@Pos.Libelle(v.Position, L.Anglais)</span>
+                            <span class="badge b-@v.Position">@L.T(Pos.Libelle(v.Position), Pos.Libelle(v.Position, true))</span>
                             @if (v.Rectifie)
                             {
-                                <span class="tag tag-rectifie">@(v.OrigineInconnue ? L.T("mise au point", "vote correction") : L.T("rectifié (à l'origine : ", "corrected (originally: ") + (v.PositionOrigine is null ? "absent" : Pos.Libelle(v.PositionOrigine, L.Anglais).ToLowerInvariant()) + ")")</span>
+                                <span class="tag tag-rectifie">@(v.OrigineInconnue ? L.T("mise au point", "vote correction") : L.T("rectifié (à l'origine : ", "corrected (originally: ") + (v.PositionOrigine is null ? "absent" : L.T(Pos.Libelle(v.PositionOrigine), Pos.Libelle(v.PositionOrigine, true)).ToLowerInvariant()) + ")")</span>
 @if (v.OrigineInconnue) { @Doute.Html(NiveauDoute.Manquant, L.T("origine inconnue", "original vote unknown"), L.T("La position publiée au scrutin avant la mise au point n'est pas fournie par la source.", "The position published at the vote before the correction is not provided by the source.")) }
                             }
                             @if (v.ParDelegation) { <span class="tag tag-delegation">@L.T("par délégation", "by proxy")</span> }
