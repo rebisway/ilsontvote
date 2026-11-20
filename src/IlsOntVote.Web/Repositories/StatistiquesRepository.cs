@@ -87,44 +87,41 @@ public interface IStatistiquesRepository
 public sealed class StatistiquesRepository(DapperContext db) : IStatistiquesRepository
 {
     // Filtre commun : chambre, bornes de date incluses, option « votes sur l'ensemble seulement ». Appliqué à la vue (alias p) et à scrutins (alias s).
-    private const string FiltreVue =
-        """
-        p.chambre = @chambre
-        AND (@du::date IS NULL OR p.date_scrutin >= @du::date)
-        AND (@au::date IS NULL OR p.date_scrutin <= @au::date)
-        AND (NOT @ensemble OR EXISTS (SELECT 1 FROM scrutins s WHERE s.id = p.scrutin_id AND s.sur_ensemble))
-        """;
+    // Filtre de la vue stats_participation_groupe (alias p). Les bornes et l'option « sur l'ensemble » ne sont ajoutées QUE si elles existent, avec des paramètres de type DATE :
+    // l'ancienne forme « @du::date IS NULL OR date_scrutin >= @du::date » sur un DateTime UTC (timestamptz) n'était pas utilisée comme borne d'index (voir ListerElusAsync).
+    // Fragments fixes : rien n'est construit à partir de l'adresse.
+    private static string FiltreVue(DateOnly? du, DateOnly? au, bool ensemble) =>
+        "p.chambre = @chambre" + (du is null ? "" : " AND p.date_scrutin >= @du") + (au is null ? "" : " AND p.date_scrutin <= @au")
+        + (ensemble ? " AND EXISTS (SELECT 1 FROM scrutins s WHERE s.id = p.scrutin_id AND s.sur_ensemble)" : "");
+
+    /// <summary>Date sans heure pour un paramètre SQL de type date (ou null : borne absente).</summary>
+    private static DateOnly? Jour(DateTime? d) => d is { } v ? DateOnly.FromDateTime(v) : null;
 
     public async Task<ChiffresCles> GetChiffresAsync(string chambre, DateTime? du, DateTime? au, bool ensembleSeulement)
     {
         using var cx = db.CreateConnection();
-        var p = new { chambre, du, au, ensemble = ensembleSeulement };
+        var duJ = Jour(du); var auJ = Jour(au);
+        var p = new { chambre, du = duJ, au = auJ };
+        var bornesS = (duJ is null ? "" : " AND s.date_scrutin >= @du") + (auJ is null ? "" : " AND s.date_scrutin <= @au");
 
         // Scrutins : tous ceux de la chambre (les incomplets comptent comme scrutins, pas dans la participation).
         var sc = await cx.QuerySingleAsync<(int Total, int Ensemble, int Adoptes, int Rejetes)>(
-            """
+            $"""
             SELECT count(*)::int,
                    count(*) FILTER (WHERE sur_ensemble)::int,
                    count(*) FILTER (WHERE sur_ensemble AND sort LIKE 'adopt%')::int,
                    count(*) FILTER (WHERE sur_ensemble AND (sort IS NULL OR sort NOT LIKE 'adopt%'))::int
               FROM scrutins s
-             WHERE s.chambre = @chambre
-               AND (@du::date IS NULL OR s.date_scrutin >= @du::date)
-               AND (@au::date IS NULL OR s.date_scrutin <= @au::date)
-               AND (NOT @ensemble OR s.sur_ensemble)
+             WHERE s.chambre = @chambre{bornesS}{(ensembleSeulement ? " AND s.sur_ensemble" : "")}
             """, p);
 
         // Lois promulguées : textes français (dossiers du Sénat) ; sans objet pour le Parlement européen.
         var lois = chambre == "UE" ? 0 : await cx.ExecuteScalarAsync<int>(
-            """
-            SELECT count(*)::int FROM textes t
-             WHERE t.date_promulgation IS NOT NULL
-               AND (@du::date IS NULL OR t.date_promulgation >= @du::date)
-               AND (@au::date IS NULL OR t.date_promulgation <= @au::date)
-            """, p);
+            "SELECT count(*)::int FROM textes t WHERE t.date_promulgation IS NOT NULL"
+            + (duJ is null ? "" : " AND t.date_promulgation >= @du") + (auJ is null ? "" : " AND t.date_promulgation <= @au"), p);
 
         var part = await cx.ExecuteScalarAsync<double?>(
-            $"SELECT round(100.0 * sum(votants) / NULLIF(sum(effectif), 0), 1)::float8 FROM stats_participation_groupe p WHERE {FiltreVue}", p);
+            $"SELECT round(100.0 * sum(votants) / NULLIF(sum(effectif), 0), 1)::float8 FROM stats_participation_groupe p WHERE {FiltreVue(duJ, auJ, ensembleSeulement)}", p);
 
         return new ChiffresCles(sc.Total, sc.Ensemble, sc.Adoptes, sc.Rejetes, lois, part);
     }
@@ -147,12 +144,12 @@ public sealed class StatistiquesRepository(DapperContext db) : IStatistiquesRepo
                     round(100.0 * sum(GREATEST(p.pour, p.contre, p.abstention)) / NULLIF(sum(p.votants), 0), 1)::float8 AS cohesion_pct
                FROM stats_participation_groupe p
                LEFT JOIN groupes g ON g.id = p.groupe_id
-              WHERE {FiltreVue}
+              WHERE {FiltreVue(Jour(du), Jour(au), ensembleSeulement)}
               -- Groupes fusionnés par SIGLE : « SOC », « RN », « DEM »… existent une fois par législature (identifiants différents).
               GROUP BY COALESCE(g.sigle, 'Sans groupe')
               HAVING sum(p.effectif) > 0
               ORDER BY COALESCE(min(g.ordre), 999), COALESCE(g.sigle, 'Sans groupe')
-             """, new { chambre, du, au, ensemble = ensembleSeulement });
+             """, new { chambre, du = Jour(du), au = Jour(au) });
         return rows.ToList();
     }
 
@@ -238,7 +235,18 @@ public sealed class StatistiquesRepository(DapperContext db) : IStatistiquesRepo
         return new Resultats<StatEluDetail>(lignes, total, page, parPage == 0 ? Math.Max(1, total) : parPage);
     }
 
+    // Activité par année par chambre : aucun filtre, change seulement après un import ; l'agrégat sur toute la vue (~0,2 s pour l'Assemblée) est gardé 10 minutes en mémoire.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (DateTime Charge, IReadOnlyList<StatAnnee> Annees)> CacheAnnees = new();
+
     public async Task<IReadOnlyList<StatAnnee>> GetAnneesAsync(string chambre)
+    {
+        if (CacheAnnees.TryGetValue(chambre, out var c) && DateTime.UtcNow - c.Charge < TimeSpan.FromMinutes(10)) return c.Annees;
+        var annees = await CalculerAnneesAsync(chambre);
+        CacheAnnees[chambre] = (DateTime.UtcNow, annees);
+        return annees;
+    }
+
+    private async Task<IReadOnlyList<StatAnnee>> CalculerAnneesAsync(string chambre)
     {
         using var cx = db.CreateConnection();
         // Sénat : `date_scrutin` est une vraie date (l'année de session n'est utilisée que comme « législature »).
