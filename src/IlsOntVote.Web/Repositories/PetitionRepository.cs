@@ -9,6 +9,8 @@ namespace IlsOntVote.Web.Repositories;
 /// <summary>Une pétition déposée sur petitions.senat.fr, telle que publiée (statut et nombre de soutiens non recalculés).</summary>
 public sealed class Petition
 {
+    /// <summary>Thèmes APPROXIMATIFS (mots-clés du titre, migration 057) : codes de la table <c>themes</c> ; vide = aucun thème repéré.</summary>
+    public string[] Themes { get; set; } = [];
     public string Id { get; set; } = "";
     public string Titre { get; set; } = "";
     public DateTime? DatePublication { get; set; }
@@ -81,7 +83,7 @@ public sealed class EffectifPetition
 
 public interface IPetitionRepository
 {
-    Task<Resultats<Petition>> ListerAsync(string? recherche, string? chambre, string? statut, string? type, string? commission, string? anomalie, DateTime? du, DateTime? au, string tri, bool decroissant, int page, int parPage);
+    Task<Resultats<Petition>> ListerAsync(string? recherche, string? chambre, string? statut, string? type, string? commission, string? anomalie, DateTime? du, DateTime? au, string tri, bool decroissant, int page, int parPage, string? theme = null);
     Task<IReadOnlyList<EffectifPetition>> CompterParStatutAsync();
     Task<IReadOnlyList<EffectifPetition>> CompterParTypeAsync();
     Task<IReadOnlyList<EffectifPetition>> CompterParCommissionAsync();
@@ -117,7 +119,7 @@ public sealed class PetitionRepository(DapperContext db, Langue langue) : IPetit
         ["historique"] = "(SELECT count(*) FROM petitions_anomalies a WHERE a.petition_id = petitions.id)",
     };
 
-    public async Task<Resultats<Petition>> ListerAsync(string? recherche, string? chambre, string? statut, string? type, string? commission, string? anomalie, DateTime? du, DateTime? au, string tri, bool decroissant, int page, int parPage)
+    public async Task<Resultats<Petition>> ListerAsync(string? recherche, string? chambre, string? statut, string? type, string? commission, string? anomalie, DateTime? du, DateTime? au, string tri, bool decroissant, int page, int parPage, string? theme = null)
     {
         using var cx = db.CreateConnection();
         if (!await TableExisteAsync(cx)) return new Resultats<Petition>([], 0, 1, parPage);
@@ -134,8 +136,10 @@ public sealed class PetitionRepository(DapperContext db, Langue langue) : IPetit
                AND (@anomalie IS NULL OR EXISTS (SELECT 1 FROM petitions_anomalies a WHERE a.petition_id = petitions.id AND (@anomalie = 'oui' OR a.type = @anomalie)))
                AND (@du::date IS NULL OR date_publication >= @du::date)
                AND (@au::date IS NULL OR date_publication <= @au::date)
+               -- Thème (approximatif, mots-clés du titre : migration 057) ; le code vient de Themes.Valider.
+               AND (@theme::text IS NULL OR @theme = ANY(themes))
             """;
-        var p = new { mots, plateformes = Plateformes, chambre = Vide(chambre), statut = Vide(statut), type = Vide(type), commission = Vide(commission), anomalie = Vide(anomalie), du, au, limit = parPage, offset = (page - 1) * parPage };
+        var p = new { mots, plateformes = Plateformes, chambre = Vide(chambre), statut = Vide(statut), type = Vide(type), commission = Vide(commission), anomalie = Vide(anomalie), du, au, theme, limit = parPage, offset = (page - 1) * parPage };
         var total = await cx.ExecuteScalarAsync<int>($"SELECT count(*) FROM petitions {filtre}", p);
         var ordre = Tris.GetValueOrDefault(tri, Tris["date"]);
         var lignes = (await cx.QueryAsync<Petition>(
@@ -143,7 +147,7 @@ public sealed class PetitionRepository(DapperContext db, Langue langue) : IPetit
              SELECT id, titre, date_publication AS DatePublication, nb_votes AS NbVotes, statut, date_limite_vote AS DateLimiteVote, type, url, chambre,
                     commission, decision_commission AS DecisionCommission, legislature,
                     reponse_le AS ReponseLe, debat_le AS DebatLe, debat_prevu_le AS DebatPrevuLe,
-                    absente_depuis AS AbsenteDepuis, (SELECT count(*) FROM petitions_anomalies a WHERE a.petition_id = petitions.id)::int AS NbAnomalies
+                    absente_depuis AS AbsenteDepuis, themes, (SELECT count(*) FROM petitions_anomalies a WHERE a.petition_id = petitions.id)::int AS NbAnomalies
                FROM petitions {filtre}
               ORDER BY {ordre} {(decroissant ? "DESC" : "ASC")} NULLS LAST, id
               {(parPage > 0 ? "LIMIT @limit OFFSET @offset" : "")}

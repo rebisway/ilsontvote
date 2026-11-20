@@ -49,6 +49,13 @@ else
             if (Model.ChambreCode is null) { @Html.Raw("</optgroup>") }
         }
     </select>
+    <select name="theme" aria-label="@L.T("theme", "Thème", "Topic")" title="@L.T("theme-estime-d-apres-les-mots", "Thème estimé d'après les mots du titre : peut être inexact", "Topic estimated from the words of the title: may be inexact")">
+        <option value="" selected="@string.IsNullOrEmpty(Model.Theme)">@L.T("tous-les-themes", "Tous les thèmes", "All topics")</option>
+        @foreach (var th in Model.ThemesListe)
+        {
+            <option value="@th.Code" selected="@(Model.Theme == th.Code)">@L.Theme(th)</option>
+        }
+    </select>
     @if (L.Pays is null)
     {
     <select name="chambre" aria-label="@L.T("chambre-accd", "Chambre", "Chamber")">

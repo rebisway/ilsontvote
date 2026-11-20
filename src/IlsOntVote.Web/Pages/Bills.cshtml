@@ -29,6 +29,13 @@
         <option value="en-cours" selected="@(Model.Statut == "en-cours")">@L.T("en-cours-34e5", "En cours", "In progress")</option>
         <option value="retire" selected="@(Model.Statut == "retire")">@L.T("retires-ou-rejetes-c794", "Retirés ou rejetés", "Withdrawn or defeated")</option>
     </select>
+    <select name="theme" aria-label="@L.T("theme", "Thème", "Topic")" title="@L.T("theme-estime-d-apres-les-mots", "Thème estimé d'après les mots du titre : peut être inexact", "Topic estimated from the words of the title: may be inexact")">
+        <option value="" selected="@string.IsNullOrEmpty(Model.Theme)">@L.T("tous-les-themes", "Tous les thèmes", "All topics")</option>
+        @foreach (var th in Model.ThemesListe)
+        {
+            <option value="@th.Code" selected="@(Model.Theme == th.Code)">@L.Theme(th)</option>
+        }
+    </select>
     <select name="chambre" aria-label="@L.T("chambre", "Chambre", "House")">
         <option value="">@L.T("les-deux-chambres", "Les deux chambres", "Both houses")</option>
         <option value="Commons" selected="@(Model.Chambre == "Commons")">@L.T("actuellement-aux-communes", "Actuellement aux Communes", "Now in the Commons")</option>

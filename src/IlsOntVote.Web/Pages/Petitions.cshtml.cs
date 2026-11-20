@@ -10,8 +10,12 @@ namespace IlsOntVote.Web.Pages;
 /// Les statuts et nombres de soutiens sont ceux de la source ; le site n'en tire aucune conclusion. Rappel affiché : ce sont des soutiens
 /// de citoyens.
 /// </summary>
-public class PetitionsModel(IPetitionRepository petitions, Langue langue) : ListePageModel
+public class PetitionsModel(IPetitionRepository petitions, Langue langue, Themes themes) : ListePageModel
 {
+    /// <summary>Code de thème (approximatif, mots-clés du titre) : ne garde que les éléments de ce thème.</summary>
+    [BindProperty(SupportsGet = true)] public string? Theme { get; set; }
+    /// <summary>Thèmes proposés par le filtre.</summary>
+    public IReadOnlyList<Theme> ThemesListe => themes.Lister();
     [BindProperty(SupportsGet = true, Name = "q")] public string? Recherche { get; set; }
     /// <summary>« senat » ou « an » (vide = les deux plateformes).</summary>
     [BindProperty(SupportsGet = true)] public string? Chambre { get; set; }
@@ -37,7 +41,7 @@ public class PetitionsModel(IPetitionRepository petitions, Langue langue) : List
     protected override IReadOnlyCollection<string> ClesTri { get; } = [.. PetitionRepository.Tris.Keys];
     // Date et soutiens : le premier clic trie du plus grand au plus petit ; titre, statut, type : alphabétique.
     protected override bool DecroissantInitial(string cle) => cle is "date" or "soutiens" or "fin" or "historique";
-    protected override IEnumerable<(string Nom, string? Valeur)> Filtres => [("q", Recherche), ("chambre", Chambre), ("statut", Statut), ("type", Type), ("commission", Commission), ("anomalie", Anomalie), ("du", Du), ("au", Au)];
+    protected override IEnumerable<(string Nom, string? Valeur)> Filtres => [("q", Recherche), ("chambre", Chambre), ("statut", Statut), ("type", Type), ("theme", themes.Valider(Theme)), ("commission", Commission), ("anomalie", Anomalie), ("du", Du), ("au", Au)];
 
     /// <summary>Code de chambre en base (SENAT / AN) d'après le paramètre d'adresse ; NULL = toutes.</summary>
     /// <summary>Plateforme affichée : sur le site britannique (/uk) la seule « UK » ; sur le site français, selon le paramètre (null = les deux plateformes françaises).</summary>
@@ -99,6 +103,7 @@ public class PetitionsModel(IPetitionRepository petitions, Langue langue) : List
             new(en ? "Platform" : "Plateforme", p => p.Chambre == "AN" ? (en ? "National Assembly" : "Assemblée nationale") : (en ? "Senate" : "Sénat")),
             new(en ? "Published" : "Date de publication", p => p.DatePublication),
             new(en ? "Title" : "Titre", p => p.Titre),
+            new(en ? "Topics (estimated from the title)" : "Thèmes (estimés par mots-clés du titre)", p => string.Join(", ", p.Themes)),
             new("Type", p => p.Type),
             new(en ? "Status" : "Statut", p => p.Statut),
             new(en ? "Supporters" : "Soutiens", p => p.NbVotes),
@@ -130,10 +135,10 @@ public class PetitionsModel(IPetitionRepository petitions, Langue langue) : List
         var (du, au) = Services.Periode.Lire(Du, Au);
         if (ExportDemande)
         {
-            var tout = await petitions.ListerAsync(Recherche, ChambreCode, Statut, Type, Commission, Anomalie, du, au, TriEffectif, Decroissant, 1, 0);
+            var tout = await petitions.ListerAsync(Recherche, ChambreCode, Statut, Type, Commission, Anomalie, du, au, TriEffectif, Decroissant, 1, 0, themes.Valider(Theme));
             return Exporteur.Ecrire(Format!, langue.Anglais ? "petitions" : "petitions", ColonnesExport(), tout.Lignes);
         }
-        Resultats = await petitions.ListerAsync(Recherche, ChambreCode, Statut, Type, Commission, Anomalie, du, au, TriEffectif, Decroissant, NumeroPage, ParPage);
+        Resultats = await petitions.ListerAsync(Recherche, ChambreCode, Statut, Type, Commission, Anomalie, du, au, TriEffectif, Decroissant, NumeroPage, ParPage, themes.Valider(Theme));
         return Page();
     }
 }

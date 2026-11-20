@@ -9,8 +9,12 @@ namespace IlsOntVote.Web.Pages;
 /// Projets de loi du Parlement britannique (équivalent de /lois pour le Royaume-Uni) : liste triable, filtrable et exportable. Statuts = indicateurs publiés par la source
 /// (loi, retiré, rejeté, en cours) ; le nombre de divisions rattachées est calculé par le site d'après les titres. Page du site britannique seulement (404 ailleurs).
 /// </summary>
-public class BillsModel(IBillRepository bills, Langue langue) : ListePageModel
+public class BillsModel(IBillRepository bills, Langue langue, Themes themes) : ListePageModel
 {
+    /// <summary>Code de thème (approximatif, mots-clés du titre) : ne garde que les éléments de ce thème.</summary>
+    [BindProperty(SupportsGet = true)] public string? Theme { get; set; }
+    /// <summary>Thèmes proposés par le filtre.</summary>
+    public IReadOnlyList<Theme> ThemesListe => themes.Lister();
     [BindProperty(SupportsGet = true, Name = "q")] public string? Recherche { get; set; }
     /// <summary>loi | en-cours | retire (retiré ou rejeté) ; vide = tous.</summary>
     [BindProperty(SupportsGet = true)] public string? Statut { get; set; }
@@ -28,7 +32,7 @@ public class BillsModel(IBillRepository bills, Langue langue) : ListePageModel
     protected override string TriDefaut => "maj";
     protected override IReadOnlyCollection<string> ClesTri { get; } = [.. BillRepository.Tris.Keys];
     protected override bool DecroissantInitial(string cle) => cle is "depot" or "maj" or "divisions";
-    protected override IEnumerable<(string Nom, string? Valeur)> Filtres => [("q", Recherche), ("statut", Statut), ("chambre", Chambre)];
+    protected override IEnumerable<(string Nom, string? Valeur)> Filtres => [("q", Recherche), ("statut", Statut), ("chambre", Chambre), ("theme", themes.Valider(Theme))];
 
     /// <summary>
     /// Statut d'un projet dans la langue de la page. Les libellés de la source (étape en cours : « Committee stage ») restent en anglais : ce sont des DONNÉES officielles, comme
@@ -61,6 +65,7 @@ public class BillsModel(IBillRepository bills, Langue langue) : ListePageModel
     private IReadOnlyList<Colonne<Bill>> ColonnesExport() =>
     [
         new(langue.T("projet-de-loi", "Projet de loi", "Bill"), b => b.Titre),
+        new(langue.T("themes-estimes-par-mots-cles-du", "Thèmes (estimés par mots-clés du titre)", "Topics (estimated from the title)"), b => string.Join(", ", b.Themes)),
         new(langue.T("statut", "Statut", "Status"), b => b.StatutCle),
         new(langue.T("etape-en-cours", "Étape en cours", "Current stage"), b => b.EtapeCourante),
         new(langue.T("chambre-d-origine", "Chambre d'origine", "Originating house"), b => b.ChambreOrigine),
@@ -83,10 +88,10 @@ public class BillsModel(IBillRepository bills, Langue langue) : ListePageModel
         ParStatut = await bills.CompterParStatutAsync();
         if (ExportDemande)
         {
-            var tout = await bills.ListerAsync(Recherche, Statut, Chambre, TriEffectif, Decroissant, 1, 0);
+            var tout = await bills.ListerAsync(Recherche, Statut, Chambre, TriEffectif, Decroissant, 1, 0, themes.Valider(Theme));
             return Exporteur.Ecrire(Format!, "bills", ColonnesExport(), tout.Lignes);
         }
-        Resultats = await bills.ListerAsync(Recherche, Statut, Chambre, TriEffectif, Decroissant, NumeroPage, ParPage);
+        Resultats = await bills.ListerAsync(Recherche, Statut, Chambre, TriEffectif, Decroissant, NumeroPage, ParPage, themes.Valider(Theme));
         return Page();
     }
 }

@@ -460,16 +460,19 @@ public sealed class ImportRepository(string connectionString)
     /// le site continue de lire l'ancienne version pendant le calcul (plusieurs minutes). La toute première fois (vue vide), c'est impossible.
     /// </summary>
     /// <summary>
-    /// Recalcule les thèmes (approximatifs, par mots-clés du titre : table <c>themes</c>, fonction <c>themes_de</c>) des scrutins et des lois. Seules les lignes dont le thème change sont
-    /// réécrites (pas de réécriture inutile des 33 000 scrutins). Retourne (scrutins modifiés, lois modifiées).
+    /// Recalcule les thèmes (approximatifs, par mots-clés du titre : table <c>themes</c>, fonction <c>themes_de</c>) des scrutins, des lois, des pétitions et des projets de loi
+    /// britanniques. Seules les lignes dont le thème change sont réécrites (pas de réécriture inutile des 33 000 scrutins). Retourne le nombre de lignes modifiées par table.
     /// </summary>
-    public async Task<(int Scrutins, int Textes)> RecalculerThemesAsync()
+    public async Task<(int Scrutins, int Textes, int Petitions, int Bills)> RecalculerThemesAsync()
     {
         await using var conn = new NpgsqlConnection(connectionString);
         await conn.OpenAsync();
         var s = await conn.ExecuteAsync("UPDATE scrutins SET themes = themes_de(titre || ' ' || coalesce(titre_en, '')) WHERE themes IS DISTINCT FROM themes_de(titre || ' ' || coalesce(titre_en, ''))", commandTimeout: 3600);
         var t = await conn.ExecuteAsync("UPDATE textes SET themes = themes_de(titre || ' ' || coalesce(titre_en, '')) WHERE themes IS DISTINCT FROM themes_de(titre || ' ' || coalesce(titre_en, ''))", commandTimeout: 3600);
-        return (s, t);
+        // Pétitions et projets de loi : colonne « themes » créée par la migration 057.
+        var p = await conn.ExecuteAsync("UPDATE petitions SET themes = themes_de(titre) WHERE themes IS DISTINCT FROM themes_de(titre)", commandTimeout: 3600);
+        var b = await conn.ExecuteAsync("UPDATE bills SET themes = themes_de(titre) WHERE themes IS DISTINCT FROM themes_de(titre)", commandTimeout: 3600);
+        return (s, t, p, b);
     }
 
     public async Task RafraichirStatsAsync()

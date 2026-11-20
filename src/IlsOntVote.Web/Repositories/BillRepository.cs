@@ -7,6 +7,8 @@ namespace IlsOntVote.Web.Repositories;
 /// <summary>Un projet de loi du Parlement britannique (table bills), avec le nombre de divisions des Communes qui lui sont rattachées (calculé par le site d'après les titres).</summary>
 public sealed class Bill
 {
+    /// <summary>Thèmes APPROXIMATIFS (mots-clés du titre, migration 057) : codes de la table <c>themes</c> ; vide = aucun thème repéré.</summary>
+    public string[] Themes { get; set; } = [];
     public long Id { get; set; }
     public string Titre { get; set; } = "";
     public string? TitreLong { get; set; }
@@ -52,7 +54,7 @@ public sealed record BillResume(long Id, string Titre, string? Etape);
 
 public interface IBillRepository
 {
-    Task<Resultats<Bill>> ListerAsync(string? recherche, string? statut, string? chambre, string tri, bool decroissant, int page, int parPage);
+    Task<Resultats<Bill>> ListerAsync(string? recherche, string? statut, string? chambre, string tri, bool decroissant, int page, int parPage, string? theme = null);
     Task<Bill?> GetAsync(long id);
     Task<IReadOnlyList<EtapeBillVue>> GetEtapesAsync(long id);
     Task<IReadOnlyList<DivisionBill>> GetDivisionsAsync(long id);
@@ -65,7 +67,7 @@ public sealed class BillRepository(DapperContext db) : IBillRepository
 {
     private const string Colonnes =
         """
-        b.id, b.titre, b.titre_long, b.chambre_origine, b.chambre_courante, b.est_loi, b.date_loi, b.retire_le, b.rejete, b.etape_courante, b.date_depot, b.derniere_maj, b.url,
+        b.id, b.titre, b.titre_long, b.chambre_origine, b.chambre_courante, b.est_loi, b.date_loi, b.retire_le, b.rejete, b.etape_courante, b.date_depot, b.derniere_maj, b.url, b.themes,
         (SELECT count(*) FROM scrutins s WHERE s.bill_id = b.id)::int AS nb_divisions
         """;
 
@@ -81,7 +83,7 @@ public sealed class BillRepository(DapperContext db) : IBillRepository
     private static async Task<bool> TableExisteAsync(System.Data.IDbConnection cx) =>
         await cx.ExecuteScalarAsync<bool>("SELECT to_regclass('public.bills') IS NOT NULL");
 
-    public async Task<Resultats<Bill>> ListerAsync(string? recherche, string? statut, string? chambre, string tri, bool decroissant, int page, int parPage)
+    public async Task<Resultats<Bill>> ListerAsync(string? recherche, string? statut, string? chambre, string tri, bool decroissant, int page, int parPage, string? theme = null)
     {
         using var cx = db.CreateConnection();
         if (!await TableExisteAsync(cx)) return new Resultats<Bill>([], 0, 1, parPage);
@@ -94,8 +96,10 @@ public sealed class BillRepository(DapperContext db) : IBillRepository
                     OR (@statut = 'en-cours' AND NOT b.est_loi AND NOT b.rejete AND b.retire_le IS NULL)
                     OR (@statut = 'retire' AND NOT b.est_loi AND (b.rejete OR b.retire_le IS NOT NULL)))
                AND (@chambre::text IS NULL OR b.chambre_courante = @chambre)
+               -- Thème (approximatif, mots-clés du titre : migration 057) ; le code vient de Themes.Valider.
+               AND (@theme::text IS NULL OR @theme = ANY(b.themes))
             """;
-        var p = new { mots, statut = Vide(statut), chambre = Vide(chambre), limit = parPage, offset = (Math.Max(1, page) - 1) * parPage };
+        var p = new { mots, statut = Vide(statut), chambre = Vide(chambre), theme, limit = parPage, offset = (Math.Max(1, page) - 1) * parPage };
         var total = await cx.ExecuteScalarAsync<int>($"SELECT count(*) FROM bills b {filtre}", p);
         var ordre = Tris.GetValueOrDefault(tri, Tris["depot"]);
         var lignes = (await cx.QueryAsync<Bill>(

@@ -1152,9 +1152,9 @@ async Task<int> RecalculerThemesAsync()
     var runId = await repo.DemarrerAsync("THEMES");
     try
     {
-        var (s, t) = await repo.RecalculerThemesAsync();
-        Console.WriteLine($"  {s} scrutin(s) et {t} loi(s) modifié(s).");
-        await repo.TerminerAsync(runId, true, s + t, 0, null);
+        var (s, t, p, b) = await repo.RecalculerThemesAsync();
+        Console.WriteLine($"  {s} scrutin(s), {t} loi(s), {p} pétition(s) et {b} projet(s) de loi modifié(s).");
+        await repo.TerminerAsync(runId, true, s + t + p + b, 0, null);
         return 0;
     }
     catch (Exception ex)
