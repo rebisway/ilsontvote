@@ -21,6 +21,8 @@ public class BillsModel(IBillRepository bills, Langue langue) : ListePageModel
     public static readonly string[] Chambres = ["Commons", "Lords"];
 
     public Resultats<Bill> Resultats { get; private set; } = new([], 0, 1, 30);
+
+    public override int TotalLignes => Resultats.Total;
     public IReadOnlyList<(string Cle, int Nombre)> ParStatut { get; private set; } = [];
 
     protected override string TriDefaut => "maj";

@@ -27,6 +27,8 @@ public class PetitionsModel(IPetitionRepository petitions, Langue langue) : List
     [BindProperty(SupportsGet = true)] public string? Au { get; set; }
 
     public Resultats<Petition> Resultats { get; private set; } = new([], 0, 1, 30);
+
+    public override int TotalLignes => Resultats.Total;
     public IReadOnlyList<EffectifPetition> ParStatut { get; private set; } = [];
     public IReadOnlyList<EffectifPetition> ParType { get; private set; } = [];
     public IReadOnlyList<EffectifPetition> ParCommission { get; private set; } = [];

@@ -40,6 +40,8 @@ public class LoisModel(ITexteRepository textes, Langue langue, Themes themes) : 
 
     public Resultats<Texte> Resultats { get; private set; } = new([], 0, 1, 30);
 
+    public override int TotalLignes => Resultats.Total;
+
     protected override string TriDefaut => "vote";
     protected override IReadOnlyCollection<string> ClesTri { get; } = [.. TexteRepository.ClesTri];
     // Dates et compteurs : le premier clic doit montrer le plus récent / le plus grand d'abord.

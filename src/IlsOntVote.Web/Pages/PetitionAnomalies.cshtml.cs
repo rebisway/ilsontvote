@@ -27,6 +27,8 @@ public class PetitionAnomaliesModel(IPetitionRepository petitions, Langue langue
     [BindProperty(SupportsGet = true, Name = "q")] public string? Recherche { get; set; }
 
     public Resultats<AnomaliePetition> Resultats { get; private set; } = new([], 0, 1, 30);
+
+    public override int TotalLignes => Resultats.Total;
     public IReadOnlyList<EffectifPetition> ParType { get; private set; } = [];
 
     public static readonly string[] Types = ["baisse", "disparition", "reapparition"];

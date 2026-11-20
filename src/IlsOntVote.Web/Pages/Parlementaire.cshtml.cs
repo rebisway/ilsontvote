@@ -37,9 +37,11 @@ public class ParlementaireModel(IParlementaireRepository parlementaires, PaysSit
     /// <summary>Filtre sur son vote : pour, contre, abstention, non_votant, absent, delegation, mise_au_point.</summary>
     [BindProperty(SupportsGet = true)] public string? Vote { get; set; }
     /// <summary>Lignes par page : choix dans une liste blanche.</summary>
-    [BindProperty(SupportsGet = true), FromQuery(Name = "lignes")] public int? Lignes { get; set; }
+    [BindProperty(SupportsGet = true), FromQuery(Name = "lignes")] public string? Lignes { get; set; }
     public static readonly int[] ChoixLignes = [20, 40, 100, 200];
-    public int ParPageEff => Lignes is int n && ChoixLignes.Contains(n) ? n : ParPage;
+    /// <summary>Valeur de « Tous » (plafonnée : une fiche aux milliers de votes ne doit pas produire une page de plusieurs Mo ; l'export donne tout).</summary>
+    public const int Toutes = 5000;
+    public int ParPageEff => Lignes == "tous" ? Toutes : int.TryParse(Lignes, out var n) && ChoixLignes.Contains(n) ? n : ParPage;
     public static readonly string[] ChoixVote = ["pour", "contre", "abstention", "absent", "non_votant", "delegation", "mise_au_point"];
     public bool FiltreActif => !string.IsNullOrWhiteSpace(Q) || !string.IsNullOrEmpty(Vote) || !string.IsNullOrEmpty(Du) || !string.IsNullOrEmpty(Au) || ToutAfficher;
 
@@ -83,8 +85,8 @@ public class ParlementaireModel(IParlementaireRepository parlementaires, PaysSit
         var q = new List<string>();
         if (!string.IsNullOrWhiteSpace(Q)) q.Add("q=" + Uri.EscapeDataString(Q));
         if (!string.IsNullOrEmpty(Vote)) q.Add("vote=" + Uri.EscapeDataString(Vote));
-        var l = lignes ?? Lignes;
-        if (l is int ln && ln != ParPage) q.Add("lignes=" + ln);
+        var l = lignes ?? (Lignes == "tous" ? Toutes : int.TryParse(Lignes, out var ln0) ? ln0 : (int?)null);
+        if (l is int ln && ln != ParPage) q.Add(ln == Toutes ? "lignes=tous" : "lignes=" + ln);
         if (ToutAfficher) q.Add("portee=tout");
         if (!string.IsNullOrEmpty(Du)) q.Add("du=" + Uri.EscapeDataString(Du));
         if (!string.IsNullOrEmpty(Au)) q.Add("au=" + Uri.EscapeDataString(Au));

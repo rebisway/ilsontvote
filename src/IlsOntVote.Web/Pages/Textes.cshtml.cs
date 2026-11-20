@@ -38,6 +38,7 @@ public class TextesModel(IScrutinRepository scrutins, Langue langue, PaysSite si
     public string[] ChambresSite => site.ChambresVisibles(langue.Pays);
 
     public Resultats<Scrutin> Resultats { get; private set; } = new([], 0, 1, 30);
+    public override int TotalLignes => Resultats.Total;
 
     /// <summary>Toutes les divisions sur le site d'un pays (aucune n'est rattachée à un texte « sur l'ensemble » : un filtre vide la liste) ; sinon selon la case « amendements et articles ».</summary>
     /// <summary>Les Lords n'ont pas de « vote sur l'ensemble » (aucune troisième lecture n'y est mise aux voix) : leurs divisions s'affichent toutes.</summary>

@@ -7,4 +7,10 @@
         if (n == Model.ParPage) { <strong aria-current="true">@n</strong> }
         else { <a href="@Model.Lien(lignes: n)">@n</a> }
     }
+    @if (Model.ParPage == IlsOntVote.Web.Pages.ListePageModel.Toutes) { <strong aria-current="true">@L.T("Tous", "All")</strong> }
+    else { <a href="@Model.Lien(lignes: IlsOntVote.Web.Pages.ListePageModel.Toutes)">@L.T("Tous", "All")</a> }
 </p>
+@if (Model.ParPage == IlsOntVote.Web.Pages.ListePageModel.Toutes && Model.TotalLignes > IlsOntVote.Web.Pages.ListePageModel.Toutes)
+{
+    <p class="note-source">@L.T("Affichage limité aux " + IlsOntVote.Web.Pages.ListePageModel.Toutes.ToString("N0", L.Culture) + " premières lignes sur " + Model.TotalLignes.ToString("N0", L.Culture) + " : l'export (CSV, JSON) donne tout.", "Display limited to the first " + IlsOntVote.Web.Pages.ListePageModel.Toutes.ToString("N0", L.Culture) + " rows of " + Model.TotalLignes.ToString("N0", L.Culture) + ": the export (CSV, JSON) gives everything.")</p>
+}

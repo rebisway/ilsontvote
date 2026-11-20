@@ -33,6 +33,7 @@ public class ElusModel(IStatistiquesRepository stats, Langue langue, PaysSite si
     public string PeriodeCle => !string.IsNullOrEmpty(Du) || !string.IsNullOrEmpty(Au) ? "perso" : Periode is "annee" or "tout" ? Periode : "12m";
     public string PeriodeLibelle { get; private set; } = "";
     public Resultats<StatEluDetail> Resultats { get; private set; } = new([], 0, 1, 100);
+    public override int TotalLignes => Resultats.Total;
 
     protected override int ParPageDefaut => 100;
     protected override string TriDefaut => "participation";

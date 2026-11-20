@@ -21,10 +21,17 @@ public abstract class ListePageModel : PageModel
 
     /// <summary>Nombres de lignes par page proposés (liste blanche : jamais une valeur libre de l'adresse).</summary>
     public static readonly int[] ChoixLignes = [30, 50, 100, 200];
-    [BindProperty(SupportsGet = true), FromQuery(Name = "lignes")] public int? Lignes { get; set; }
+    /// <summary>
+    /// Valeur de « Tous » : pas de pagination, mais plafonnée (HTML de plusieurs dizaines de Mo au-delà : 33 000 scrutins). Au-delà du plafond une note renvoie vers l'export, qui n'est jamais plafonné.
+    /// </summary>
+    public const int Toutes = 5000;
+    /// <summary>« lignes » dans l'adresse : un nombre de la liste blanche, ou « tous ».</summary>
+    [BindProperty(SupportsGet = true), FromQuery(Name = "lignes")] public string? Lignes { get; set; }
     protected virtual int ParPageDefaut => 30;
     /// <summary>Lignes par page effectives : le choix de l'utilisateur s'il est dans la liste, sinon le défaut de la page.</summary>
-    public int ParPage => Lignes is int n && ChoixLignes.Contains(n) ? n : ParPageDefaut;
+    public int ParPage => Lignes == "tous" ? Toutes : int.TryParse(Lignes, out var n) && ChoixLignes.Contains(n) ? n : ParPageDefaut;
+    /// <summary>Nombre total de lignes de la liste (pour la note de plafond de « Tous ») ; 0 si la page ne le fournit pas.</summary>
+    public virtual int TotalLignes => 0;
 
     /// <summary>Vrai si au moins un filtre est renseigné : affiche « Effacer le filtre ».</summary>
     public bool FiltreActif => Filtres.Any(f => !string.IsNullOrWhiteSpace(f.Valeur));
@@ -59,7 +66,7 @@ public abstract class ListePageModel : PageModel
             q.Add($"sens={(decroissant ?? Decroissant ? "desc" : "asc")}");
         }
         var l = lignes ?? ParPage;
-        if (l != ParPageDefaut) q.Add($"lignes={l}");
+        if (l != ParPageDefaut) q.Add(l == Toutes ? "lignes=tous" : $"lignes={l}");
         if (page is > 1) q.Add($"page={page}");
         if (format is not null) q.Add($"format={format}");
 
