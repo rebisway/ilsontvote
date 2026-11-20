@@ -714,3 +714,8 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
 /* Boutons d'action : turquoise pour la navigation (parcours, sources officielles), violet pour l'IA (outil externe) : ni l'un ni l'autre n'est une couleur de vote. */
 a.raccourci { display: inline-block; padding: 1px 10px; line-height: 1.35; border: 1px solid var(--tag-delegation); border-radius: 999px; background: color-mix(in srgb, var(--tag-delegation) 12%, var(--surface)); color: var(--tag-delegation); text-decoration: none; font-size: 0.82rem; font-weight: 650; }
 a.raccourci:hover { background: var(--tag-delegation); color: var(--surface); }
+
+/* Titre très long (vote « en bloc » du Sénat américain : des centaines de nominations) : abrégé dans le <h1>, intégral dans un bloc repliable. */
+.titre-complet { margin: 8px 0 0; max-width: 70ch; }
+.titre-complet summary { cursor: pointer; color: var(--ink-soft); font-size: 0.9rem; }
+.titre-complet p { margin: 8px 0 0; max-height: 18em; overflow: auto; font-size: 0.9rem; line-height: 1.5; overflow-wrap: anywhere; }

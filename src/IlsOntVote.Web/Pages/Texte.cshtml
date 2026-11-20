@@ -30,7 +30,8 @@
 
 <header class="scrutin-tete">
     <p class="meta">@(t.TypeLibelle is null ? L.T("Texte", "Text") : char.ToUpperInvariant(LibellesEn.TypeTexte(t.TypeLibelle, L.Anglais)[0]) + LibellesEn.TypeTexte(t.TypeLibelle, L.Anglais)[1..])@(string.IsNullOrEmpty(t.NumeroLoi) ? "" : L.T($" · loi n° {t.NumeroLoi}", $" · law no. {t.NumeroLoi}"))</p>
-    <h1>@titre</h1>
+    <h1>@Titres.Court(titre, 400)</h1>
+    @if (titre.Length > 400) { <details class="titre-complet"><summary>@L.T("Titre complet", "Full title")</summary><p>@titre</p></details> }
     <p><span class="statut @st.Classe">@st.Libelle</span></p>
 </header>
 @if (t.TitreTraduitAuto(L.Anglais))
@@ -145,7 +146,7 @@ else
                 <tr>
                     <td class="nowrap" data-label="Date">@s.DateScrutin.ToString("d MMM yyyy", fr)</td>
                     <td data-label="@L.T("Chambre", "Chamber")"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@L.T(Chambres.Court(s.Chambre), Chambres.Court(s.Chambre, true))</span></td>
-                    <td><a href="@L.Lien("/scrutin/" + s.Id)" title="@s.InfobulleTitre(L.Anglais)">@s.TitreLangue(L.Anglais)</a></td>
+                    <td><a href="@L.Lien("/scrutin/" + s.Id)" title="@Titres.Info(s.TitreLangue(L.Anglais), s.InfobulleTitre(L.Anglais))">@Titres.Court(s.TitreLangue(L.Anglais))</a></td>
                     <td data-label="@L.T("Résultat", "Result")"><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span></td>
                     <td class="num" data-label="@L.T("Pour", "For")">@s.NbPour</td><td class="num" data-label="@L.T("Contre", "Against")">@s.NbContre</td><td class="num" data-label="Abstentions">@s.NbAbstentions</td>
                 </tr>
@@ -168,7 +169,7 @@ else
                 <tr>
                     <td class="nowrap" data-label="Date">@s.DateScrutin.ToString("d MMM yyyy", fr)</td>
                     <td data-label="@L.T("Chambre", "Chamber")"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@L.T(Chambres.Court(s.Chambre), Chambres.Court(s.Chambre, true))</span></td>
-                    <td><a href="@L.Lien("/scrutin/" + s.Id)" title="@s.InfobulleTitre(L.Anglais)">@s.TitreLangue(L.Anglais)</a></td>
+                    <td><a href="@L.Lien("/scrutin/" + s.Id)" title="@Titres.Info(s.TitreLangue(L.Anglais), s.InfobulleTitre(L.Anglais))">@Titres.Court(s.TitreLangue(L.Anglais))</a></td>
                     <td data-label="@L.T("Résultat", "Result")"><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span></td>
                 </tr>
             }

@@ -164,7 +164,7 @@
                 {
                     <tr>
                         <td class="nowrap" data-label="Date"><time datetime="@v.DateScrutin.ToString("yyyy-MM-dd")">@v.DateScrutin.ToString("d MMM yyyy", fr)</time></td>
-                        <td><a href="@L.Lien("/scrutin/" + v.ScrutinId)" title="@v.InfobulleTitre(L.Anglais)">@v.TitreLangue(L.Anglais)</a></td>
+                        <td><a href="@L.Lien("/scrutin/" + v.ScrutinId)" title="@Titres.Info(v.TitreLangue(L.Anglais), v.InfobulleTitre(L.Anglais))">@Titres.Court(v.TitreLangue(L.Anglais))</a></td>
                         <td data-label="@L.T("Résultat", "Result")">@if (v.Sort is not null) { <span class="sort @(v.Sort.StartsWith("adopt") ? "adopte" : "rejete")">@(v.Sort.StartsWith("adopt") ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span> }</td>
                         <td data-label="@L.T("Son vote", "Their vote")">
                             <span class="badge b-@v.Position">@L.T(Pos.Libelle(v.Position), Pos.Libelle(v.Position, true))</span>

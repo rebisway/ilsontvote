@@ -29,11 +29,11 @@
     <nav class="voisins" aria-label="@L.T("Scrutin précédent et suivant", "Previous and next vote")">
         @if (Model.Voisins.Precedent is { } prec)
         {
-            <a rel="prev" href="@L.Lien("/scrutin/" + prec.Id)" title="@prec.DateScrutin.ToString("d MMM yyyy", fr) — @prec.TitreLangue(L.Anglais)">← @L.T("Précédent", "Previous")</a>
+            <a rel="prev" href="@L.Lien("/scrutin/" + prec.Id)" title="@prec.DateScrutin.ToString("d MMM yyyy", fr) — @Titres.Court(prec.TitreLangue(L.Anglais), 120)">← @L.T("Précédent", "Previous")</a>
         }
         @if (Model.Voisins.Suivant is { } suiv)
         {
-            <a rel="next" href="@L.Lien("/scrutin/" + suiv.Id)" title="@suiv.DateScrutin.ToString("d MMM yyyy", fr) — @suiv.TitreLangue(L.Anglais)">@L.T("Suivant", "Next") →</a>
+            <a rel="next" href="@L.Lien("/scrutin/" + suiv.Id)" title="@suiv.DateScrutin.ToString("d MMM yyyy", fr) — @Titres.Court(suiv.TitreLangue(L.Anglais), 120)">@L.T("Suivant", "Next") →</a>
         }
     </nav>
 </div>
@@ -43,7 +43,8 @@
         @L.T(Chambres.Nom(s.Chambre), Chambres.Nom(s.Chambre, true)) · @if (s.Chambre is Chambres.IeDail or Chambres.IeSeanad) { <text>@L.T("division", "division") · </text> } else { <text>@(s.Chambre is Chambres.Commons or Chambres.Lords ? L.T("division n°", "division no.") : Chambres.EstNominal(s.Chambre) ? L.T("vote nominal n°", "roll call no.") : L.T("scrutin n°", "vote no.")) @s.Numero · </text> }<time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMMM yyyy", fr)</time>
         @if (s.Sort is not null) { <text>· </text><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span> }
     </p>
-    <h1>@titre</h1>
+    <h1>@Titres.Court(titre, 400)</h1>
+    @if (titre.Length > 400) { <details class="titre-complet"><summary>@L.T("Titre complet", "Full title")</summary><p>@titre</p></details> }
 <partial name="_OrdreNom" />
 </header>
 @if (s.TitreTraduitAuto(L.Anglais))
