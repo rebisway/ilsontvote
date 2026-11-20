@@ -7,6 +7,10 @@
 UPDATE pays     SET actif = true WHERE code = 'IT';
 UPDATE chambres SET actif = true WHERE pays = 'IT';
 
+-- Irlande (Dáil + Seanad ; licence CC BY 4.0 « Oireachtas (Open Data) PSI Licence »). Prérequis : migration 047, tâches `irlande` et `irlande_seanad`, puis `stats` et `export`.
+-- UPDATE pays     SET actif = true WHERE code = 'IE';
+-- UPDATE chambres SET actif = true WHERE pays = 'IE';
+
 -- Royaume-Uni et États-Unis (déjà livrés en local, jamais activés en production) :
 -- UPDATE pays     SET actif = true WHERE code IN ('GB', 'US');
 -- UPDATE chambres SET actif = true WHERE pays IN ('GB', 'US');

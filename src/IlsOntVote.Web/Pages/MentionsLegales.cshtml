@@ -56,6 +56,10 @@ else if (L.Anglais)
     {
     <p>The site's source code is published under the GNU GPL v3.0 licence. The roll call votes come from the <a href="https://clerk.house.gov/Votes">Clerk of the House of Representatives</a> (official files) and, for the Senate, from <a href="https://voteview.com/">Voteview</a> (UCLA and the University of Georgia), a third-party academic project that reprocesses the <a href="https://www.senate.gov/legislative/votes_new.htm">Senate</a> records. It is reproduced as published, with the calculations described in the <a href="@L.Lien("/methodologie")">methodology</a>. Other content (texts, layout) is protected by copyright.</p>
     }
+    else if (L.Pays == "IE")
+    {
+    <p>The site's source code is published under the GNU GPL v3.0 licence. The votes come from the open data of the <a href="https://www.oireachtas.ie/en/open-data/">Houses of the Oireachtas</a>, published under the <a href="https://www.oireachtas.ie/en/open-data/license/">Oireachtas (Open Data) PSI Licence</a>, which incorporates the Creative Commons CC BY 4.0 licence (attribution). It is reproduced as published, with the calculations described in the <a href="@L.Lien("/methodologie")">methodology</a>. Other content (texts, layout) is protected by copyright.</p>
+    }
     else if (L.Pays == "IT")
     {
     <p>The site's source code is published under the GNU GPL v3.0 licence. The votes come from the open data of the Italian <a href="https://dati.camera.it/">Chamber of Deputies</a>, published under the <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> licence (attribution and share-alike), and from the open data of the <a href="https://dati.senato.it/">Italian Senate</a> (<a href='https://creativecommons.org/licenses/by/3.0/'>CC BY 3.0</a> licence, attribution). It is reproduced as published, with the calculations described in the <a href="@L.Lien("/methodologie")">methodology</a>. Other content (texts, layout) is protected by copyright.</p>
@@ -114,6 +118,10 @@ else
     @if (L.Pays == "US")
     {
     <p>Le code source du site est publié sous licence GNU GPL v3.0. Les votes nominaux proviennent du <a href="https://clerk.house.gov/Votes">greffe de la Chambre des représentants</a> (fichiers officiels) et, pour le Sénat, de <a href="https://voteview.com/">Voteview</a> (UCLA et Université de Géorgie), un projet universitaire tiers qui retraite les enregistrements du <a href="https://www.senate.gov/legislative/votes_new.htm">Sénat</a>. Ils sont repris tels que publiés, avec les calculs décrits dans la <a href="@L.Lien("/methodologie")">méthodologie</a>. Les autres contenus (textes, mise en page) sont protégés par le droit d'auteur.</p>
+    }
+    else if (L.Pays == "IE")
+    {
+    <p>Le code source du site est publié sous licence GNU GPL v3.0. Les votes proviennent de l'open data des <a href="https://www.oireachtas.ie/en/open-data/">Chambres de l'Oireachtas</a>, publié sous la <a href="https://www.oireachtas.ie/en/open-data/license/">Oireachtas (Open Data) PSI Licence</a>, qui reprend la licence Creative Commons CC BY 4.0 (attribution). Ils sont repris tels que publiés, avec les calculs décrits dans la <a href="@L.Lien("/methodologie")">méthodologie</a>. Les autres contenus (textes, mise en page) sont protégés par le droit d'auteur.</p>
     }
     else if (L.Pays == "IT")
     {

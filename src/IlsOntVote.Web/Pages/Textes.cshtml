@@ -3,7 +3,7 @@
 @using IlsOntVote.Web.Models
 @using IlsOntVote.Web.Services
 @{
-    ViewData["Title"] = Model.Resolutions ? L.T("Résolutions", "Resolutions") : Model.SitePays ? (L.Pays == "GB" ? L.T("Divisions", "Divisions") : L.T("Votes nominaux", "Roll call votes")) : L.T("Scrutins", "Votes");
+    ViewData["Title"] = Model.Resolutions ? L.T("Résolutions", "Resolutions") : Model.SitePays ? (L.Pays is "GB" or "IE" ? L.T("Divisions", "Divisions") : L.T("Votes nominaux", "Roll call votes")) : L.T("Scrutins", "Votes");
     ViewData["Description"] = L.T("Tous les scrutins publics de l'Assemblée nationale et du Sénat : cherchez un texte, triez, exportez, et voyez qui a voté quoi.", "All roll-call votes of the French National Assembly and Senate: search a text, sort, export, and see who voted what.");
     var fr = L.Culture;
 }
@@ -15,11 +15,15 @@
 }
 else
 {
-    <h1 class="titre-page">@(Model.SitePays ? (L.Pays == "GB" ? L.T("Divisions", "Divisions") : L.T("Votes nominaux", "Roll call votes")) : L.T("Scrutins", "Votes"))</h1>
+    <h1 class="titre-page">@(Model.SitePays ? (L.Pays is "GB" or "IE" ? L.T("Divisions", "Divisions") : L.T("Votes nominaux", "Roll call votes")) : L.T("Scrutins", "Votes"))</h1>
 @* chapô des scrutins : voir plus bas *@
 @if (L.Pays == "US")
 {
     <p class="chapo">@L.T("Les votes nominaux de la Chambre des représentants et du Sénat des États-Unis, du plus récent au plus ancien : adoptions finales de textes, nominations, motions « suspend the rules and pass » ; cochez la case pour inclure aussi les amendements, la clôture des débats (cloture) et les motions de procédure. Le vote « sur l'ensemble » est repéré par ce site d'après la question posée (calculé) : le Congrès ne publie pas cette distinction. Chaque vote renvoie à son enregistrement officiel. Cliquez sur un titre de colonne pour trier ; exportez le tableau en CSV ou JSON.", "Roll call votes of the United States House of Representatives and Senate, most recent first: final passage of measures, nominations, “suspend the rules and pass” motions; tick the box to also include amendments, cloture and procedural motions. The vote “on the whole” is found by this site from the question put (calculated): Congress does not publish that distinction. Each vote links to its official record. Click a column title to sort; export the table in CSV or JSON.")</p>
+}
+else if (L.Pays == "IE")
+{
+    <p class="chapo">@L.T("Les divisions (votes nominaux) du Dáil et du Seanad, du plus récent au plus ancien : motions, amendements, étapes des projets de loi. Les votes à main levée ou à la voix n'ont pas de détail nominatif et ne figurent pas dans les données. Cliquez sur le titre d'une colonne pour trier ; exportez le tableau en CSV ou JSON.", "Divisions (roll call votes) of the Dáil and the Seanad, most recent first: motions, amendments, stages of bills. Votes by voice or show of hands have no individual detail and are not in the data. Click a column title to sort; export the table in CSV or JSON.")</p>
 }
 else if (L.Pays == "IT")
 {
@@ -62,7 +66,7 @@ else
         <label class="champ-date">@L.T("au", "to") <input type="date" name="au" value="@Model.Au" aria-label="@L.T("Au (date de fin)", "To (end date)")" /></label></span>
     @if (Model.Chambre != "lords" || !Model.SitePays)
     {
-    <label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" /> @(Model.SitePays ? (L.Pays == "GB" ? L.T("amendements, motions et autres divisions", "amendments, motions and other divisions") : (L.Pays == "IT" ? L.T("questions de confiance et autres votes", "confidence votes and other votes") : L.T("amendements, cloture et motions de procédure", "amendments, cloture and procedural motions"))) : L.T("amendements et articles", "amendments and articles"))</label>
+    @if (L.Pays != "IE") {<label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" /> @(Model.SitePays ? (L.Pays == "GB" ? L.T("amendements, motions et autres divisions", "amendments, motions and other divisions") : (L.Pays == "IT" ? L.T("questions de confiance et autres votes", "confidence votes and other votes") : L.T("amendements, cloture et motions de procédure", "amendments, cloture and procedural motions"))) : L.T("amendements et articles", "amendments and articles"))</label>}
     }
     @* Tri : en-têtes de colonne (écran large) ou ces listes (téléphone). *@
     <select name="tri" class="tri-mobile" aria-label="@L.T("Trier par", "Sort by")">

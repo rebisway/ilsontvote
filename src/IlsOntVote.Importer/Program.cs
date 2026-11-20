@@ -22,7 +22,7 @@ int[] LegislaturesCompletes = [15, 16, 17];
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var argv = args.ToList();
-if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements" or "communes" or "lords" or "us" or "italie" or "bills"))
+if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements" or "communes" or "lords" or "us" or "italie" or "irlande" or "bills"))
 {
     Console.Error.WriteLine("Usage : IlsOntVote.Importer an [--legislature 17|15,16,17|all] [--scrutins-dir D --amo-dir D]");
     Console.Error.WriteLine("        IlsOntVote.Importer senat [--senateurs-dir D --dosleg-sql F]");
@@ -72,6 +72,7 @@ return argv[0] switch
     "communes" => await ImporterCommunesAsync(),
     "lords" => await ImporterLordsAsync(),
     "us" => await ImporterEtatsUnisAsync(),
+    "irlande" => await ImporterIrlandeAsync(),
     "italie" => Option("--chambre") == "senat" ? await ImporterItalieSenatAsync() : await ImporterItalieAsync(),
     "bills" => await ImporterBillsRoyaumeUniAsync(),
     _ => await ImporterTextesAsync(),
@@ -733,6 +734,73 @@ async Task<int> ImporterItalieSenatAsync()
             if (inconnus.Count > 0) Console.WriteLine($"    {inconnus.Count} identifiant(s) de vote sans fiche de sénateur ignoré(s).");
         }
         Console.WriteLine($"  {nbScrutins} votations, {nbVotes:N0} votes individuels.");
+        await repo.TerminerAsync(runId, true, nbScrutins, nbVotes, null);
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex);
+        await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
+        return 1;
+    }
+}
+
+/// <summary>
+/// Parlement d'Irlande (API officielle de l'Oireachtas) : <c>--chambre dail|seanad</c> (Dáil par défaut), <c>--mandature N</c> ou plage <c>32-33</c> (la plus récente par défaut).
+/// Chaque division arrive avec ses listes Tá / Níl / Staon ; mandats et partis DATÉS fournis par l'annuaire des membres : rien n'est déduit des votes, et les absents se déduisent des mandats.
+/// Lecture incrémentale : une division déjà en base n'est relue que si elle a moins de 7 jours.
+/// </summary>
+async Task<int> ImporterIrlandeAsync()
+{
+    var maison = Option("--chambre") == "seanad" ? IrelandSource.Seanad : IrelandSource.Dail;
+    var chambre = IrelandSource.IdChambre(maison);
+    Console.WriteLine($"=== Irlande : {(maison == IrelandSource.Seanad ? "Seanad Éireann" : "Dáil Éireann")} (API officielle de l'Oireachtas) ===");
+    var runId = await repo.DemarrerAsync(maison == IrelandSource.Seanad ? "IE-SEANAD" : "IE-DAIL");
+    try
+    {
+        using var source = new IrelandSource();
+        var mandatures = await source.ListerMandaturesAsync(maison);
+        if (mandatures.Count == 0) throw new InvalidOperationException("Aucune mandature publiée par l'API.");
+        var spec = Option("--mandature");
+        var bornes = spec is null ? [mandatures[0].Numero] : spec.Split('-', 2).Select(int.Parse).ToArray();
+        var voulues = mandatures.Where(m => m.Numero >= bornes[0] && m.Numero <= (bornes.Length > 1 ? bornes[1] : bornes[0])).OrderBy(m => m.Numero).ToList();
+        var existants = await repo.LireSlugsAsync();
+        var slugs = existants.Values.ToHashSet();
+        var seuil = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-7);
+        int nbScrutins = 0; long nbVotes = 0;
+
+        foreach (var m in voulues)
+        {
+            var terminee = m.Fin is not null;
+            var membres = await source.LireMembresAsync(maison, m.Numero);
+            var parParti = membres.SelectMany(x => x.Partis).GroupBy(p => p.Code).Select(g => IrelandSource.Groupe(maison, m.Numero, g.First())).ToList();
+            var parlementaires = membres.Select(x =>
+            {
+                var pid = IrelandSource.IdMembre(maison, x.Code);
+                var slug = existants.TryGetValue(pid, out var s0) ? s0 : Slugs.Unique(slugs, x.Prenom, x.Nom, pid);
+                return new ParlementaireRow(pid, chambre, null, x.Prenom, x.Nom, slug, null, x.Circonscription);
+            }).ToList();
+            var mandats = membres.Select(x => new MandatRow(IrelandSource.IdMembre(maison, x.Code), m.Numero, x.Debut, x.Fin)).ToList();
+            var appartenances = membres.SelectMany(x => x.Partis.Select(p => new AppartenanceRow(IrelandSource.IdMembre(maison, x.Code), IrelandSource.IdGroupe(maison, m.Numero, p.Code), p.Debut, p.Fin))).ToList();
+            await repo.EcrireAnnuaireAsync(new Annuaire(parParti, parlementaires, mandats, appartenances), chambre, [m.Numero]);
+            var annuaire = new Annuaire(parParti, parlementaires, [], []);
+            var (deja, _) = await repo.LireScrutinsAsync(chambre);
+
+            var divisions = await source.ListerDivisionsAsync(maison, m.Numero);
+            var aEcrire = divisions.Where(d => !deja.Contains(IrelandSource.IdScrutin(maison, m.Numero, IrelandSource.Numero(d))) || (!terminee && d.Date >= seuil)).ToList();
+            Console.WriteLine($"  Mandature {m.Numero} : {membres.Count} membres, {parParti.Count} partis, {divisions.Count} divisions, {aEcrire.Count} à écrire.");
+
+            var parCode = membres.ToDictionary(x => x.Code);
+            var inconnus = new HashSet<string>();
+            foreach (var lot in aEcrire.Chunk(50))
+            {
+                var scrutins = lot.Select(d => IrelandSource.VersScrutin(d, parCode, inconnus)).ToList();
+                var (n, v2, _) = await repo.EcrireScrutinsAsync(scrutins, annuaire);
+                nbScrutins += n; nbVotes += v2;
+            }
+            if (inconnus.Count > 0) Console.WriteLine($"    {inconnus.Count} identifiant(s) de membre sans fiche ignoré(s).");
+        }
+        Console.WriteLine($"  {nbScrutins} divisions, {nbVotes:N0} votes individuels.");
         await repo.TerminerAsync(runId, true, nbScrutins, nbVotes, null);
         return 0;
     }

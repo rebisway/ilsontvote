@@ -52,6 +52,16 @@ public static class DescriptionsDonnees
         ["votes"] = "Each member's vote in each roll call (pour = yea, contre = nay, abstention = present). Not voting members and merely announced or paired positions are not in this file.",
     };
 
+    private static readonly Dictionary<string, string> EnIe = new()
+    {
+        ["groupes"] = "Parties (groups) of the Irish Dáil and Seanad (one identifier per term).",
+        ["parlementaires"] = "Members of the Dáil (TDs) and the Seanad (identity, constituency or panel).",
+        ["mandats"] = "Terms of office: official dates from the source. One row per term (legislature column = term number of the Dáil or the Seanad).",
+        ["appartenances_groupes"] = "Membership of a member in a party, with official dates.",
+        ["scrutins"] = "Divisions (roll call votes) of the Dáil and the Seanad: official counts, result (“Carried” / “Lost”), question put; sur_ensemble = the question “That the Bill do now pass” (calculated). Votes by voice are not in the data.",
+        ["votes"] = "Each member's vote in each division (pour = Tá, contre = Níl, abstention = Staon). Members who did not vote are not in this file: they are deduced from the mandates.",
+    };
+
     private static readonly Dictionary<string, string> EnIt = new()
     {
         ["groupes"] = "Parliamentary groups of the Italian Chamber of Deputies and Senate (one identifier per legislature).",
@@ -66,7 +76,7 @@ public static class DescriptionsDonnees
     public static string? Anglais(string fichier)
     {
         var nom = fichier.Split('.')[0];
-        return nom.StartsWith("gb_") ? EnGb.GetValueOrDefault(nom[3..]) : nom.StartsWith("us_") ? EnUs.GetValueOrDefault(nom[3..]) : nom.StartsWith("it_") ? EnIt.GetValueOrDefault(nom[3..]) : En.GetValueOrDefault(nom);
+        return nom.StartsWith("gb_") ? EnGb.GetValueOrDefault(nom[3..]) : nom.StartsWith("us_") ? EnUs.GetValueOrDefault(nom[3..]) : nom.StartsWith("it_") ? EnIt.GetValueOrDefault(nom[3..]) : nom.StartsWith("ie_") ? EnIe.GetValueOrDefault(nom[3..]) : En.GetValueOrDefault(nom);
     }
 }
 

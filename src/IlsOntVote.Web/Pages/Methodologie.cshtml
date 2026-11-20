@@ -49,6 +49,39 @@
     </ul>
 </section>
 }
+else if (L.Pays == "IE")
+{
+<h1 class="titre-page">@L.T("Méthodologie et limites", "Methodology and limits")</h1>
+<p class="chapo">@L.T("Le site ne juge personne : il affiche ce que la source publie. Quand une donnée est calculée, douteuse ou manquante, il le dit.", "The site judges no one: it displays what the source publishes. When a piece of data is calculated, doubtful or missing, it says so.")</p>
+
+<section class="bloc-texte">
+    <h2>@L.T("D'où viennent les données", "Where the data comes from")</h2>
+    <ul>
+        <li>@L.TH("<strong>Dáil Éireann et Seanad Éireann</strong> : source <strong>officielle</strong>, l'API de données ouvertes des Chambres de l'Oireachtas (<a href=\"https://api.oireachtas.ie/\">api.oireachtas.ie</a>) : totaux, résultat, liste des membres Tá (pour), Níl (contre) et Staon (abstention), <strong>mandats et partis datés</strong>. Licence : <a href=\"https://www.oireachtas.ie/en/open-data/license/\">Oireachtas (Open Data) PSI Licence</a>, qui reprend la licence Creative Commons CC BY 4.0 (attribution).", "<strong>Dáil Éireann and Seanad Éireann</strong>: <strong>official</strong> source, the open data API of the Houses of the Oireachtas (<a href=\"https://api.oireachtas.ie/\">api.oireachtas.ie</a>): totals, result, the lists of members voting Tá (for), Níl (against) and Staon (abstain), <strong>dated mandates and parties</strong>. Licence: <a href=\"https://www.oireachtas.ie/en/open-data/license/\">Oireachtas (Open Data) PSI Licence</a>, which incorporates the Creative Commons CC BY 4.0 licence (attribution).")</li>
+        <li>@L.T("Mise à jour automatique chaque nuit : les votes de moins de sept jours sont relus. Le code est un logiciel libre (GPL-3.0).", "Automatic update every night: votes less than seven days old are read again. The code is free software (GPL-3.0).")</li>
+    </ul>
+</section>
+
+<section class="bloc-texte">
+    <h2>@L.T("Comment se lit un vote", "How a vote is read")</h2>
+    <ul>
+        <li>@L.TH("<strong>Tá, Níl, Staon</strong> : pour, contre, abstention, tels que publiés.", "<strong>Tá, Níl, Staon</strong>: for, against, abstention, as published.")</li>
+        <li>@L.TH("<strong>Absent</strong> : le membre siégeait à la date de la division (mandat daté de la source) mais n'est dans aucune liste. Le site ne donne <em>aucune raison</em>.", "<strong>Absent</strong>: the member held a mandate on the date of the division (dated mandate from the source) but is on no list. The site gives <em>no reason</em>.")</li>
+        <li>@L.TH("<strong>Parti</strong> : celui du membre <em>le jour du vote</em>. Les indépendants forment le groupe « Ind ».", "<strong>Party</strong>: the member's party <em>on the day of the vote</em>. Independents form the group “Ind”.")</li>
+    </ul>
+</section>
+
+<section class="bloc-texte">
+    <h2>@L.T("Limites connues", "Known limits")</h2>
+    <ul>
+        <li>@L.TH("<strong>Votes sans division</strong> : les décisions prises à la voix ou à main levée n'ont pas de détail nominatif : elles n'existent pas dans les données et ne figurent donc pas sur ce site.", "<strong>Votes without a division</strong>: decisions taken by voice or show of hands have no individual detail: they are not in the data and so are not on this site.")</li>
+        <li>@L.TH("<strong>Vote sur l'ensemble</strong> : la source ne le signale pas. Le site repère la question « That the Bill do now pass » (<strong>calculé</strong>) ; peu de projets de loi sont mis aux voix à cette étape, donc la liste montre toutes les divisions.", "<strong>Vote on the whole</strong>: the source does not flag it. The site finds the question “That the Bill do now pass” (<strong>calculated</strong>); few bills are put to a division at that stage, so the list shows every division.")</li>
+        <li>@L.TH("<strong>Numérotation</strong> : le numéro de vote de la source n'est pas unique dans une mandature ; le site s'appuie sur la date et le numéro, et la note de chaque vote donne la séance d'origine.", "<strong>Numbering</strong>: the source's vote number is not unique within a term; the site relies on the date and the number, and each vote's note gives the original sitting.")</li>
+        <li>@L.TH("<strong>Écarts</strong> : si les listes nominatives ne correspondent pas aux totaux officiels, la note du vote le dit ; le site affiche le total officiel.", "<strong>Differences</strong>: if the member lists do not match the official totals, the note of the vote says so; the site shows the official total.")</li>
+        <li>@L.TH("<strong>Données historiques</strong> : seule la mandature en cours est importée par défaut.", "<strong>Historical data</strong>: only the current term is imported by default.")</li>
+    </ul>
+</section>
+}
 else if (L.Pays == "IT")
 {
 <h1 class="titre-page">@L.T("Méthodologie et limites", "Methodology and limits")</h1>

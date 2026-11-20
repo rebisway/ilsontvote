@@ -72,6 +72,22 @@ public static class ExportDonnees
     private static JeuDonnees PourEtatsUnis(JeuDonnees j) => new("us_" + j.Nom, DescriptionsUs.GetValueOrDefault(j.Nom, j.Description),
         j.Sql.Replace(ChambresActives, ChambresUs).Replace("nominatif_incomplet, texte_id, texte_lie_id", "nominatif_incomplet, dossier_ref AS url_officielle"), "US");
 
+    private const string ChambresIe = "chambre IN (SELECT code FROM chambres WHERE actif AND pays = 'IE')";
+
+    private static readonly Dictionary<string, string> DescriptionsIe = new()
+    {
+        ["groupes"] = "Partis (groupes) du Dáil et du Seanad d'Irlande (un identifiant par mandature).",
+        ["parlementaires"] = "Membres du Dáil (TDs) et du Seanad (identité, circonscription ou panel).",
+        ["mandats"] = "Périodes de mandat : dates officielles de la source. Une ligne par mandature (colonne legislature = numéro de la mandature du Dáil ou du Seanad).",
+        ["appartenances_groupes"] = "Appartenance d'un membre à un parti, avec dates officielles.",
+        ["scrutins"] = "Divisions (votes nominaux) du Dáil et du Seanad : décomptes officiels, résultat (« Carried » / « Lost »), question posée ; sur_ensemble = question « That the Bill do now pass » (calculé). Les votes à la voix n'existent pas dans les données.",
+        ["votes"] = "Vote de chaque membre à chaque division (pour = Tá, contre = Níl, abstention = Staon). Les membres qui n'ont pas voté ne figurent pas dans ce fichier : ils se déduisent des mandats.",
+    };
+
+    /// <summary>Déclinaison irlandaise d'un jeu commun : chambres d'Irlande, fichier « ie_… » ; pas d'adresse officielle vérifiée du vote (url_officielle vide).</summary>
+    private static JeuDonnees PourIrlande(JeuDonnees j) => new("ie_" + j.Nom, DescriptionsIe.GetValueOrDefault(j.Nom, j.Description),
+        j.Sql.Replace(ChambresActives, ChambresIe).Replace("nominatif_incomplet, texte_id, texte_lie_id", "nominatif_incomplet, dossier_ref AS url_officielle"), "IE");
+
     private const string ChambresIt = "chambre IN (SELECT code FROM chambres WHERE actif AND pays = 'IT')";
 
     private static readonly Dictionary<string, string> DescriptionsIt = new()
@@ -92,16 +108,20 @@ public static class ExportDonnees
     /// Licence à porter dans le manifeste, pour qu'elle accompagne le fichier téléchargé (et pas seulement la page). Seule l'Italie est renseignée : la Chambre est en CC BY-SA 4.0
     /// (partage à l'identique : les données dérivées republiées ici le restent) et le Sénat en CC BY 3.0, compatible dans ce sens. Les autres pays : null (non affirmé, jamais inventé).
     /// </summary>
-    private static string? LicenceDe(string pays) => pays == "IT"
-        ? "CC BY-SA 4.0 (Camera dei deputati, dati.camera.it) ; CC BY 3.0 (Senato della Repubblica, dati.senato.it) — attribution required, share-alike for derived data"
-        : null;
+    private static string? LicenceDe(string pays) => pays switch
+    {
+        "IT" => "CC BY-SA 4.0 (Camera dei deputati, dati.camera.it) ; CC BY 3.0 (Senato della Repubblica, dati.senato.it) — attribution required, share-alike for derived data",
+        "IE" => "Oireachtas (Open Data) PSI Licence, incorporating CC BY 4.0 (Houses of the Oireachtas, api.oireachtas.ie) — attribution required",
+        _ => null,
+    };
 
     /// <summary>Tous les jeux publiés : France (sans préfixe), Royaume-Uni (« gb_… »), États-Unis (« us_… »), Italie (« it_… »).</summary>
     public static IReadOnlyList<JeuDonnees> Tous => [.. Jeux.Where(j => j.Pays == "FR" && j.Nom is not ("bills" or "bill_etapes")),
         .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom)).Select(PourRoyaumeUni),
         .. Jeux.Where(j => j.Nom is "bills" or "bill_etapes").Select(j => j with { Nom = "gb_" + j.Nom, Pays = "GB" }),
         .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom) && !j.Nom.StartsWith("petitions")).Select(PourEtatsUnis),
-        .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom) && !j.Nom.StartsWith("petitions")).Select(PourItalie)];
+        .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom) && !j.Nom.StartsWith("petitions")).Select(PourItalie),
+        .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom) && !j.Nom.StartsWith("petitions")).Select(PourIrlande)];
 
     public static readonly IReadOnlyList<JeuDonnees> Jeux =
     [

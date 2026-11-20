@@ -36,7 +36,7 @@ public class IndexModel(IScrutinRepository scrutins, Langue langue, PaysSite sit
             foreach (var chambre in site.ChambresVisibles(langue.Pays))
             {
                 // Votes sur l'ensemble d'abord (troisièmes lectures, adoptions finales) ; les Lords n'en ont pas : leurs dernières divisions.
-                var recents = chambre == Chambres.Lords
+                var recents = Chambres.SansVoteSurEnsemble(chambre)
                     ? await scrutins.GetDernieresAsync(chambre, CartesParChambre)
                     : await scrutins.GetAccueilAsync(chambre, chambre == Chambres.Commons ? CartesParChambre + 2 : CartesParChambre);
                 var cartes = new List<CarteScrutin>();

@@ -136,7 +136,7 @@
         </select>
         <span class="periode"><label class="champ-date">@L.T("Du", "From") <input type="date" name="du" value="@Model.Du" aria-label="@L.T("Du (date de début)", "From (start date)")" /></label>
             <label class="champ-date">@L.T("au", "to") <input type="date" name="au" value="@Model.Au" aria-label="@L.T("Au (date de fin)", "To (end date)")" /></label></span>
-        @if (Model.Chambre != Chambres.Lords)
+        @if (!Chambres.SansVoteSurEnsemble(Model.Chambre))
         {
         <label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" /> @(Model.Chambre == Chambres.Commons ? L.T("inclure les amendements, motions et autres divisions", "include amendments, motions and other divisions") : Chambres.EstUs(Model.Chambre) ? L.T("inclure les amendements, la clôture des débats et les motions de procédure", "include amendments, cloture and procedural motions") : L.T("inclure les amendements et articles", "include amendments and articles"))</label>
         }

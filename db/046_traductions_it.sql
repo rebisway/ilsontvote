@@ -441,6 +441,7 @@ INSERT INTO traductions (langue, cle, texte) VALUES
 ('it', $t$Taux de présence de tous les élus$t$, $t$Tassi di presenza di tutti gli eletti$t$),
 ('it', $t$Tous$t$, $t$Tutti$t$),
 ('it', $t$résultat$t$, $t$risultato$t$),
-('it', $t$résultats$t$, $t$risultati$t$)
+('it', $t$résultats$t$, $t$risultati$t$),
+('it', $t$They voted — qui a voté quoi au Parlement italien$t$, $t$Hanno votato — chi ha votato cosa al Parlamento italiano$t$)
 ON CONFLICT (langue, cle) DO NOTHING;
 COMMIT;

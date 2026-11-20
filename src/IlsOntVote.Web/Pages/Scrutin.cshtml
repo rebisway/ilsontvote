@@ -28,7 +28,7 @@
 
 <header class="scrutin-tete">
     <p class="meta">
-        @L.T(Chambres.Nom(s.Chambre), Chambres.Nom(s.Chambre, true)) · @(s.Chambre is Chambres.Commons or Chambres.Lords ? L.T("division n°", "division no.") : Chambres.EstNominal(s.Chambre) ? L.T("vote nominal n°", "roll call no.") : L.T("scrutin n°", "vote no.")) @s.Numero · <time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMMM yyyy", fr)</time>
+        @L.T(Chambres.Nom(s.Chambre), Chambres.Nom(s.Chambre, true)) · @if (s.Chambre is Chambres.IeDail or Chambres.IeSeanad) { <text>@L.T("division", "division") · </text> } else { <text>@(s.Chambre is Chambres.Commons or Chambres.Lords ? L.T("division n°", "division no.") : Chambres.EstNominal(s.Chambre) ? L.T("vote nominal n°", "roll call no.") : L.T("scrutin n°", "vote no.")) @s.Numero · </text> }<time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMMM yyyy", fr)</time>
         @if (s.Sort is not null) { <text>· </text><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span> }
     </p>
     <h1>@titre</h1>

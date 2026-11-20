@@ -36,7 +36,7 @@ public class TextesModel(IScrutinRepository scrutins, Langue langue, PaysSite si
 
     /// <summary>Toutes les divisions sur le site d'un pays (aucune n'est rattachée à un texte « sur l'ensemble » : un filtre vide la liste) ; sinon selon la case « amendements et articles ».</summary>
     /// <summary>Les Lords n'ont pas de « vote sur l'ensemble » (aucune troisième lecture n'y est mise aux voix) : leurs divisions s'affichent toutes.</summary>
-    public bool ToutAfficher => Portee == "tout" || (SitePays && Chambre == "lords");
+    public bool ToutAfficher => Portee == "tout" || (SitePays && (Chambre == "lords" || langue.Pays == "IE"));
 
     protected override string TriDefaut => "date";
     protected override IReadOnlyCollection<string> ClesTri { get; } = [.. ScrutinRepository.ClesTri];

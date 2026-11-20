@@ -11,6 +11,8 @@ public static class Chambres
     public const string UsSenate = "USSENATE";
     public const string ItCamera = "ITCAMERA";
     public const string ItSenate = "ITSENATE";
+    public const string IeDail = "IEDAIL";
+    public const string IeSeanad = "IESEANAD";
 }
 
 /// <summary>Position d'un vote, telle que stockée en base (colonne votes.position).</summary>

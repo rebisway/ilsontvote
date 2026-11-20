@@ -53,7 +53,7 @@
 
 <section class="cartes-stats" aria-label="@L.T("Chiffres clés", "Key figures")">
     <div class="carte-stat"><b>@Model.Chiffres.Scrutins.ToString("N0", fr)</b><span>@L.T("scrutins publics", "roll-call votes")</span></div>
-    @if (Model.ChambreCode != Chambres.Lords)
+    @if (!Chambres.SansVoteSurEnsemble(Model.ChambreCode))
     {
     <div class="carte-stat"><b>@Model.Chiffres.VotesEnsemble.ToString("N0", fr)</b><span>@L.T("votes sur l'ensemble d'un texte", "votes on the whole text")</span>
         <small>@Model.Chiffres.Adoptes.ToString("N0", fr) @L.T("adoptés", "adopted") · @Model.Chiffres.Rejetes.ToString("N0", fr) @L.T("rejetés", "rejected")</small></div>
