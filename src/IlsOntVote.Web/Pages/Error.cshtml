@@ -1,16 +1,16 @@
 @page
 @model ErrorModel
 @{
-    ViewData["Title"] = L.T("Erreur", "Error");
+    ViewData["Title"] = L.T("erreur", "Erreur", "Error");
     ViewData["NoIndex"] = true;
 }
 
-<h1>@L.T("Une erreur est survenue", "Something went wrong")</h1>
-<p class="chapo">@L.T("La page demandée n'a pas pu être affichée. Réessayez dans un instant ; si le problème persiste, écrivez-nous en indiquant l'identifiant ci-dessous.", "The requested page could not be displayed. Please try again in a moment; if the problem persists, write to us with the identifier below.")</p>
+<h1>@L.T("une-erreur-est-survenue", "Une erreur est survenue", "Something went wrong")</h1>
+<p class="chapo">@L.T("la-page-demandee-n-a-pas", "La page demandée n'a pas pu être affichée. Réessayez dans un instant ; si le problème persiste, écrivez-nous en indiquant l'identifiant ci-dessous.", "The requested page could not be displayed. Please try again in a moment; if the problem persists, write to us with the identifier below.")</p>
 
 @if (Model.ShowRequestId)
 {
-    <p><strong>@L.T("Identifiant :", "Request ID:")</strong> <code>@Model.RequestId</code></p>
+    <p><strong>@L.T("identifiant", "Identifiant :", "Request ID:")</strong> <code>@Model.RequestId</code></p>
 }
 
-<p><a href="@L.Lien("/")">@L.T("← Retour à l'accueil", "← Back to the home page")</a> · <a href="mailto:contact@rebisway.com">contact@rebisway.com</a></p>
+<p><a href="@L.Lien("/")">@L.T("retour-a-l-accueil", "← Retour à l'accueil", "← Back to the home page")</a> · <a href="mailto:contact@rebisway.com">contact@rebisway.com</a></p>

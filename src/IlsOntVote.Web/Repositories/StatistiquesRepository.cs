@@ -31,6 +31,8 @@ public sealed class StatGroupe
 /// </summary>
 public sealed class StatEluDetail
 {
+    /// <summary>Nombre total de lignes de la liste (même valeur sur chaque ligne : <c>count(*) OVER ()</c>), pour la pagination sans second comptage.</summary>
+    public int Total { get; set; }
     public string Slug { get; set; } = "";
     public string Chambre { get; set; } = "";
     public string Prenom { get; set; } = "";
@@ -183,18 +185,25 @@ public sealed class StatistiquesRepository(DapperContext db) : IStatistiquesRepo
 
         // Somme des jours de la période (vue par élu et par jour, cf. migration 019). Aucun seuil : tout élu ayant eu au moins un scrutin
         // à sa charge figure dans la liste ; le nombre de scrutins est affiché à côté de chaque taux pour que le lecteur juge de son poids.
-        const string avant =
-            """
+        // PERFORMANCE (constaté : 0,5 s par requête sur ~650 000 lignes de la vue pour l'Assemblée, 0,1 s une fois corrigé) :
+        //  - les bornes sont ajoutées SEULEMENT si elles existent, comparées à un paramètre de type DATE. L'ancienne forme « @du::date IS NULL OR date_scrutin >= @du::date » sur un
+        //    DateTime UTC (timestamptz) faisait appliquer la borne en simple FILTRE après avoir lu tout l'index de la chambre au lieu de s'en servir comme borne d'index ;
+        //  - les colonnes (« scrutins » ou « scrutins_ensemble ») sont choisies ici (identifiants fixes, jamais issus de l'adresse) plutôt que par un CASE évalué à chaque ligne ;
+        //  - le total vient d'un count(*) OVER () de la même requête : une seule agrégation au lieu de deux.
+        var suffixe = ensembleSeulement ? "_ensemble" : "";
+        var duD = du is { } d1 ? DateOnly.FromDateTime(d1) : (DateOnly?)null;
+        var auD = au is { } d2 ? DateOnly.FromDateTime(d2) : (DateOnly?)null;
+        var bornes = (duD is null ? "" : " AND e.date_scrutin >= @du") + (auD is null ? "" : " AND e.date_scrutin <= @au");
+        var avant =
+            $"""
             WITH agg AS (
                 SELECT e.parlementaire_id,
-                       CASE WHEN @ensemble THEN sum(e.scrutins_ensemble) ELSE sum(e.scrutins) END AS scrutins,
-                       CASE WHEN @ensemble THEN sum(e.votants_ensemble) ELSE sum(e.votants) END AS votants,
-                       CASE WHEN @ensemble THEN sum(e.delegations_ensemble) ELSE sum(e.delegations) END AS delegations,
-                       CASE WHEN @ensemble THEN sum(e.mises_au_point_ensemble) ELSE sum(e.mises_au_point) END AS mises_au_point
+                       sum(e.scrutins{suffixe}) AS scrutins,
+                       sum(e.votants{suffixe}) AS votants,
+                       sum(e.delegations{suffixe}) AS delegations,
+                       sum(e.mises_au_point{suffixe}) AS mises_au_point
                   FROM stats_participation_elu e
-                 WHERE e.chambre = @chambre
-                   AND (@du::date IS NULL OR e.date_scrutin >= @du::date)
-                   AND (@au::date IS NULL OR e.date_scrutin <= @au::date)
+                 WHERE e.chambre = @chambre{bornes}
                  GROUP BY e.parlementaire_id
             )
             """;
@@ -209,9 +218,8 @@ public sealed class StatistiquesRepository(DapperContext db) : IStatistiquesRepo
                AND (NOT @avecVotes OR a.votants > 0)   -- option « masquer ceux qui n'ont voté dans aucun scrutin de la période »
                AND (cardinality(@mots) = 0 OR (recherche_norm(p.prenom || ' ' || p.nom) || ' ' || COALESCE(g.sigle, '')) ILIKE ALL (@mots))
             """;
-        var p = new { chambre, du, au, ensemble = ensembleSeulement, avecVotes, mots, limit = parPage, offset = (page - 1) * parPage };
+        var p = new { chambre, du = duD, au = auD, avecVotes, mots, limit = parPage, offset = (page - 1) * parPage };
 
-        var total = await cx.ExecuteScalarAsync<int>($"{avant} SELECT count(*) {depuis}", p);
         var ordre = TrisElus.GetValueOrDefault(tri, TrisElus["participation"]);
         var sens = decroissant ? "DESC" : "ASC";
         var pagination = parPage > 0 ? "LIMIT @limit OFFSET @offset" : "";
@@ -219,11 +227,14 @@ public sealed class StatistiquesRepository(DapperContext db) : IStatistiquesRepo
             $"""
              {avant}
              SELECT p.slug, p.chambre, p.prenom, p.nom, p.statut, g.sigle AS groupe_sigle, g.couleur AS groupe_couleur,
-                    a.scrutins::int AS scrutins, a.votants::int AS votants, a.delegations::int AS delegations, a.mises_au_point::int AS mises_au_point
+                    a.scrutins::int AS scrutins, a.votants::int AS votants, a.delegations::int AS delegations, a.mises_au_point::int AS mises_au_point,
+                    count(*) OVER ()::int AS total
                {depuis}
               ORDER BY {ordre} {sens} NULLS LAST, a.scrutins DESC, p.nom, p.prenom
               {pagination}
              """, p)).ToList();
+        // Total : celui de la fenêtre ; une page au-delà de la fin ne renvoie aucune ligne, donc aucun total : un comptage séparé le donne alors (cas rare).
+        var total = lignes.Count > 0 ? lignes[0].Total : page > 1 ? await cx.ExecuteScalarAsync<int>($"{avant} SELECT count(*) {depuis}", p) : 0;
         return new Resultats<StatEluDetail>(lignes, total, page, parPage == 0 ? Math.Max(1, total) : parPage);
     }
 

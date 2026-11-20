@@ -8,9 +8,9 @@
 
 <div class="hero">
 <section class="intro">
-    <h1>@L.T("Qui a voté quoi ?", "Who voted what?")</h1>
-    <p>@L.TH("Chaque point est un élu. Pour chaque texte, voyez en un coup d'œil qui a voté <strong class=\"c-pour\">pour</strong>, <strong class=\"c-contre\">contre</strong>, s'est <strong class=\"c-abstention\">abstenu</strong>, ou n'a pas pris part au vote (<strong class=\"c-absent\">absent</strong>).",
-        "Each dot is an elected official. For each text, see at a glance who voted <strong class=\"c-pour\">for</strong>, <strong class=\"c-contre\">against</strong>, <strong class=\"c-abstention\">abstained</strong>, or did not take part in the vote (<strong class=\"c-absent\">absent</strong>).")</p>
+    <h1>@L.T("qui-a-vote-quoi", "Qui a voté quoi ?", "Who voted what?")</h1>
+    <p>@L.TH("voyez-en-un-coup-d-il", "Voyez en un coup d'œil qui a voté <strong class=\"c-pour\">pour</strong>, <strong class=\"c-contre\">contre</strong>, s'est <strong class=\"c-abstention\">abstenu</strong>, ou n'a pas pris part au vote (<strong class=\"c-absent\">absent</strong>).",
+        "See at a glance who voted <strong class=\"c-pour\">for</strong>, <strong class=\"c-contre\">against</strong>, <strong class=\"c-abstention\">abstained</strong>, or did not take part in the vote (<strong class=\"c-absent\">absent</strong>).")</p>
 </section>
 </div>
 
@@ -19,18 +19,18 @@
 {
     <section class="chambre">
         <div class="chambre-tete">
-            <h2>@L.T(Chambres.Nom(section.Chambre), Chambres.Nom(section.Chambre, true))</h2>
+            <h2>@L.Chambre(section.Chambre)</h2>
             <p class="actions-chambre">
-                <a class="bouton-lien" href="@L.Lien("/textes")?chambre=@Chambres.Filtre(section.Chambre)">@(section.Chambre is Chambres.Commons or Chambres.Lords or Chambres.IeDail or Chambres.IeSeanad ? L.T("Toutes les divisions", "All divisions") : Chambres.EstNominal(section.Chambre) ? L.T("Tous les votes nominaux", "All roll call votes") : L.T("Tous les textes", "All votes"))</a>
+                <a class="bouton-lien" href="@L.Lien("/textes")?chambre=@Chambres.Filtre(section.Chambre)">@(section.Chambre is Chambres.Commons or Chambres.Lords or Chambres.IeDail or Chambres.IeSeanad ? L.T("toutes-les-divisions", "Toutes les divisions", "All divisions") : Chambres.EstNominal(section.Chambre) ? L.T("tous-les-votes-nominaux", "Tous les votes nominaux", "All roll call votes") : L.T("tous-les-textes", "Tous les textes", "All votes"))</a>
                 @if (Chambres.AUneFiche(section.Chambre)) {
-                    <a class="bouton-lien" href="@L.Lien("/" + Chambres.Liste(section.Chambre))">@L.T("Tous les ", "All ")@L.T(Chambres.Membres(section.Chambre), Chambres.Membres(section.Chambre, true))</a>
+                    <a class="bouton-lien" href="@L.Lien("/" + Chambres.Liste(section.Chambre))">@L.T("tous-les", "Tous les ", "All ")@L.Membres(section.Chambre)</a>
                 }
             </p>
         </div>
 
         @if (section.Cartes.Count == 0)
         {
-            <p class="vide">@L.T("Aucun scrutin importé pour le moment.", "No votes imported yet.")</p>
+            <p class="vide">@L.T("aucun-scrutin-importe-pour-le-moment", "Aucun scrutin importé pour le moment.", "No votes imported yet.")</p>
         }
 
         <div class="cartes">
@@ -39,7 +39,7 @@
                 <article class="carte">
                     <header>
                         <time datetime="@c.Scrutin.DateScrutin.ToString("yyyy-MM-dd")">@c.Scrutin.DateScrutin.ToString("d MMMM yyyy", fr)</time>
-                        <span class="sort @(c.Scrutin.Adopte ? "adopte" : "rejete")">@(c.Scrutin.Adopte ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span>
+                        <span class="sort @(c.Scrutin.Adopte ? "adopte" : "rejete")">@(c.Scrutin.Adopte ? L.T("adopte", "✓ Adopté", "✓ Adopted") : L.T("rejete", "✗ Rejeté", "✗ Rejected"))</span>
                     </header>
                     <h3><a href="@L.Lien("/scrutin/" + c.Scrutin.Id)" title="@Titres.Info(c.Scrutin.TitreLangue(L.Anglais), c.Scrutin.InfobulleTitre(L.Anglais))">@Titres.Court(c.Scrutin.TitreLangue(L.Anglais))</a></h3>
 
@@ -48,10 +48,10 @@
                     </a>
 
                     <ul class="decompte">
-                        <li class="d-pour"><b>@c.Pour</b> @L.T("pour", "for")</li>
-                        <li class="d-contre"><b>@c.Contre</b> @L.T("contre", "against")</li>
-                        <li class="d-abstention"><b>@c.Abstention</b> @L.T("abst.", "abst.")</li>
-                        <li class="d-absent"><b>@c.Absent</b> @L.T("absents", "absent")</li>
+                        <li class="d-pour"><b>@c.Pour</b> @L.T("pour-081c", "pour", "for")</li>
+                        <li class="d-contre"><b>@c.Contre</b> @L.T("contre-6505", "contre", "against")</li>
+                        <li class="d-abstention"><b>@c.Abstention</b> @L.T("abst", "abst.", "abst.")</li>
+                        <li class="d-absent"><b>@c.Absent</b> @L.T("absents-67c7", "absents", "absent")</li>
                     </ul>
                 </article>
             }
@@ -64,12 +64,12 @@
 <hr class="separateur" />
 <aside class="encart-don" aria-labelledby="t-don">
     <div>
-        <h2 id="t-don">@L.T("Ce site est gratuit, sans publicité ni pistage", "This site is free, with no ads and no tracking")</h2>
-        <p>@L.T("Il vit de vos dons : ils financent l'hébergement, la maintenance et la suite du développement (nouvelles sources, meilleure qualité des données, historique plus ancien).", "It runs on your donations: they pay for hosting, maintenance and further development (new sources, better data quality, older history).")</p>
+        <h2 id="t-don">@L.T("ce-site-est-gratuit-sans-publicite", "Ce site est gratuit, sans publicité ni pistage", "This site is free, with no ads and no tracking")</h2>
+        <p>@L.T("il-vit-de-vos-dons-ils", "Il vit de vos dons : ils financent l'hébergement, la maintenance et la suite du développement (nouvelles sources, meilleure qualité des données, historique plus ancien).", "It runs on your donations: they pay for hosting, maintenance and further development (new sources, better data quality, older history).")</p>
     </div>
     <div class="dons">
-        <a class="bouton-don bouton-don-principal" href="https://liberapay.com/Rebisway" rel="noopener">@L.T("Don régulier", "Monthly donation")</a>
-        <a class="bouton-don" href="https://buy.stripe.com/28E28r5NraZv6dH3rvg3602" rel="noopener">@L.T("Don unique", "One-time donation")</a>
-        <a class="lien-don" href="@L.Lien("/soutenir")">@L.T("En savoir plus", "Learn more")</a>
+        <a class="bouton-don bouton-don-principal" href="https://liberapay.com/Rebisway" rel="noopener">@L.T("don-regulier", "Don régulier", "Monthly donation")</a>
+        <a class="bouton-don" href="https://buy.stripe.com/28E28r5NraZv6dH3rvg3602" rel="noopener">@L.T("don-unique", "Don unique", "One-time donation")</a>
+        <a class="lien-don" href="@L.Lien("/soutenir")">@L.T("en-savoir-plus", "En savoir plus", "Learn more")</a>
     </div>
 </aside>

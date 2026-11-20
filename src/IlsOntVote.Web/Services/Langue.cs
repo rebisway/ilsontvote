@@ -1,3 +1,4 @@
+using IlsOntVote.Web.Models;
 using System.Globalization;
 using Microsoft.AspNetCore.Html;
 
@@ -6,7 +7,7 @@ namespace IlsOntVote.Web.Services;
 /// <summary>
 /// Langue de la requête : français (racine du site) ou anglais (préfixe <c>/en</c>). Le préfixe est retiré de l'adresse par
 /// <see cref="Langue.Middleware"/> et placé dans <c>PathBase</c> : le routage voit les mêmes pages dans les deux langues, et les liens
-/// générés par ASP.NET gardent le préfixe. Les traductions s'écrivent À CÔTÉ du français, dans les pages : <c>@L.T("Lois", "Laws")</c>.
+/// générés par ASP.NET gardent le préfixe. Les traductions s'écrivent À CÔTÉ du français, dans les pages : <c>@L.T("lois-b08d", "Lois", "Laws")</c>.
 /// Les DONNÉES (titres de lois, noms de groupes) restent en français : ce sont les sources officielles.
 /// </summary>
 public sealed class Langue(IHttpContextAccessor accessor, Traductions? traductions = null)
@@ -30,22 +31,49 @@ public sealed class Langue(IHttpContextAccessor accessor, Traductions? traductio
     public CultureInfo Culture => Code switch { "fr" => Fr, "en" => En, _ => AutresCultures.GetValueOrDefault(Code, En) };
 
     /// <summary>
-    /// Texte dans la langue courante (texte simple : il sera encodé à l'affichage). Ordre : traduction de la table (clé = le texte français), puis le texte du code (français, anglais) ;
-    /// pour une autre langue sans traduction, l'anglais s'affiche et le texte est signalé « à traduire » dans /Admin/Traductions.
+    /// Texte dans la langue courante (texte simple : il sera encodé à l'affichage). <paramref name="cle"/> = identifiant STABLE du texte (jamais dérivé de la phrase : retoucher le français ou
+    /// l'anglais ne casse pas les traductions). Ordre : traduction de la table (langue, clé), puis le texte du code (français, anglais) ; pour une autre langue sans traduction, l'anglais
+    /// s'affiche et le texte est signalé « à traduire » dans /Admin/Traductions.
     /// </summary>
-    public string T(string francais, string anglais)
+    public string T(string cle, string francais, string anglais)
     {
         var code = Code;
         if (traductions is null) return code == "fr" ? francais : anglais;
-        var t = traductions.Get(code, francais);
+        var t = traductions.Get(code, cle, francais);
         if (t is not null) return t;
         if (code is "fr") return francais;
-        if (code is not "en") traductions.Manque(code, francais, anglais);
+        if (code is not "en") traductions.Manque(code, cle, francais, anglais);
         return anglais;
     }
 
     /// <summary>Texte contenant du HTML écrit par nous (liens, gras) : affiché tel quel. Jamais pour une donnée venant de la base ou de l'URL.</summary>
-    public HtmlString TH(string francais, string anglais) => new(T(francais, anglais));
+    public HtmlString TH(string cle, string francais, string anglais) => new(T(cle, francais, anglais));
+
+    /// <summary>
+    /// Texte à valeurs (« {0} votes ») : la clé désigne le MODÈLE, jamais le texte final, pour que la traduction soit la même quelle que soit la valeur. Mise en forme dans la culture de la
+    /// langue (séparateurs de milliers, dates). Texte simple : encodé à l'affichage.
+    /// </summary>
+    public string Tf(string cle, string francais, string anglais, params object?[] valeurs) => string.Format(Culture, T(cle, francais, anglais), valeurs);
+
+    /// <summary>Comme <see cref="Tf"/> pour un modèle contenant du HTML écrit par nous ; les valeurs insérées doivent être SÛRES (adresses internes, nombres) : elles ne sont pas encodées.</summary>
+    public HtmlString THf(string cle, string francais, string anglais, params object?[] valeurs) => new(Tf(cle, francais, anglais, valeurs));
+
+    // Libellés issus de données (noms de chambres, positions, thèmes, pays) : le texte français / anglais vient du code ou de la base, la clé est FIXE et dérive du code de la donnée
+    // (« chambre.SENAT.nom »), jamais du libellé.
+    /// <summary>Nom d'une chambre (« Sénat », « Chambre des Communes »).</summary>
+    public string Chambre(string code) => T("chambre." + code + ".nom", Chambres.Nom(code), Chambres.Nom(code, true));
+    /// <summary>Un membre de la chambre au singulier (« sénateur », « MP »).</summary>
+    public string Membre(string code) => T("chambre." + code + ".membre", Chambres.Membre(code), Chambres.Membre(code, true));
+    /// <summary>Les membres de la chambre au pluriel (« sénateurs », « MPs »).</summary>
+    public string Membres(string code) => T("chambre." + code + ".membres", Chambres.Membres(code), Chambres.Membres(code, true));
+    /// <summary>Sigle court de la chambre pour les étiquettes de tableau.</summary>
+    public string ChambreCourt(string code) => T("chambre." + code + ".court", Chambres.Court(code), Chambres.Court(code, true));
+    /// <summary>Libellé d'une position de vote (« Pour », « Contre »…).</summary>
+    public string Position(string position) => T("position." + position, Pos.Libelle(position), Pos.Libelle(position, true));
+    /// <summary>Nom d'un thème de la liste de filtrage.</summary>
+    public string Theme(Theme theme) => T("theme." + theme.Code, theme.NomFr, theme.NomEn);
+    /// <summary>Nom d'un pays (sélecteur d'en-tête) ; la clé dérive du code ISO.</summary>
+    public string NomPays(string code, string francais, string anglais) => T("pays." + code, francais, anglais);
 
     /// <summary>Adresse interne (« /lois ») avec le préfixe de la langue courante.</summary>
     public string Lien(string chemin)

@@ -36,10 +36,10 @@ public class BillsModel(IBillRepository bills, Langue langue) : ListePageModel
     /// </summary>
     public static string StatutLibelle(Bill b, Langue l) => b.StatutCle switch
     {
-        "loi" => l.T("Loi", "Act") + (b.DateLoi is { } d ? l.T(" · sanction royale le ", " · Royal Assent ") + d.ToString("d MMM yyyy", l.Culture) : ""),
-        "rejete" => l.T("Rejeté", "Defeated"),
-        "retire" => l.T("Retiré", "Withdrawn"),
-        _ => b.EtapeCourante ?? l.T("En cours", "In progress"),
+        "loi" => l.T("loi-a3bb", "Loi", "Act") + (b.DateLoi is { } d ? l.T("sanction-royale-le", " · sanction royale le ", " · Royal Assent ") + d.ToString("d MMM yyyy", l.Culture) : ""),
+        "rejete" => l.T("rejete-cf6a", "Rejeté", "Defeated"),
+        "retire" => l.T("retire", "Retiré", "Withdrawn"),
+        _ => b.EtapeCourante ?? l.T("en-cours-34e5", "En cours", "In progress"),
     };
 
     /// <summary>
@@ -60,18 +60,18 @@ public class BillsModel(IBillRepository bills, Langue langue) : ListePageModel
 
     private IReadOnlyList<Colonne<Bill>> ColonnesExport() =>
     [
-        new(langue.T("Projet de loi", "Bill"), b => b.Titre),
-        new(langue.T("Statut", "Status"), b => b.StatutCle),
-        new(langue.T("Étape en cours", "Current stage"), b => b.EtapeCourante),
-        new(langue.T("Chambre d'origine", "Originating house"), b => b.ChambreOrigine),
-        new(langue.T("Chambre actuelle", "Current house"), b => b.ChambreCourante),
-        new(langue.T("Première séance", "First sitting"), b => b.DateDepot),
-        new(langue.T("Sanction royale", "Royal Assent"), b => b.DateLoi),
-        new(langue.T("Retiré le", "Withdrawn on"), b => b.RetireLe),
-        new(langue.T("Divisions rattachées (calculé)", "Divisions linked (computed)"), b => b.NbDivisions),
-        new(langue.T("Dernière mise à jour", "Last update"), b => b.DerniereMaj),
+        new(langue.T("projet-de-loi", "Projet de loi", "Bill"), b => b.Titre),
+        new(langue.T("statut", "Statut", "Status"), b => b.StatutCle),
+        new(langue.T("etape-en-cours", "Étape en cours", "Current stage"), b => b.EtapeCourante),
+        new(langue.T("chambre-d-origine", "Chambre d'origine", "Originating house"), b => b.ChambreOrigine),
+        new(langue.T("chambre-actuelle", "Chambre actuelle", "Current house"), b => b.ChambreCourante),
+        new(langue.T("premiere-seance", "Première séance", "First sitting"), b => b.DateDepot),
+        new(langue.T("sanction-royale", "Sanction royale", "Royal Assent"), b => b.DateLoi),
+        new(langue.T("retire-le", "Retiré le", "Withdrawn on"), b => b.RetireLe),
+        new(langue.T("divisions-rattachees-calcule", "Divisions rattachées (calculé)", "Divisions linked (computed)"), b => b.NbDivisions),
+        new(langue.T("derniere-mise-a-jour", "Dernière mise à jour", "Last update"), b => b.DerniereMaj),
         new("URL", b => b.Url),
-        new(langue.T("Identifiant", "Identifier"), b => b.Id),
+        new(langue.T("identifiant-67e9", "Identifiant", "Identifier"), b => b.Id),
     ];
 
     public async Task<IActionResult> OnGetAsync()

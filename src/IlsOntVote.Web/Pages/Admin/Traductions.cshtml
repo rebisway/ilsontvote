@@ -7,8 +7,9 @@
 <partial name="_AdminNav" />
 <h1 class="titre-page">Traductions de l'interface</h1>
 <p class="chapo">
-    La clé est le <strong>texte français</strong> écrit dans la page. Une traduction enregistrée ici remplace celui du code pour la langue choisie, sans déploiement ; sans traduction, le code s'applique
-    (français, anglais) et l'anglais sert de repli pour les autres langues. Les données (titres de lois, noms de groupes) ne sont pas concernées. Pour ajouter une langue (espagnol, italien…), saisir son
+    La clé est un <strong>identifiant stable</strong> écrit dans la page (jamais la phrase elle-même : retoucher le français ne casse pas les traductions). Une traduction enregistrée ici remplace le
+    texte du code pour la langue choisie, sans déploiement ; sans traduction, le code s'applique (français, anglais) et l'anglais sert de repli pour les autres langues. Chaque traduction garde le
+    <strong>français qu'elle traduit</strong> : si la phrase de la page change ensuite, la traduction apparaît dans « Périmées » pour être relue. Les données (titres de lois, noms de groupes) ne sont pas concernées. Pour ajouter une langue (espagnol, italien…), saisir son
     code à deux lettres ci-dessous puis traduire les textes de la liste « à traduire » (ceux que les pages ont demandés depuis le démarrage de l'application).
 </p>
 
@@ -32,19 +33,51 @@
     <p class="note-source">Textes demandés par les pages en « @Model.Langue » sans traduction depuis le démarrage. L'anglais s'affiche en attendant.</p>
     <div class="table-wrap">
         <table>
-            <thead><tr><th>Français (clé)</th><th>Anglais (repli)</th><th>Traduction « @Model.Langue »</th></tr></thead>
+            <thead><tr><th>Clé</th><th>Français</th><th>Anglais (repli)</th><th>Traduction « @Model.Langue »</th></tr></thead>
             <tbody>
-            @foreach (var (cle, repli) in Model.AFaire)
+            @foreach (var a in Model.AFaire)
             {
                 <tr>
-                    <td>@cle</td>
-                    <td>@repli</td>
+                    <td><code>@a.Cle</code></td>
+                    <td>@a.Fr</td>
+                    <td>@a.En</td>
                     <td>
                         <form method="post" asp-page-handler="Enregistrer" class="ligne-form">
                             <input type="hidden" name="langue" value="@Model.Langue" />
-                            <input type="hidden" name="cle" value="@cle" />
+                            <input type="hidden" name="cle" value="@a.Cle" />
+                            <input type="hidden" name="sourceFr" value="@a.Fr" />
                             <input type="text" name="texte" class="champ-large" aria-label="Traduction" />
                             <button type="submit" class="bouton petit">Enregistrer</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (Model.Perimees.Count > 0)
+{
+    <h2>Périmées (@Model.Perimees.Count)</h2>
+    <p class="note-source">La phrase française de la page a changé depuis que ces traductions ont été écrites : elles s'affichent encore. Relire, corriger puis enregistrer (le français actuel devient la nouvelle source).</p>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Clé</th><th>Français traduit</th><th>Français actuel</th><th>Traduction « @Model.Langue »</th></tr></thead>
+            <tbody>
+            @foreach (var p in Model.Perimees)
+            {
+                <tr>
+                    <td><code>@p.Cle</code></td>
+                    <td>@p.FrTraduit</td>
+                    <td>@p.FrActuel</td>
+                    <td>
+                        <form method="post" asp-page-handler="Enregistrer" class="ligne-form">
+                            <input type="hidden" name="langue" value="@Model.Langue" />
+                            <input type="hidden" name="cle" value="@p.Cle" />
+                            <input type="hidden" name="sourceFr" value="@p.FrActuel" />
+                            <input type="text" name="texte" value="@p.Texte" class="champ-large" aria-label="Traduction" />
+                            <button type="submit" class="bouton petit">Valider</button>
                         </form>
                     </td>
                 </tr>
@@ -63,12 +96,13 @@ else
 {
     <div class="table-wrap">
         <table>
-            <thead><tr><th>Français (clé)</th><th>Traduction</th><th></th></tr></thead>
+            <thead><tr><th>Clé</th><th>Français traduit</th><th>Traduction</th><th></th></tr></thead>
             <tbody>
             @foreach (var t in Model.Lignes)
             {
                 <tr>
-                    <td>@t.Cle</td>
+                    <td><code>@t.Cle</code></td>
+                    <td>@t.SourceFr</td>
                     <td>
                         <form method="post" asp-page-handler="Enregistrer" class="ligne-form">
                             <input type="hidden" name="langue" value="@Model.Langue" />
@@ -94,7 +128,8 @@ else
 <h2>Ajouter une traduction</h2>
 <form method="post" asp-page-handler="Enregistrer" class="ligne-form">
     <input type="hidden" name="langue" value="@Model.Langue" />
-    <input type="text" name="cle" class="champ-large" placeholder="Texte français exact, tel qu'il est dans la page" aria-label="Texte français" />
+    <input type="text" name="cle" class="champ-large" placeholder="Clé de la page (ex. accueil-accroche)" aria-label="Clé" />
+    <input type="text" name="sourceFr" class="champ-large" placeholder="Français traduit (facultatif)" aria-label="Français traduit" />
     <input type="text" name="texte" class="champ-large" placeholder="Traduction en « @Model.Langue »" aria-label="Traduction" />
     <button type="submit" class="bouton petit">Ajouter</button>
 </form>

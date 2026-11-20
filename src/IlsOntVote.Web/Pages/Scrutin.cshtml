@@ -6,14 +6,14 @@
     var s = Model.Scrutin;
     ViewData["OgImage"] = L.Lien("/apercu/scrutin/" + s.Id + ".png");
     ViewData["Description"] = L.Code == "it"
-        ? $"{(s.Adopte ? "Approvato" : "Respinto")}: {s.NbPour} a favore, {s.NbContre} contro, {s.NbAbstentions} astenuti ({s.DateScrutin.ToString("d MMMM yyyy", L.Culture)}, {L.T(Chambres.Nom(s.Chambre), Chambres.Nom(s.Chambre, true))}). Vedete chi ha votato cosa, gruppo per gruppo."
+        ? $"{(s.Adopte ? "Approvato" : "Respinto")}: {s.NbPour} a favore, {s.NbContre} contro, {s.NbAbstentions} astenuti ({s.DateScrutin.ToString("d MMMM yyyy", L.Culture)}, {L.Chambre(s.Chambre)}). Vedete chi ha votato cosa, gruppo per gruppo."
         : L.Anglais
         ? $"{(s.Adopte ? "Adopted" : "Rejected")}: {s.NbPour} for, {s.NbContre} against, {s.NbAbstentions} abstentions ({s.DateScrutin.ToString("d MMMM yyyy", L.Culture)}, {Chambres.Nom(s.Chambre, true)}). See who voted what, group by group."
         : $"{(s.Adopte ? "Adopté" : "Rejeté")} : {s.NbPour} pour, {s.NbContre} contre, {s.NbAbstentions} abstentions ({s.DateScrutin.ToString("d MMMM yyyy", L.Culture)}, {Chambres.Nom(s.Chambre)}). Voyez qui a voté quoi, groupe par groupe.";
     var titre = s.TitreLangue(L.Anglais);
     ViewData["Title"] = titre.Length > 60 ? titre[..60] + "…" : titre;
     var fr = L.Culture;
-    string Libelle(string p) => L.T(Pos.Libelle(p), Pos.Libelle(p, true));
+    string Libelle(string p) => L.Position(p);
     // Types de vote publiés par les assemblées (données françaises) : traduits quand on les connaît, sinon laissés tels quels.
     string TypeVoteLangue(string t) => !L.Anglais ? t : t.ToLowerInvariant() switch
     {
@@ -25,26 +25,26 @@
 }
 
 <div class="retour retour-nav">
-    <a href="@L.Lien("/textes")">@L.T("← Tous les textes", "← All votes")</a>
-    <nav class="voisins" aria-label="@L.T("Scrutin précédent et suivant", "Previous and next vote")">
+    <a href="@L.Lien("/textes")">@L.T("tous-les-textes-a316", "← Tous les textes", "← All votes")</a>
+    <nav class="voisins" aria-label="@L.T("scrutin-precedent-et-suivant", "Scrutin précédent et suivant", "Previous and next vote")">
         @if (Model.Voisins.Precedent is { } prec)
         {
-            <a rel="prev" href="@L.Lien("/scrutin/" + prec.Id)" title="@prec.DateScrutin.ToString("d MMM yyyy", fr) — @Titres.Court(prec.TitreLangue(L.Anglais), 120)">← @L.T("Précédent", "Previous")</a>
+            <a rel="prev" href="@L.Lien("/scrutin/" + prec.Id)" title="@prec.DateScrutin.ToString("d MMM yyyy", fr) — @Titres.Court(prec.TitreLangue(L.Anglais), 120)">← @L.T("precedent-fcf3", "Précédent", "Previous")</a>
         }
         @if (Model.Voisins.Suivant is { } suiv)
         {
-            <a rel="next" href="@L.Lien("/scrutin/" + suiv.Id)" title="@suiv.DateScrutin.ToString("d MMM yyyy", fr) — @Titres.Court(suiv.TitreLangue(L.Anglais), 120)">@L.T("Suivant", "Next") →</a>
+            <a rel="next" href="@L.Lien("/scrutin/" + suiv.Id)" title="@suiv.DateScrutin.ToString("d MMM yyyy", fr) — @Titres.Court(suiv.TitreLangue(L.Anglais), 120)">@L.T("suivant-78a0", "Suivant", "Next") →</a>
         }
     </nav>
 </div>
 
 <header class="scrutin-tete">
     <p class="meta">
-        @L.T(Chambres.Nom(s.Chambre), Chambres.Nom(s.Chambre, true)) · @if (s.Chambre is Chambres.IeDail or Chambres.IeSeanad) { <text>@L.T("division", "division") · </text> } else { <text>@(s.Chambre is Chambres.Commons or Chambres.Lords ? L.T("division n°", "division no.") : Chambres.EstNominal(s.Chambre) ? L.T("vote nominal n°", "roll call no.") : L.T("scrutin n°", "vote no.")) @s.Numero · </text> }<time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMMM yyyy", fr)</time>
-        @if (s.Sort is not null) { <text>· </text><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("✓ Adopté", "✓ Adopted") : L.T("✗ Rejeté", "✗ Rejected"))</span> }
+        @L.Chambre(s.Chambre) · @if (s.Chambre is Chambres.IeDail or Chambres.IeSeanad) { <text>@L.T("division", "division", "division") · </text> } else { <text>@(s.Chambre is Chambres.Commons or Chambres.Lords ? L.T("division-n", "division n°", "division no.") : Chambres.EstNominal(s.Chambre) ? L.T("vote-nominal-n", "vote nominal n°", "roll call no.") : L.T("scrutin-n", "scrutin n°", "vote no.")) @s.Numero · </text> }<time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMMM yyyy", fr)</time>
+        @if (s.Sort is not null) { <text>· </text><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("adopte", "✓ Adopté", "✓ Adopted") : L.T("rejete", "✗ Rejeté", "✗ Rejected"))</span> }
     </p>
     <h1>@Titres.Court(titre, 400)</h1>
-    @if (titre.Length > 400) { <details class="titre-complet"><summary>@L.T("Titre complet", "Full title")</summary><p>@titre</p></details> }
+    @if (titre.Length > 400) { <details class="titre-complet"><summary>@L.T("titre-complet", "Titre complet", "Full title")</summary><p>@titre</p></details> }
 <partial name="_OrdreNom" />
 </header>
 @if (s.TitreTraduitAuto(L.Anglais))
@@ -80,85 +80,85 @@
 @* Sans bloc « texte » (UE, vote isolé) : le bouton reste seul ; sinon il est dans la rangée des raccourcis du bloc. *@
 @if (Model.Loi is null && Model.Bill is null && !Chambres.EstNominal(s.Chambre))
 {
-    <section class="bloc-texte" aria-label="@L.T("Résumé par IA", "AI summary")"><div class="bloc-texte-titre"><partial name="_ResumeIA" model="promptIA" /></div></section>
+    <section class="bloc-texte" aria-label="@L.T("resume-par-ia", "Résumé par IA", "AI summary")"><div class="bloc-texte-titre"><partial name="_ResumeIA" model="promptIA" /></div></section>
 }
 @if (Chambres.EstNominal(s.Chambre))
 {
-    <section class="bloc-texte" aria-label="@L.T("Source", "Source")">
-        <div class="bloc-texte-titre">@if (s.Chambre == Chambres.UsSenate) { @Doute.Html(NiveauDoute.Calcule, L.T("source tierce", "third-party source"), L.T("Votes du Sénat retraités par Voteview (UCLA, Université de Géorgie) d'après les enregistrements officiels : senate.gov n'est pas accessible aux robots.", "Senate votes reprocessed by Voteview (UCLA, University of Georgia) from the official records: senate.gov is not open to automated clients.")) }
-            @if (s.UrlOfficielle is { } urlOff) { <a class="raccourci" href="@urlOff" rel="noopener" target="_blank">@L.T("Enregistrement officiel", "Official record") ↗</a> }
-            @if (s.SurEnsemble && s.Chambre is not (Chambres.ItCamera or Chambres.ItSenate)) { @Doute.Html(NiveauDoute.Calcule, L.T("vote sur l'ensemble", "vote on the whole"), L.T("Repéré par ce site d'après la question posée (adoption finale, nomination, « suspend the rules and pass ») : le Congrès ne publie pas cette distinction.", "Found by this site from the question put (final passage, nomination, “suspend the rules and pass”): Congress does not publish that distinction.")) }
+    <section class="bloc-texte" aria-label="@L.T("source", "Source", "Source")">
+        <div class="bloc-texte-titre">@if (s.Chambre == Chambres.UsSenate) { @Doute.Html(NiveauDoute.Calcule, L.T("source-tierce", "source tierce", "third-party source"), L.T("votes-du-senat-retraites-par-voteview", "Votes du Sénat retraités par Voteview (UCLA, Université de Géorgie) d'après les enregistrements officiels : senate.gov n'est pas accessible aux robots.", "Senate votes reprocessed by Voteview (UCLA, University of Georgia) from the official records: senate.gov is not open to automated clients.")) }
+            @if (s.UrlOfficielle is { } urlOff) { <a class="raccourci" href="@urlOff" rel="noopener" target="_blank">@L.T("enregistrement-officiel", "Enregistrement officiel", "Official record") ↗</a> }
+            @if (s.SurEnsemble && s.Chambre is not (Chambres.ItCamera or Chambres.ItSenate)) { @Doute.Html(NiveauDoute.Calcule, L.T("vote-sur-l-ensemble", "vote sur l'ensemble", "vote on the whole"), L.T("repere-par-ce-site-d-apres", "Repéré par ce site d'après la question posée (adoption finale, nomination, « suspend the rules and pass ») : le Congrès ne publie pas cette distinction.", "Found by this site from the question put (final passage, nomination, “suspend the rules and pass”): Congress does not publish that distinction.")) }
             <partial name="_ResumeIA" model="promptIA" />
         </div>
     </section>
 }
 @if (Model.Bill is { } bill)
 {
-    <section class="bloc-texte" aria-label="@L.T("Projet de loi", "Bill")">
-        <div class="bloc-texte-titre"><span class="statut">@L.T("Projet de loi", "Bill")</span>
+    <section class="bloc-texte" aria-label="@L.T("projet-de-loi", "Projet de loi", "Bill")">
+        <div class="bloc-texte-titre"><span class="statut">@L.T("projet-de-loi", "Projet de loi", "Bill")</span>
             <a href="@L.Lien("/bill/" + bill.Id)">@bill.Titre</a>
             @if (bill.Etape is not null) { <span class="note-source">· @bill.Etape</span> }
-            @Doute.Html(NiveauDoute.Calcule, L.T("calculé", "computed"), L.T("Rattaché par ce site d'après le titre de la division ; le Parlement ne publie pas ce lien.", "Linked by this site from the division title; Parliament does not publish this link."))
-            <a class="raccourci" href="https://bills.parliament.uk/bills/@bill.Id" rel="noopener" target="_blank">@L.T("Texte du projet", "Bill text") ↗</a>
+            @Doute.Html(NiveauDoute.Calcule, L.T("calcule", "calculé", "computed"), L.T("rattache-par-ce-site-d-apres", "Rattaché par ce site d'après le titre de la division ; le Parlement ne publie pas ce lien.", "Linked by this site from the division title; Parliament does not publish this link."))
+            <a class="raccourci" href="https://bills.parliament.uk/bills/@bill.Id" rel="noopener" target="_blank">@L.T("texte-du-projet", "Texte du projet", "Bill text") ↗</a>
             <partial name="_ResumeIA" model="promptIA" /></div>
     </section>
 }
 @if (Model.Loi is { } loi)
 {
     var statutLoi = loi.Statut.Traduit(L.Anglais);
-    <section class="bloc-texte" aria-label="@L.T("Le texte voté", "The text voted")">
+    <section class="bloc-texte" aria-label="@L.T("le-texte-vote", "Le texte voté", "The text voted")">
         <div class="bloc-texte-titre"><span class="statut @statutLoi.Classe">@statutLoi.Libelle</span>
-            <a class="raccourci" href="@L.Lien("/texte/" + loi.Id)">@L.T("Voir tout le parcours de ce texte →", "See this text's full journey →")</a>
-            @if (!string.IsNullOrEmpty(loi.UrlLegifrance)) { <a class="raccourci" href="@loi.UrlLegifrance" rel="noopener" target="_blank">@L.T("Texte sur Légifrance", "Text on Légifrance") ↗</a> }
-            @if (!string.IsNullOrEmpty(loi.UrlDossierSenat)) { <a class="raccourci" href="@loi.UrlDossierSenat" rel="noopener" target="_blank">@L.T("Dossier législatif", "Legislative file") ↗</a> }
+            <a class="raccourci" href="@L.Lien("/texte/" + loi.Id)">@L.T("voir-tout-le-parcours-de-ce", "Voir tout le parcours de ce texte →", "See this text's full journey →")</a>
+            @if (!string.IsNullOrEmpty(loi.UrlLegifrance)) { <a class="raccourci" href="@loi.UrlLegifrance" rel="noopener" target="_blank">@L.T("texte-sur-legifrance", "Texte sur Légifrance", "Text on Légifrance") ↗</a> }
+            @if (!string.IsNullOrEmpty(loi.UrlDossierSenat)) { <a class="raccourci" href="@loi.UrlDossierSenat" rel="noopener" target="_blank">@L.T("dossier-legislatif", "Dossier législatif", "Legislative file") ↗</a> }
             <partial name="_ResumeIA" model="promptIA" />
         </div>
         <p class="bloc-texte-faits">
-            @if (loi.DatePromulgation is not null) { <span>@L.T("Promulgué le", "Promulgated on") <b>@loi.DatePromulgation.Value.ToString("d MMMM yyyy", fr)</b></span> }
-            @if (loi.DateJo is not null) { <span>@L.T("Paru au Journal officiel le", "Published in the Official Journal on") <b>@loi.DateJo.Value.ToString("d MMMM yyyy", fr)</b></span> }
-            @if (!string.IsNullOrEmpty(loi.NumeroLoi)) { <span>@L.T("Loi n°", "Law no.") <b>@loi.NumeroLoi</b></span> }
-            @if (loi.DecisionCcLibelle is not null) { <span>@L.T("Conseil constitutionnel :", "Constitutional Council:") <b>@loi.DecisionCcLibelle</b></span> }
+            @if (loi.DatePromulgation is not null) { <span>@L.T("promulgue-le", "Promulgué le", "Promulgated on") <b>@loi.DatePromulgation.Value.ToString("d MMMM yyyy", fr)</b></span> }
+            @if (loi.DateJo is not null) { <span>@L.T("paru-au-journal-officiel-le", "Paru au Journal officiel le", "Published in the Official Journal on") <b>@loi.DateJo.Value.ToString("d MMMM yyyy", fr)</b></span> }
+            @if (!string.IsNullOrEmpty(loi.NumeroLoi)) { <span>@L.T("loi-n-ecbf", "Loi n°", "Law no.") <b>@loi.NumeroLoi</b></span> }
+            @if (loi.DecisionCcLibelle is not null) { <span>@L.T("conseil-constitutionnel", "Conseil constitutionnel :", "Constitutional Council:") <b>@loi.DecisionCcLibelle</b></span> }
         </p>
     </section>
 }
 
-<section class="fiche-vote" aria-label="@L.T("Caractéristiques du vote", "Vote details")">
+<section class="fiche-vote" aria-label="@L.T("caracteristiques-du-vote", "Caractéristiques du vote", "Vote details")">
     <dl>
-        <div><dt>@L.T("Type de vote", "Type of vote")</dt><dd>@typeVote</dd></div>
-        <div><dt>@L.T("Votants", "Voters")</dt><dd>@(s.NbVotants?.ToString("N0", fr) ?? "—")</dd><dd class="detail">@(s.NbNonVotants is > 0 ? (L.Code == "it" ? $"{s.NbNonVotants} non votanti" : L.Anglais ? $"{s.NbNonVotants} non-voting" : $"{s.NbNonVotants} non-votant{(s.NbNonVotants > 1 ? "s" : "")}") : "")</dd></div>
-        <div><dt>@L.T("Suffrages exprimés", "Votes cast")</dt><dd>@exprimes.ToString("N0", fr)</dd><dd class="detail">@L.T("pour + contre (hors abstentions)", "for + against (excluding abstentions)")</dd></div>
+        <div><dt>@L.T("type-de-vote", "Type de vote", "Type of vote")</dt><dd>@typeVote</dd></div>
+        <div><dt>@L.T("votants", "Votants", "Voters")</dt><dd>@(s.NbVotants?.ToString("N0", fr) ?? "—")</dd><dd class="detail">@(s.NbNonVotants is > 0 ? (L.Code == "it" ? $"{s.NbNonVotants} non votanti" : L.Anglais ? $"{s.NbNonVotants} non-voting" : $"{s.NbNonVotants} non-votant{(s.NbNonVotants > 1 ? "s" : "")}") : "")</dd></div>
+        <div><dt>@L.T("suffrages-exprimes", "Suffrages exprimés", "Votes cast")</dt><dd>@exprimes.ToString("N0", fr)</dd><dd class="detail">@L.T("pour-contre-hors-abstentions", "pour + contre (hors abstentions)", "for + against (excluding abstentions)")</dd></div>
         @if (s.SuffragesRequis is not null)
         {
             <div>
-                <dt>@L.T("Majorité requise", "Majority required")</dt>
-                <dd>@s.SuffragesRequis.Value.ToString("N0", fr) @L.T("voix", "votes")</dd>
-                <dd class="detail">@(string.IsNullOrWhiteSpace(s.TypeMajorite) ? L.T("pour être adopté", "to be adopted") : char.ToUpperInvariant(s.TypeMajorite.Trim()[0]) + s.TypeMajorite.Trim()[1..])</dd>
+                <dt>@L.T("majorite-requise", "Majorité requise", "Majority required")</dt>
+                <dd>@s.SuffragesRequis.Value.ToString("N0", fr) @L.T("voix", "voix", "votes")</dd>
+                <dd class="detail">@(string.IsNullOrWhiteSpace(s.TypeMajorite) ? L.T("pour-etre-adopte", "pour être adopté", "to be adopted") : char.ToUpperInvariant(s.TypeMajorite.Trim()[0]) + s.TypeMajorite.Trim()[1..])</dd>
             </div>
         }
     </dl>
 
-    <div class="jauge" role="img" aria-label="@L.T("Pour", "For") @s.NbPour, @L.T("contre", "against") @s.NbContre@(s.SuffragesRequis is null ? "" : L.T($", majorité requise {s.SuffragesRequis}", $", majority required {s.SuffragesRequis}"))">
+    <div class="jauge" role="img" aria-label="@L.T("pour-2ecc", "Pour", "For") @s.NbPour, @L.T("contre-6505", "contre", "against") @s.NbContre@(s.SuffragesRequis is null ? "" : L.Tf("jauge-majorite-requise", ", majorité requise {0}", ", majority required {0}", s.SuffragesRequis))">
         <span class="j-pour" style="width:@(Pc(s.NbPour))%"></span>
         <span class="j-contre" style="width:@(Pc(s.NbContre))%"></span>
         @if (s.SuffragesRequis is not null)
         {
-            <i class="j-seuil" style="left:@(Pc(s.SuffragesRequis))%" title="@L.T("Majorité requise", "Majority required") : @s.SuffragesRequis @L.T("voix", "votes")"></i>
+            <i class="j-seuil" style="left:@(Pc(s.SuffragesRequis))%" title="@L.T("majorite-requise", "Majorité requise", "Majority required") : @s.SuffragesRequis @L.T("voix", "voix", "votes")"></i>
         }
     </div>
     <p class="jauge-legende">
-        <span class="c-pour"><b>@s.NbPour</b> @L.T("pour", "for")</span>
-        <span class="c-contre"><b>@s.NbContre</b> @L.T("contre", "against")</span>
-        <span class="c-abstention"><b>@s.NbAbstentions</b> @L.T("abstention", "abstention")@(s.NbAbstentions > 1 ? "s" : "")</span>
+        <span class="c-pour"><b>@s.NbPour</b> @L.T("pour-081c", "pour", "for")</span>
+        <span class="c-contre"><b>@s.NbContre</b> @L.T("contre-6505", "contre", "against")</span>
+        <span class="c-abstention"><b>@s.NbAbstentions</b> @L.T("abstention-8420", "abstention", "abstention")@(s.NbAbstentions > 1 ? "s" : "")</span>
     </p>
 </section>
 
 @if (s.NominatifIncomplet)
 {
     <p class="alerte" role="note">
-        @Doute.Html(NiveauDoute.Incertain, L.T("décompte incomplet", "incomplete count"), L.T("La source ne détaille pas tous les votes de ce scrutin.", "The source does not detail every vote of this ballot."))
+        @Doute.Html(NiveauDoute.Incertain, L.T("decompte-incomplet", "décompte incomplet", "incomplete count"), L.T("la-source-ne-detaille-pas-tous", "La source ne détaille pas tous les votes de ce scrutin.", "The source does not detail every vote of this ballot."))
         @if (L.Code == "it")
         {
-            <text>Dati ufficiali incompleti: per questa votazione, la @L.T(Chambres.Nom(s.Chambre), Chambres.Nom(s.Chambre, true)) non dettaglia il voto di @s.NbVotesManquants @L.T(s.NbVotesManquants > 1 ? Chambres.Membres(s.Chambre) : Chambres.Membre(s.Chambre), s.NbVotesManquants > 1 ? Chambres.Membres(s.Chambre, true) : Chambres.Membre(s.Chambre, true)). Alcuni «assenti» qui sotto potrebbero quindi aver votato; fanno fede solo i totali ufficiali.</text>
+            <text>Dati ufficiali incompleti: per questa votazione, la @L.Chambre(s.Chambre) non dettaglia il voto di @s.NbVotesManquants @(s.NbVotesManquants > 1 ? L.Membres(s.Chambre) : L.Membre(s.Chambre)). Alcuni «assenti» qui sotto potrebbero quindi aver votato; fanno fede solo i totali ufficiali.</text>
         }
         else if (L.Anglais)
         {
@@ -175,14 +175,14 @@
 
 @if (s.Chambre == Chambres.Senat)
 {
-    <p class="note-source">@L.T("Au Sénat, « absent » signifie « n'a pas pris part au vote » : un sénateur absent de l'hémicycle peut y avoir fait voter un collègue par délégation, ce qui compte comme un vote.", "In the Senate, “absent” means “did not take part in the vote”: a senator absent from the chamber may have had a colleague vote for them by proxy, which counts as a vote.")</p>
+    <p class="note-source">@L.T("au-senat-absent-signifie-n-a", "Au Sénat, « absent » signifie « n'a pas pris part au vote » : un sénateur absent de l'hémicycle peut y avoir fait voter un collègue par délégation, ce qui compte comme un vote.", "In the Senate, “absent” means “did not take part in the vote”: a senator absent from the chamber may have had a colleague vote for them by proxy, which counts as a vote.")</p>
 }
 
-<div class="bascule" role="group" aria-label="@L.T("Colorer les points", "Colour the dots")">
-    <span>@L.T("Colorer par :", "Colour by:")</span>
-    <button type="button" class="actif" data-mode="vote">@L.T("Vote", "Vote")</button>
-    <button type="button" data-mode="groupe">@L.T("Groupe", "Group")</button>
-    <label class="case anneau-case"><input type="checkbox" id="anneau" /> @L.T("Cercle de groupe", "Group ring")</label>
+<div class="bascule" role="group" aria-label="@L.T("colorer-les-points", "Colorer les points", "Colour the dots")">
+    <span>@L.T("colorer-par", "Colorer par :", "Colour by:")</span>
+    <button type="button" class="actif" data-mode="vote">@L.T("vote", "Vote", "Vote")</button>
+    <button type="button" data-mode="groupe">@L.T("groupe", "Groupe", "Group")</button>
+    <label class="case anneau-case"><input type="checkbox" id="anneau" /> @L.T("cercle-de-groupe", "Cercle de groupe", "Group ring")</label>
 </div>
 
 <div class="hemicycle-grand" id="hemicycle">
@@ -190,11 +190,11 @@
 </div>
 
 <ul class="legende" id="legende-vote">
-    <li class="d-pour"><i></i> @L.T("Pour", "For") <b>@Model.Sieges.Count(x => x.Position == Pos.Pour)</b></li>
-    <li class="d-contre"><i></i> @L.T("Contre", "Against") <b>@Model.Sieges.Count(x => x.Position == Pos.Contre)</b></li>
-    <li class="d-abstention"><i></i> @L.T("Abstention", "Abstention") <b>@Model.Sieges.Count(x => x.Position == Pos.Abstention)</b></li>
-    <li class="d-nonvotant"><i></i> @L.T("Non-votant", "Non-voting") <b>@Model.Sieges.Count(x => x.Position == Pos.NonVotant)</b></li>
-    <li class="d-absent"><i></i> @L.T("Absent", "Absent") <b>@Model.Sieges.Count(x => x.Position == Pos.Absent)</b></li>
+    <li class="d-pour"><i></i> @L.T("pour-2ecc", "Pour", "For") <b>@Model.Sieges.Count(x => x.Position == Pos.Pour)</b></li>
+    <li class="d-contre"><i></i> @L.T("contre-b885", "Contre", "Against") <b>@Model.Sieges.Count(x => x.Position == Pos.Contre)</b></li>
+    <li class="d-abstention"><i></i> @L.T("abstention", "Abstention", "Abstention") <b>@Model.Sieges.Count(x => x.Position == Pos.Abstention)</b></li>
+    <li class="d-nonvotant"><i></i> @L.T("non-votant", "Non-votant", "Non-voting") <b>@Model.Sieges.Count(x => x.Position == Pos.NonVotant)</b></li>
+    <li class="d-absent"><i></i> @L.T("absent", "Absent", "Absent") <b>@Model.Sieges.Count(x => x.Position == Pos.Absent)</b></li>
 </ul>
 
 <ul class="legende" id="legende-groupe" hidden>
@@ -215,30 +215,30 @@
 }
 @if (s.Chambre == Chambres.Commons && (ecartPour > 0 || ecartContre > 0))
 {
-    <p class="note-source">@Doute.Html(NiveauDoute.Calcule, L.T("scrutateurs", "tellers"), L.T("Écart calculé par le site entre le décompte officiel et les votes listés : il correspond aux scrutateurs, que la source liste à part.", "Difference calculated by the site between the official count and the listed votes: it matches the tellers, whom the source lists separately."))
-        @L.T($"Le décompte officiel ({s.NbPour} pour, {s.NbContre} contre) est le nombre de noms des listes « ayes » et « noes ». Les scrutateurs ({ecartPour} pour, {ecartContre} contre), listés à part par la source, ont voté : ils figurent dans l'hémicycle et les totaux par groupe ({pourListe} pour, {contreListe} contre). Les votes par procuration ({procurations}) sont compris dans les deux décomptes.",
-             $"The official count ({s.NbPour} ayes, {s.NbContre} noes) is the number of names in the ayes and noes lists. The tellers ({ecartPour} ayes, {ecartContre} noes), listed separately by the source, voted: they appear in the seating chart and the group totals ({pourListe} ayes, {contreListe} noes). Proxy votes ({procurations}) are included in both counts.")</p>
+    <p class="note-source">@Doute.Html(NiveauDoute.Calcule, L.T("scrutateurs", "scrutateurs", "tellers"), L.T("ecart-calcule-par-le-site-entre", "Écart calculé par le site entre le décompte officiel et les votes listés : il correspond aux scrutateurs, que la source liste à part.", "Difference calculated by the site between the official count and the listed votes: it matches the tellers, whom the source lists separately."))
+        @L.Tf("scrutateurs-decompte-officiel", "Le décompte officiel ({0} pour, {1} contre) est le nombre de noms des listes « ayes » et « noes ». Les scrutateurs ({2} pour, {3} contre), listés à part par la source, ont voté : ils figurent dans l'hémicycle et les totaux par groupe ({4} pour, {5} contre). Les votes par procuration ({6}) sont compris dans les deux décomptes.",
+             "The official count ({0} ayes, {1} noes) is the number of names in the ayes and noes lists. The tellers ({2} ayes, {3} noes), listed separately by the source, voted: they appear in the seating chart and the group totals ({4} ayes, {5} noes). Proxy votes ({6}) are included in both counts.", s.NbPour, s.NbContre, ecartPour, ecartContre, pourListe, contreListe, procurations)</p>
 }
 @if (!string.IsNullOrWhiteSpace(s.Note))
 {
     @if (s.Chambre == Chambres.UE)
     {
-        <p class="note-source">@Doute.Html(NiveauDoute.Calcule, L.T("source tierce", "third-party source"), L.T("Données du Parlement européen retraitées par un projet indépendant, pas publiées directement par l'institution.", "European Parliament data reprocessed by an independent project, not published directly by the institution.")) @L.T(s.Note ?? "", "Third-party source: HowTheyVote.eu, based on the European Parliament's roll-call votes.")</p>
+        <p class="note-source">@Doute.Html(NiveauDoute.Calcule, L.T("source-tierce", "source tierce", "third-party source"), L.T("donnees-du-parlement-europeen-retraitees-par", "Données du Parlement européen retraitées par un projet indépendant, pas publiées directement par l'institution.", "European Parliament data reprocessed by an independent project, not published directly by the institution.")) @L.T("note-source-tierce-ue", s.Note ?? "", "Third-party source: HowTheyVote.eu, based on the European Parliament's roll-call votes.")</p>
     }
     else
     {
-        <p class="note-source"><strong>@L.T("Note officielle :", "Official note:")</strong> @s.Note</p>
+        <p class="note-source"><strong>@L.T("note-officielle", "Note officielle :", "Official note:")</strong> @s.Note</p>
     }
 }
 
-<h2>@L.T("Par groupe", "By group")</h2>
+<h2>@L.T("par-groupe", "Par groupe", "By group")</h2>
 <div class="table-wrap">
     <table class="groupes">
         <thead>
             <tr>
-                <th>@L.T("Groupe", "Group")</th>
-                <th class="th-pour">@L.T("Pour", "For")</th><th class="th-contre">@L.T("Contre", "Against")</th><th class="th-abstention">@L.T("Abst.", "Abst.")</th>
-                <th>@L.T("Non-votant", "Non-voting")</th><th>@L.T("Absents", "Absent")</th><th>Total</th><th class="col-barre">@L.T("Répartition", "Breakdown")</th>
+                <th>@L.T("groupe", "Groupe", "Group")</th>
+                <th class="th-pour">@L.T("pour-2ecc", "Pour", "For")</th><th class="th-contre">@L.T("contre-b885", "Contre", "Against")</th><th class="th-abstention">@L.T("abst-29c5", "Abst.", "Abst.")</th>
+                <th>@L.T("non-votant", "Non-votant", "Non-voting")</th><th>@L.T("absents-fe06", "Absents", "Absent")</th><th>Total</th><th class="col-barre">@L.T("repartition", "Répartition", "Breakdown")</th>
             </tr>
         </thead>
         <tbody>
@@ -250,7 +250,7 @@
                 <td class="c-pour">@g.Pour</td><td class="c-contre">@g.Contre</td><td class="c-abstention">@g.Abstention</td>
                 <td>@g.NonVotant</td><td>@g.Absent</td><td>@g.Total</td>
                 <td class="col-barre">
-                    <div class="barre-empilee fine" role="img" aria-label="@L.T("Répartition des votes du groupe", "Vote breakdown of the group") @g.Sigle">
+                    <div class="barre-empilee fine" role="img" aria-label="@L.T("repartition-des-votes-du-groupe", "Répartition des votes du groupe", "Vote breakdown of the group") @g.Sigle">
                         <span class="b-pour" style="width:@(W(g.Pour))%"></span>
                         <span class="b-contre" style="width:@(W(g.Contre))%"></span>
                         <span class="b-abstention" style="width:@(W(g.Abstention))%"></span>
@@ -264,11 +264,11 @@
     </table>
 </div>
 
-<h2>@L.T("Tous les ", "All ")@L.T(Chambres.Membres(s.Chambre), Chambres.Membres(s.Chambre, true))</h2>
-<input id="filtre" class="filtre" type="search" placeholder="@L.T("Chercher un nom, un groupe…", "Search a name, a group…")" aria-label="@L.T("Chercher un élu", "Search an elected official")" autocomplete="off" />
+<h2>@L.T("tous-les", "Tous les ", "All ")@L.Membres(s.Chambre)</h2>
+<input id="filtre" class="filtre" type="search" placeholder="@L.T("chercher-un-nom-un-groupe", "Chercher un nom, un groupe…", "Search a name, a group…")" aria-label="@L.T("chercher-un-elu-838c", "Chercher un élu", "Search an elected official")" autocomplete="off" />
 <div class="table-wrap">
     <table class="deputes" id="deputes">
-        <thead><tr><th>@char.ToUpper(L.T(Chambres.Membre(s.Chambre), Chambres.Membre(s.Chambre, true))[0])@L.T(Chambres.Membre(s.Chambre), Chambres.Membre(s.Chambre, true))[1..]</th><th>@L.T("Groupe", "Group")</th><th>@L.T("Vote", "Vote")</th></tr></thead>
+        <thead><tr><th>@char.ToUpper(L.Membre(s.Chambre)[0])@L.Membre(s.Chambre)[1..]</th><th>@L.T("groupe", "Groupe", "Group")</th><th>@L.T("vote", "Vote", "Vote")</th></tr></thead>
         <tbody>
         @foreach (var d in Model.Sieges.OrderBy(x => x.Nom).ThenBy(x => x.Prenom))
         {
@@ -279,12 +279,12 @@
                     <span class="badge b-@d.Position">@Libelle(d.Position)</span>
                     @if (d.Rectifie)
                     {
-                        <span class="tag tag-rectifie">@(d.OrigineInconnue ? L.T("mise au point", "vote correction") : L.T("rectifié (à l'origine : ", "corrected (originally: ") + (d.PositionOrigine is null ? L.T("absent", "absent") : Libelle(d.PositionOrigine).ToLowerInvariant()) + ")")</span>
-@if (d.OrigineInconnue) { @Doute.Html(NiveauDoute.Manquant, L.T("origine inconnue", "original vote unknown"), L.T("La position publiée au scrutin avant la mise au point n'est pas fournie par la source.", "The position published at the vote before the correction is not provided by the source.")) }
+                        <span class="tag tag-rectifie">@(d.OrigineInconnue ? L.T("mise-au-point-ca20", "mise au point", "vote correction") : L.T("rectifie-a-l-origine", "rectifié (à l'origine : ", "corrected (originally: ") + (d.PositionOrigine is null ? L.T("absent-7df8", "absent", "absent") : Libelle(d.PositionOrigine).ToLowerInvariant()) + ")")</span>
+@if (d.OrigineInconnue) { @Doute.Html(NiveauDoute.Manquant, L.T("origine-inconnue", "origine inconnue", "original vote unknown"), L.T("la-position-publiee-au-scrutin-avant", "La position publiée au scrutin avant la mise au point n'est pas fournie par la source.", "The position published at the vote before the correction is not provided by the source.")) }
                     }
                     @if (d.ParDelegation)
                     {
-                        <span class="tag tag-delegation">@L.T("par délégation", "by proxy")</span>
+                        <span class="tag tag-delegation">@L.T("par-delegation-ad67", "par délégation", "by proxy")</span>
                     }
                 </td>
             </tr>

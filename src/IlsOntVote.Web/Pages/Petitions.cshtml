@@ -2,114 +2,114 @@
 @model PetitionsModel
 @using IlsOntVote.Web.Services
 @{
-    ViewData["Title"] = L.T("Pétitions", "Petitions");
+    ViewData["Title"] = L.T("petitions", "Pétitions", "Petitions");
     var royaumeUni = L.Pays == "GB";
-    ViewData["Description"] = L.T("Les pétitions déposées sur la plateforme du Sénat : titre, type, statut publié et nombre de soutiens de citoyens. Triez, filtrez, exportez.", "Petitions filed on the Senate platform: title, type, published status and number of citizen supporters. Sort, filter, export.");
+    ViewData["Description"] = L.T("les-petitions-deposees-sur-la-plateforme", "Les pétitions déposées sur la plateforme du Sénat : titre, type, statut publié et nombre de soutiens de citoyens. Triez, filtrez, exportez.", "Petitions filed on the Senate platform: title, type, published status and number of citizen supporters. Sort, filter, export.");
     var fr = L.Culture;
     var en = L.Anglais;
     var total = Model.ParStatut.Sum(s => s.Nombre);
     var tri = Model.TriEffectif;
 }
 
-<h1 class="titre-page">@L.T("Pétitions", "Petitions")</h1>
+<h1 class="titre-page">@L.T("petitions", "Pétitions", "Petitions")</h1>
 @if (royaumeUni)
 {
-    <p class="chapo">@L.TH("Pétitions adressées au Parlement britannique sur <a href=\"https://petition.parliament.uk/\" rel=\"noopener\">petition.parliament.uk</a> : pétitions ouvertes et closes avec leur nombre de soutiens, la réponse du gouvernement (à partir de 10 000 soutiens) et le débat parlementaire (à partir de 100 000). Le site relève le compte chaque jour et garde tous les relevés : une baisse de soutiens est montrée, jamais expliquée. Les pétitions rejetées avant publication ne sont pas listées.", "Petitions to the UK Parliament on <a href=\"https://petition.parliament.uk/\" rel=\"noopener\">petition.parliament.uk</a>: open and closed petitions with their number of supporters, the government's response (from 10,000 supporters) and the parliamentary debate (from 100,000). The site records the count every day and keeps every snapshot: a drop in supporters is shown, never explained. Petitions rejected before publication are not listed.")</p>
+    <p class="chapo">@L.TH("petitions-adressees-au-parlement-britannique", "Pétitions adressées au Parlement britannique sur <a href=\"https://petition.parliament.uk/\" rel=\"noopener\">petition.parliament.uk</a> : pétitions ouvertes et closes avec leur nombre de soutiens, la réponse du gouvernement (à partir de 10 000 soutiens) et le débat parlementaire (à partir de 100 000). Le site relève le compte chaque jour et garde tous les relevés : une baisse de soutiens est montrée, jamais expliquée. Les pétitions rejetées avant publication ne sont pas listées.", "Petitions to the UK Parliament on <a href=\"https://petition.parliament.uk/\" rel=\"noopener\">petition.parliament.uk</a>: open and closed petitions with their number of supporters, the government's response (from 10,000 supporters) and the parliamentary debate (from 100,000). The site records the count every day and keeps every snapshot: a drop in supporters is shown, never explained. Petitions rejected before publication are not listed.")</p>
 }
 else
 {
-<p class="chapo">@L.TH("Les pétitions déposées sur <a href=\"https://petitions.senat.fr/initiatives\" rel=\"noopener\">petitions.senat.fr</a> et <a href=\"https://petitions.assemblee-nationale.fr/initiatives\" rel=\"noopener\">petitions.assemblee-nationale.fr</a>, telles que publiées par chaque assemblée (jeux data.gouv.fr, Licence Ouverte 2.0, mis à jour chaque lundi). Les statuts sont ceux de chaque plateforme : ils ne se comparent pas terme à terme. Un <strong>soutien</strong> est la signature d'un citoyen.", "Petitions filed on <a href=\"https://petitions.senat.fr/initiatives\" rel=\"noopener\">petitions.senat.fr</a> and <a href=\"https://petitions.assemblee-nationale.fr/initiatives\" rel=\"noopener\">petitions.assemblee-nationale.fr</a>, as published by each assembly (data.gouv.fr datasets, Open Licence 2.0, updated every Monday). Statuses are those of each platform: they cannot be compared term for term. A <strong>supporter</strong> is a citizen's signature.")</p>
+<p class="chapo">@L.TH("les-petitions-deposees-sur-petitions-senat", "Les pétitions déposées sur <a href=\"https://petitions.senat.fr/initiatives\" rel=\"noopener\">petitions.senat.fr</a> et <a href=\"https://petitions.assemblee-nationale.fr/initiatives\" rel=\"noopener\">petitions.assemblee-nationale.fr</a>, telles que publiées par chaque assemblée (jeux data.gouv.fr, Licence Ouverte 2.0, mis à jour chaque lundi). Les statuts sont ceux de chaque plateforme : ils ne se comparent pas terme à terme. Un <strong>soutien</strong> est la signature d'un citoyen.", "Petitions filed on <a href=\"https://petitions.senat.fr/initiatives\" rel=\"noopener\">petitions.senat.fr</a> and <a href=\"https://petitions.assemblee-nationale.fr/initiatives\" rel=\"noopener\">petitions.assemblee-nationale.fr</a>, as published by each assembly (data.gouv.fr datasets, Open Licence 2.0, updated every Monday). Statuses are those of each platform: they cannot be compared term for term. A <strong>supporter</strong> is a citizen's signature.")</p>
 }
 
-<p><a class="bouton-lien" href="@L.Lien("/petitions/anomalies")">⚠ @L.T("Anomalies : baisses de soutiens, disparitions", "Anomalies: drops in supporters, disappearances")</a></p>
+<p><a class="bouton-lien" href="@L.Lien("/petitions/anomalies")">⚠ @L.T("anomalies-baisses-de-soutiens-disparitions", "Anomalies : baisses de soutiens, disparitions", "Anomalies: drops in supporters, disappearances")</a></p>
 
 @if (total > 0)
 {
-    <section class="definitions" aria-label="@L.T("Chiffres", "Figures")">
+    <section class="definitions" aria-label="@L.T("chiffres", "Chiffres", "Figures")">
         <dl>
             @foreach (var g in Model.ParStatut.GroupBy(x => x.Chambre))
             {
                 <div><dt>@PetitionsModel.PlateformeLibelle(g.Key, en)</dt>
-                    <dd>@g.Sum(x => x.Nombre).ToString("N0", fr) @L.T("pétitions", "petitions") — @string.Join(" · ", g.Select(x => PetitionsModel.StatutLibelle(x.Libelle, en) + " " + x.Nombre.ToString("N0", fr)))</dd></div>
+                    <dd>@g.Sum(x => x.Nombre).ToString("N0", fr) @L.T("petitions-f7ee", "pétitions", "petitions") — @string.Join(" · ", g.Select(x => PetitionsModel.StatutLibelle(x.Libelle, en) + " " + x.Nombre.ToString("N0", fr)))</dd></div>
             }
         </dl>
     </section>
 }
 
 <form class="filtres filtres-auto filtres-liste filtres-lois" method="get" action="@L.Lien("/petitions")">
-    <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("Chercher dans les titres…", "Search titles…")" aria-label="@L.T("Chercher une pétition", "Search a petition")" />
+    <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("chercher-dans-les-titres", "Chercher dans les titres…", "Search titles…")" aria-label="@L.T("chercher-une-petition", "Chercher une pétition", "Search a petition")" />
     @* Même disposition que /lois : recherche, statut, chambre, période. Statut, type et commission suivent la chambre choisie. *@
-    <select name="statut" aria-label="@L.T("Statut", "Status")">
-        <option value="">@L.T("Tous les statuts", "All statuses")</option>
+    <select name="statut" aria-label="@L.T("statut", "Statut", "Status")">
+        <option value="">@L.T("tous-les-statuts", "Tous les statuts", "All statuses")</option>
         @foreach (var g in Model.ParStatut.Where(x => Model.ChambreCode is null || x.Chambre == Model.ChambreCode).GroupBy(x => x.Chambre))
         {
             // Les deux plateformes ont chacune un statut « Ouverte » : en vue combinée, les statuts sont groupés pour ne pas prêter à confusion.
-            if (Model.ChambreCode is null) { @Html.Raw("<optgroup label=\"" + (g.Key == "AN" ? L.T("Assemblée nationale", "National Assembly") : L.T("Sénat", "Senate")) + "\">") }
+            if (Model.ChambreCode is null) { @Html.Raw("<optgroup label=\"" + (g.Key == "AN" ? L.T("assemblee-nationale", "Assemblée nationale", "National Assembly") : L.T("senat", "Sénat", "Senate")) + "\">") }
             @foreach (var x in g) { <option value="@x.Libelle" selected="@(Model.Statut == x.Libelle)">@PetitionsModel.StatutLibelle(x.Libelle, en) (@x.Nombre.ToString("N0", fr))</option> }
             if (Model.ChambreCode is null) { @Html.Raw("</optgroup>") }
         }
     </select>
     @if (L.Pays is null)
     {
-    <select name="chambre" aria-label="@L.T("Chambre", "Chamber")">
-        <option value="" selected="@string.IsNullOrEmpty(Model.Chambre)">@L.T("Assemblée et Sénat", "National Assembly and Senate")</option>
-        <option value="an" selected="@(Model.Chambre == "an")">@L.T("Pétitions de l'Assemblée", "National Assembly petitions")</option>
-        <option value="senat" selected="@(Model.Chambre == "senat")">@L.T("Pétitions du Sénat", "Senate petitions")</option>
+    <select name="chambre" aria-label="@L.T("chambre-accd", "Chambre", "Chamber")">
+        <option value="" selected="@string.IsNullOrEmpty(Model.Chambre)">@L.T("assemblee-et-senat", "Assemblée et Sénat", "National Assembly and Senate")</option>
+        <option value="an" selected="@(Model.Chambre == "an")">@L.T("petitions-de-l-assemblee", "Pétitions de l'Assemblée", "National Assembly petitions")</option>
+        <option value="senat" selected="@(Model.Chambre == "senat")">@L.T("petitions-du-senat", "Pétitions du Sénat", "Senate petitions")</option>
     </select>
     }
-    <select name="anomalie" aria-label="@L.T("Historique", "History")" title="@L.T("Pétitions dont le nombre de soutiens a baissé ou qui ont disparu du fichier source entre deux relevés", "Petitions whose supporter count dropped or that disappeared from the source file between two snapshots")">
-        <option value="">@L.T("Historique : toutes", "History: all")</option>
-        <option value="oui" selected="@(Model.Anomalie == "oui")">@L.T("Avec constat(s)", "With finding(s)")</option>
-        <option value="baisse" selected="@(Model.Anomalie == "baisse")">@L.T("Baisse des soutiens", "Drop in supporters")</option>
-        <option value="disparition" selected="@(Model.Anomalie == "disparition")">@L.T("Absente du fichier", "Missing from the file")</option>
-        <option value="reapparition" selected="@(Model.Anomalie == "reapparition")">@L.T("De nouveau dans le fichier", "Back in the file")</option>
+    <select name="anomalie" aria-label="@L.T("historique", "Historique", "History")" title="@L.T("petitions-dont-le-nombre-de-soutiens", "Pétitions dont le nombre de soutiens a baissé ou qui ont disparu du fichier source entre deux relevés", "Petitions whose supporter count dropped or that disappeared from the source file between two snapshots")">
+        <option value="">@L.T("historique-toutes", "Historique : toutes", "History: all")</option>
+        <option value="oui" selected="@(Model.Anomalie == "oui")">@L.T("avec-constat-s", "Avec constat(s)", "With finding(s)")</option>
+        <option value="baisse" selected="@(Model.Anomalie == "baisse")">@L.T("baisse-des-soutiens", "Baisse des soutiens", "Drop in supporters")</option>
+        <option value="disparition" selected="@(Model.Anomalie == "disparition")">@L.T("absente-du-fichier", "Absente du fichier", "Missing from the file")</option>
+        <option value="reapparition" selected="@(Model.Anomalie == "reapparition")">@L.T("de-nouveau-dans-le-fichier", "De nouveau dans le fichier", "Back in the file")</option>
     </select>
-    <span class="periode"><label class="champ-date" title="@L.T("Affiche les pétitions publiées dans la période", "Shows the petitions published within the period")">@L.T("Du", "From") <input type="date" name="du" value="@Model.Du" aria-label="@L.T("Du (date de début)", "From (start date)")" /></label>
-        <label class="champ-date">@L.T("au", "to") <input type="date" name="au" value="@Model.Au" aria-label="@L.T("Au (date de fin)", "To (end date)")" /></label></span>
+    <span class="periode"><label class="champ-date" title="@L.T("affiche-les-petitions-publiees-dans-la", "Affiche les pétitions publiées dans la période", "Shows the petitions published within the period")">@L.T("du", "Du", "From") <input type="date" name="du" value="@Model.Du" aria-label="@L.T("du-date-de-debut", "Du (date de début)", "From (start date)")" /></label>
+        <label class="champ-date">@L.T("au", "au", "to") <input type="date" name="au" value="@Model.Au" aria-label="@L.T("au-date-de-fin", "Au (date de fin)", "To (end date)")" /></label></span>
     @if (Model.ChambreCode == "SENAT")
     {
         <select name="type" aria-label="Type">
-            <option value="">@L.T("Tous les types", "All types")</option>
+            <option value="">@L.T("tous-les-types", "Tous les types", "All types")</option>
             @foreach (var t in Model.ParType.Where(x => x.Chambre == "SENAT")) { <option value="@t.Libelle" selected="@(Model.Type == t.Libelle)">@PetitionsModel.TypeLibelle(t.Libelle, en) (@t.Nombre.ToString("N0", fr))</option> }
         </select>
     }
     @if (Model.ChambreCode == "AN")
     {
-        <select name="commission" aria-label="@L.T("Commission", "Committee")">
-            <option value="">@L.T("Toutes les commissions", "All committees")</option>
+        <select name="commission" aria-label="@L.T("commission", "Commission", "Committee")">
+            <option value="">@L.T("toutes-les-commissions", "Toutes les commissions", "All committees")</option>
             @foreach (var c in Model.ParCommission.Where(x => x.Chambre == "AN")) { <option value="@c.Libelle" selected="@(Model.Commission == c.Libelle)">@c.Libelle (@c.Nombre.ToString("N0", fr))</option> }
         </select>
     }
     @* Tri : en-têtes de colonne (écran large) ou ces listes (téléphone). *@
-    <select name="tri" class="tri-mobile" aria-label="@L.T("Trier par", "Sort by")">
-        <option value="date" selected="@(tri == "date")">@L.T("Trier : date", "Sort: date")</option>
-        @if (Model.ChambreCode is null) { <option value="chambre" selected="@(tri == "chambre")">@L.T("Trier : plateforme", "Sort: platform")</option> }
-        <option value="titre" selected="@(tri == "titre")">@L.T("Trier : titre", "Sort: title")</option>
-        <option value="fin" selected="@(tri == "fin")">@L.T("Trier : fin du recueil", "Sort: end of collection")</option>
-        <option value="historique" selected="@(tri == "historique")">@L.T("Trier : constats", "Sort: findings")</option>
-        <option value="soutiens" selected="@(tri == "soutiens")">@L.T("Trier : soutiens", "Sort: supporters")</option>
-        <option value="statut" selected="@(tri == "statut")">@L.T("Trier : statut", "Sort: status")</option>
-        @if (Model.ChambreCode == "SENAT") { <option value="type" selected="@(tri == "type")">@L.T("Trier : type", "Sort: type")</option> }
-        @if (Model.ChambreCode == "AN") { <option value="commission" selected="@(tri == "commission")">@L.T("Trier : commission", "Sort: committee")</option> }
+    <select name="tri" class="tri-mobile" aria-label="@L.T("trier-par", "Trier par", "Sort by")">
+        <option value="date" selected="@(tri == "date")">@L.T("trier-date", "Trier : date", "Sort: date")</option>
+        @if (Model.ChambreCode is null) { <option value="chambre" selected="@(tri == "chambre")">@L.T("trier-plateforme", "Trier : plateforme", "Sort: platform")</option> }
+        <option value="titre" selected="@(tri == "titre")">@L.T("trier-titre", "Trier : titre", "Sort: title")</option>
+        <option value="fin" selected="@(tri == "fin")">@L.T("trier-fin-du-recueil", "Trier : fin du recueil", "Sort: end of collection")</option>
+        <option value="historique" selected="@(tri == "historique")">@L.T("trier-constats", "Trier : constats", "Sort: findings")</option>
+        <option value="soutiens" selected="@(tri == "soutiens")">@L.T("trier-soutiens", "Trier : soutiens", "Sort: supporters")</option>
+        <option value="statut" selected="@(tri == "statut")">@L.T("trier-statut", "Trier : statut", "Sort: status")</option>
+        @if (Model.ChambreCode == "SENAT") { <option value="type" selected="@(tri == "type")">@L.T("trier-type", "Trier : type", "Sort: type")</option> }
+        @if (Model.ChambreCode == "AN") { <option value="commission" selected="@(tri == "commission")">@L.T("trier-commission", "Trier : commission", "Sort: committee")</option> }
     </select>
-    <select name="sens" class="tri-mobile" aria-label="@L.T("Sens du tri", "Sort order")">
-        <option value="desc" selected="@Model.Decroissant">@L.T("Décroissant", "Descending")</option>
-        <option value="asc" selected="@(!Model.Decroissant)">@L.T("Croissant", "Ascending")</option>
+    <select name="sens" class="tri-mobile" aria-label="@L.T("sens-du-tri", "Sens du tri", "Sort order")">
+        <option value="desc" selected="@Model.Decroissant">@L.T("decroissant", "Décroissant", "Descending")</option>
+        <option value="asc" selected="@(!Model.Decroissant)">@L.T("croissant", "Croissant", "Ascending")</option>
     </select>
-    <button type="submit" class="sans-js">@L.T("Filtrer", "Filter")</button>
-    @if (Model.FiltreActif) { <a class="effacer" href="@L.Lien("/petitions")" title="@L.T("Effacer le filtre", "Clear filter")" aria-label="@L.T("Effacer le filtre", "Clear filter")"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></a> }
+    <button type="submit" class="sans-js">@L.T("filtrer", "Filtrer", "Filter")</button>
+    @if (Model.FiltreActif) { <a class="effacer" href="@L.Lien("/petitions")" title="@L.T("effacer-le-filtre", "Effacer le filtre", "Clear filter")" aria-label="@L.T("effacer-le-filtre", "Effacer le filtre", "Clear filter")"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></a> }
 </form>
 
 <div class="barre-liste">
-    <p class="compte">@Model.Resultats.Total.ToString("N0", fr) @L.T(Model.Resultats.Total > 1 ? "pétitions" : "pétition", Model.Resultats.Total > 1 ? "petitions" : "petition")</p>
-    <p class="export">@L.T("Exporter ce tableau :", "Export this table:")
+    <p class="compte">@Model.Resultats.Total.ToString("N0", fr) @(Model.Resultats.Total > 1 ? L.T("plur-petition-pl", "pétitions", "petitions") : L.T("plur-petition-sg", "pétition", "petition"))</p>
+    <p class="export">@L.T("exporter-ce-tableau", "Exporter ce tableau :", "Export this table:")
         @foreach (var f in Exporteur.Formats) { <a href="@Model.Lien(format: f)" download>@f.ToUpperInvariant()</a> }
     </p>
 </div>
 
 @if (Model.Resultats.Lignes.Count == 0)
 {
-    <p class="vide">@L.T("Aucune pétition à afficher (aucun résultat, ou les pétitions ne sont pas encore importées).", "No petition to display (no result, or petitions are not imported yet).")</p>
+    <p class="vide">@L.T("aucune-petition-a-afficher-aucun-resultat", "Aucune pétition à afficher (aucun résultat, ou les pétitions ne sont pas encore importées).", "No petition to display (no result, or petitions are not imported yet).")</p>
 }
 else
 {
@@ -117,25 +117,25 @@ else
         <table class="liste-textes">
             <thead>
                 <tr>
-                    @Model.Th("date", L.T("Publiée", "Published"), "nowrap")
-                    @if (Model.ChambreCode is null) { @Model.Th("chambre", L.T("Plateforme", "Platform")) }
-                    @Model.Th("titre", L.T("Titre", "Title"))
+                    @Model.Th("date", L.T("publiee", "Publiée", "Published"), "nowrap")
+                    @if (Model.ChambreCode is null) { @Model.Th("chambre", L.T("plateforme", "Plateforme", "Platform")) }
+                    @Model.Th("titre", L.T("titre", "Titre", "Title"))
                     @if (Model.ChambreCode == "SENAT") { @Model.Th("type", "Type") }
-                    @if (Model.ChambreCode == "AN") { @Model.Th("commission", L.T("Commission", "Committee")) }
+                    @if (Model.ChambreCode == "AN") { @Model.Th("commission", L.T("commission", "Commission", "Committee")) }
                     @if (Model.ChambreCode == "UK") { <th scope="col">Stage</th> }
-                    @Model.Th("statut", L.T("Statut", "Status"))
-                    @Model.Th("fin", L.T("Fin du recueil", "End of collection"), "nowrap")
-                    @Model.Th("soutiens", L.T("Soutiens", "Supporters"), "num")
-                    @Model.Th("historique", L.T("Historique", "History"))
+                    @Model.Th("statut", L.T("statut", "Statut", "Status"))
+                    @Model.Th("fin", L.T("fin-du-recueil", "Fin du recueil", "End of collection"), "nowrap")
+                    @Model.Th("soutiens", L.T("soutiens", "Soutiens", "Supporters"), "num")
+                    @Model.Th("historique", L.T("historique", "Historique", "History"))
                 </tr>
             </thead>
             <tbody>
             @foreach (var p in Model.Resultats.Lignes)
             {
                 <tr>
-                    <td class="nowrap" data-label="@L.T("Publiée", "Published")">@(p.DatePublication?.ToString("d MMM yyyy", fr) ?? "—")</td>
-                    @if (Model.ChambreCode is null) { <td data-label="@L.T("Plateforme", "Platform")">@(p.Chambre == "AN" ? L.T("Assemblée", "Assembly") : L.T("Sénat", "Senate"))</td> }
-                    <td data-label="@L.T("Titre", "Title")"><a href="@L.Lien("/petition/" + p.Id)">@p.Titre</a> <a class="note-source" href="@p.Url" rel="noopener" title="@L.T("Page de la pétition sur la plateforme", "Petition page on the platform")">↗</a></td>
+                    <td class="nowrap" data-label="@L.T("publiee", "Publiée", "Published")">@(p.DatePublication?.ToString("d MMM yyyy", fr) ?? "—")</td>
+                    @if (Model.ChambreCode is null) { <td data-label="@L.T("plateforme", "Plateforme", "Platform")">@(p.Chambre == "AN" ? L.T("assemblee", "Assemblée", "Assembly") : L.T("senat", "Sénat", "Senate"))</td> }
+                    <td data-label="@L.T("titre", "Titre", "Title")"><a href="@L.Lien("/petition/" + p.Id)">@p.Titre</a> <a class="note-source" href="@p.Url" rel="noopener" title="@L.T("page-de-la-petition-sur-la", "Page de la pétition sur la plateforme", "Petition page on the platform")">↗</a></td>
                     @if (Model.ChambreCode == "SENAT") { <td data-label="Type">@PetitionsModel.TypeLibelle(p.Type, en)</td> }
                     @if (Model.ChambreCode == "UK")
                     {
@@ -146,13 +146,13 @@ else
                             else { <span class="note-source">—</span> }
                         </td>
                     }
-                    @if (Model.ChambreCode == "AN") { <td data-label="@L.T("Commission", "Committee")">@(p.Commission ?? "—")@if (p.DecisionCommission is null && p.Statut is "classee" or "archivee") { <br /><span class="doute doute-manquant" title="@L.T("La source ne publie aucune décision pour cette pétition", "The source publishes no decision for this petition")">? @L.T("décision non publiée", "decision not published")</span> }@if (p.DecisionCommission is not null) { <br /><span class="note-source" title="@p.DecisionCommission">@L.T("Décision : ", "Decision: ")@(p.DecisionCommission.Length > 70 ? p.DecisionCommission[..70] + "…" : p.DecisionCommission)</span> }</td> }
-                    <td data-label="@L.T("Statut", "Status")" title="@(p.DateLimiteVote is { } d ? L.T("Date limite : ", "Deadline: ") + d.ToString("d MMM yyyy", fr) : "")"><span class="puce-statut @PetitionsModel.StatutClasse(p.Statut)">@PetitionsModel.StatutLibelle(p.Statut, en)</span></td>
-                    <td class="nowrap" data-label="@L.T("Fin du recueil", "End of collection")">@(p.DateLimiteVote?.ToString("d MMM yyyy", fr) ?? "—")</td>
-                    <td class="num" data-label="@L.T("Soutiens", "Supporters")">@if (p.NbVotes is { } nv) { @nv.ToString("N0", fr) } else { <span class="doute doute-manquant" title="@L.T("Nombre de soutiens non renseigné par la source", "Supporter count not provided by the source")">?</span> }</td>
-                    <td data-label="@L.T("Historique", "History")">
-                        @if (p.AbsenteDepuis is { } abs) { <a class="doute doute-incertain" href="@L.Lien("/petition/" + p.Id)" title="@L.T("Absente du fichier source depuis le relevé du ", "Missing from the source file since the snapshot of ")@abs.ToString("d MMM yyyy", fr)">⚠ @L.T("absente", "missing")</a> }
-                        else if (p.NbAnomalies > 0) { <a class="doute doute-incertain" href="@L.Lien("/petition/" + p.Id)" title="@L.T("Constat(s) entre deux relevés : voir l'historique", "Finding(s) between two snapshots: see the history")">⚠ @p.NbAnomalies.ToString(fr)</a> }
+                    @if (Model.ChambreCode == "AN") { <td data-label="@L.T("commission", "Commission", "Committee")">@(p.Commission ?? "—")@if (p.DecisionCommission is null && p.Statut is "classee" or "archivee") { <br /><span class="doute doute-manquant" title="@L.T("la-source-ne-publie-aucune-decision", "La source ne publie aucune décision pour cette pétition", "The source publishes no decision for this petition")">? @L.T("decision-non-publiee", "décision non publiée", "decision not published")</span> }@if (p.DecisionCommission is not null) { <br /><span class="note-source" title="@p.DecisionCommission">@L.T("decision", "Décision : ", "Decision: ")@(p.DecisionCommission.Length > 70 ? p.DecisionCommission[..70] + "…" : p.DecisionCommission)</span> }</td> }
+                    <td data-label="@L.T("statut", "Statut", "Status")" title="@(p.DateLimiteVote is { } d ? L.T("date-limite", "Date limite : ", "Deadline: ") + d.ToString("d MMM yyyy", fr) : "")"><span class="puce-statut @PetitionsModel.StatutClasse(p.Statut)">@PetitionsModel.StatutLibelle(p.Statut, en)</span></td>
+                    <td class="nowrap" data-label="@L.T("fin-du-recueil", "Fin du recueil", "End of collection")">@(p.DateLimiteVote?.ToString("d MMM yyyy", fr) ?? "—")</td>
+                    <td class="num" data-label="@L.T("soutiens", "Soutiens", "Supporters")">@if (p.NbVotes is { } nv) { @nv.ToString("N0", fr) } else { <span class="doute doute-manquant" title="@L.T("nombre-de-soutiens-non-renseigne-par", "Nombre de soutiens non renseigné par la source", "Supporter count not provided by the source")">?</span> }</td>
+                    <td data-label="@L.T("historique", "Historique", "History")">
+                        @if (p.AbsenteDepuis is { } abs) { <a class="doute doute-incertain" href="@L.Lien("/petition/" + p.Id)" title="@L.T("absente-du-fichier-source-depuis-le", "Absente du fichier source depuis le relevé du ", "Missing from the source file since the snapshot of ")@abs.ToString("d MMM yyyy", fr)">⚠ @L.T("absente", "absente", "missing")</a> }
+                        else if (p.NbAnomalies > 0) { <a class="doute doute-incertain" href="@L.Lien("/petition/" + p.Id)" title="@L.T("constat-s-entre-deux-releves-voir", "Constat(s) entre deux relevés : voir l'historique", "Finding(s) between two snapshots: see the history")">⚠ @p.NbAnomalies.ToString(fr)</a> }
                         else { <span class="note-source">—</span> }
                     </td>
                 </tr>
@@ -164,9 +164,9 @@ else
     @if (Model.Resultats.NbPages > 1)
     {
         <nav class="pagination" aria-label="Pagination">
-            @if (Model.Resultats.Page > 1) { <a href="@Model.Lien(page: Model.Resultats.Page - 1)" rel="prev">@L.T("← Précédent", "← Previous")</a> }
-            <span>@L.T("Page", "Page") @Model.Resultats.Page / @Model.Resultats.NbPages</span>
-            @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">@L.T("Suivant →", "Next →")</a> }
+            @if (Model.Resultats.Page > 1) { <a href="@Model.Lien(page: Model.Resultats.Page - 1)" rel="prev">@L.T("precedent", "← Précédent", "← Previous")</a> }
+            <span>@L.T("page", "Page", "Page") @Model.Resultats.Page / @Model.Resultats.NbPages</span>
+            @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">@L.T("suivant", "Suivant →", "Next →")</a> }
         </nav>
     }
     <partial name="_LignesParPage" model="Model" />
