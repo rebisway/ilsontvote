@@ -69,6 +69,43 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
                  (SELECT max(e.date_acte) FROM texte_etapes e WHERE e.texte_id = t.id AND e.chambre = 'SENAT' AND e.resultat ILIKE 'adopt%')) AS date_adoption_senat
         """;
 
+    // AGRÉGAT LÉGER : seulement ce qui sert à filtrer, trier et classer (statut) TOUS les textes. Les sous-requêtes d'amendements et d'étapes de l'agrégat complet étaient évaluées
+    // pour les ~2 100 textes avant le tri et la pagination (2,4 s) alors que la page n'en affiche que 30 : elles sont dans LateralLourd, évaluée pour les seules lignes de la page.
+    private const string AgregatLeger =
+        """
+        GREATEST(max(s.date_scrutin), (SELECT max(e.date_acte) FROM texte_etapes e WHERE e.texte_id = t.id)) AS dernier_vote,
+        count(s.id)::int AS nb_scrutins,
+        EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id AND e.article_49_3) AS adopte_493,
+        (COALESCE(bool_or(s.chambre = 'AN' AND s.sort LIKE 'adopt%'), false)
+         OR EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id AND e.chambre = 'AN' AND e.resultat ILIKE ANY (ARRAY['adopt%', 'modifi%', 'consid%']))) AS adopte_an,
+        (COALESCE(bool_or(s.chambre = 'SENAT' AND s.sort LIKE 'adopt%'), false)
+         OR EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = t.id AND e.chambre = 'SENAT' AND e.resultat ILIKE 'adopt%')) AS adopte_senat
+        """;
+
+    // Colonnes lourdes, calculées après pagination pour les lignes de la page (c = ligne de la page). MÊMES définitions que dans Agregat (qui reste utilisé quand on trie par
+    // amendements) ; les agrégats sur les scrutins reprennent le filtre de chambre de la requête (@chambre) pour rester identiques à ceux du JOIN de l'agrégat complet.
+    private const string LateralLourd =
+        """
+        LEFT JOIN LATERAL (SELECT
+            (SELECT count(*) FROM texte_etapes e WHERE e.texte_id = c.id AND e.chambre = 'AN')::int AS nb_etapes_an,
+            (SELECT count(*) FROM texte_etapes e WHERE e.texte_id = c.id AND e.chambre = 'SENAT')::int AS nb_etapes_senat,
+            EXISTS (SELECT 1 FROM texte_etapes e WHERE e.texte_id = c.id AND e.chambre = 'AN' AND e.resultat ILIKE ANY (ARRAY['adopt%', 'modifi%', 'consid%'])) AS adopte_an_etape,
+            (SELECT CASE WHEN bool_or(EXISTS (SELECT 1 FROM amendements_dossiers x WHERE x.legislature = substring(d.dossier_an from '^DLR5L([0-9]+)N')::smallint))
+                         THEN COALESCE(sum(a.deposes), 0) END
+               FROM (SELECT DISTINCT e.dossier_an FROM texte_etapes e WHERE e.texte_id = c.id AND e.chambre = 'AN') d
+               LEFT JOIN amendements_dossiers a ON a.dossier_an = d.dossier_an)::int AS nb_amendements,
+            (SELECT sum(a.adoptes) FROM amendements_dossiers a WHERE a.dossier_an IN (SELECT e.dossier_an FROM texte_etapes e WHERE e.texte_id = c.id AND e.chambre = 'AN'))::int AS nb_amendements_adoptes,
+            (SELECT sum(a.rejetes) FROM amendements_dossiers a WHERE a.dossier_an IN (SELECT e.dossier_an FROM texte_etapes e WHERE e.texte_id = c.id AND e.chambre = 'AN'))::int AS nb_amendements_rejetes,
+            (SELECT count(*) FROM scrutins x WHERE x.texte_lie_id = c.id AND x.titre ILIKE '%amendement%')::int AS nb_amendements_scrutins,
+            (SELECT count(*) FROM scrutins s WHERE s.texte_id = c.id AND s.chambre = 'AN' AND (@chambre IS NULL OR s.chambre = @chambre))::int AS nb_scrutins_an,
+            (SELECT count(*) FROM scrutins s WHERE s.texte_id = c.id AND s.chambre = 'SENAT' AND (@chambre IS NULL OR s.chambre = @chambre))::int AS nb_scrutins_senat,
+            GREATEST((SELECT max(s.date_scrutin) FROM scrutins s WHERE s.texte_id = c.id AND s.chambre = 'AN' AND s.sort LIKE 'adopt%' AND (@chambre IS NULL OR s.chambre = @chambre)),
+                     (SELECT max(e.date_acte) FROM texte_etapes e WHERE e.texte_id = c.id AND e.chambre = 'AN' AND e.resultat ILIKE ANY (ARRAY['adopt%', 'modifi%', 'consid%']))) AS date_adoption_an,
+            GREATEST((SELECT max(s.date_scrutin) FROM scrutins s WHERE s.texte_id = c.id AND s.chambre = 'SENAT' AND s.sort LIKE 'adopt%' AND (@chambre IS NULL OR s.chambre = @chambre)),
+                     (SELECT max(e.date_acte) FROM texte_etapes e WHERE e.texte_id = c.id AND e.chambre = 'SENAT' AND e.resultat ILIKE 'adopt%')) AS date_adoption_senat
+        ) h ON true
+        """;
+
     // Colonnes triables : clé d'URL -> expression SQL. JAMAIS de SQL construit depuis l'URL.
     private static readonly Dictionary<string, string> Tris = new()
     {
@@ -187,6 +224,9 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
         var chambre = filtre.Chambre switch { "an" => "AN", "senat" => "SENAT", "ue" => "UE", _ => null };
 
         var colonne = Tris.GetValueOrDefault(tri, "dernier_vote");
+        // Seul le tri par nombre d'amendements a besoin de l'agrégat complet pour TOUS les textes ; sinon agrégat léger + colonnes lourdes pour la page seulement.
+        var lourd = colonne == "nb_amendements";
+        var agregat = lourd ? Agregat : AgregatLeger;
         var sens = decroissant ? "DESC" : "ASC";
 
         // Les scrutins filtrés par chambre alimentent l'agrégat ; un texte sans vote dans cette chambre disparaît.
@@ -207,7 +247,7 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
         var cte =
             $"""
              WITH base AS (
-                 SELECT {ColonnesTexte}, {Agregat}
+                 SELECT {ColonnesTexte}, {agregat}
                    FROM textes t LEFT JOIN scrutins s ON s.texte_id = t.id AND (@chambre IS NULL OR s.chambre = @chambre)
                   WHERE (recherche_norm(t.titre) ILIKE ALL (@mots) OR recherche_norm(t.titre_en) ILIKE ALL (@mots))   -- aussi dans le titre anglais ; tirets = espaces
                     AND (@theme::text IS NULL OR @theme = ANY(t.themes))   -- thème approximatif (migration 048) ; code validé par Themes.Valider
@@ -226,8 +266,11 @@ public sealed class TexteRepository(DapperContext db) : ITexteRepository
 
         var total = await conn.ExecuteScalarAsync<int>($"{cte} SELECT count(*) FROM classe {where}", p);
         var pagination = parPage > 0 ? "LIMIT @limit OFFSET @offset" : "LIMIT 50000";
-        var lignes = (await conn.QueryAsync<Texte>(
-            $"{cte} SELECT * FROM classe {where} ORDER BY {colonne} {sens} NULLS LAST, titre {pagination}", p)).ToList();
+        var lignes = lourd
+            ? (await conn.QueryAsync<Texte>($"{cte} SELECT * FROM classe {where} ORDER BY {colonne} {sens} NULLS LAST, titre {pagination}", p)).ToList()
+            // Pagination d'abord (sur l'agrégat léger), colonnes lourdes ensuite pour ces lignes seulement ; le tri est répété à l'extérieur (l'ordre d'une sous-requête n'est pas garanti).
+            : (await conn.QueryAsync<Texte>(
+                $"{cte} SELECT c.*, h.* FROM (SELECT * FROM classe {where} ORDER BY {colonne} {sens} NULLS LAST, titre {pagination}) c {LateralLourd} ORDER BY {colonne} {sens} NULLS LAST, c.titre", p)).ToList();
 
         return new Resultats<Texte>(lignes, total, page, parPage == 0 ? Math.Max(1, total) : parPage);
     }
