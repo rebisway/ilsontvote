@@ -145,7 +145,9 @@ public sealed class SwitzerlandSource : IDisposable
     public static BulletinCh? ConvertirBulletin(JsonElement l)
     {
         if (!long.TryParse(S(l, "IdVote"), out var vote) || !int.TryParse(S(l, "PersonNumber"), out var p) || !int.TryParse(S(l, "Decision"), out var dec)) return null;
+        // La source écrit les couleurs en ARGB (« #FFFF0000 » = rouge) ; CSS lirait ces 8 chiffres en RGBA (« FF FF 00 00 » = jaune transparent) et l'arc du groupe disparaîtrait de l'hémicycle : on retire l'octet d'opacité.
         var couleur = S(l, "ParlGroupColour");
+        if (couleur.Length == 9 && couleur[0] == '#') couleur = "#" + couleur[3..];
         return new BulletinCh(vote, p, S(l, "FirstName"), S(l, "LastName"), S(l, "Canton"), S(l, "ParlGroupCode"), S(l, "ParlGroupName"), couleur.StartsWith('#') ? couleur : null, dec);
     }
 
@@ -199,12 +201,24 @@ public sealed class SwitzerlandSource : IDisposable
         "G" => 1, "S" => 2, "GL" or "CEg" => 3, "CE" or "M-E" or "C" or "BD" => 4, "RL" or "R" or "FDP" => 5, "V" or "UDC" or "SVP" => 6, _ => 50,
     };
 
+    /// <summary>
+    /// Sigle usuel (français) d'un groupe, d'après le code de la source : « G » ou « V » seuls sont trop discrets pour un lecteur (choix de Thomas), on affiche les abréviations de parti connues.
+    /// L'identifiant du groupe reste construit sur le code de la source (stable). Code inconnu : on garde le code tel quel (jamais d'invention).
+    /// </summary>
+    public static string SigleUsuel(string code) => code.ToUpperInvariant() switch
+    {
+        "" => "—",
+        "G" => "Verts", "S" => "PS", "GL" => "PVL", "M-E" => "Centre", "RL" => "PLR", "V" => "UDC",
+        "C" => "PDC", "BD" => "PBD", "CE" => "Centre", "CEG" => "PDC-PEV", "R" => "PLR", "FRAKTIONSLOS" => "SG",
+        _ => code,
+    };
+
     /// <summary>Groupe parlementaire d'une législature et d'un conseil, tel que porté par les bulletins (le groupe est donné sur chaque bulletin : celui du conseiller au moment du vote).</summary>
     public static GroupeRow Groupe(string conseil, int legislature, string code, string nom, string? couleur)
     {
         var ordre = OrdreGroupe(code);
         var c = couleur ?? Palette[(ordre < 50 ? ordre - 1 : Math.Abs(code.GetHashCode()) % Palette.Length) % Palette.Length];
-        return new GroupeRow(IdGroupe(conseil, legislature, code), IdChambre(conseil), legislature, code.Length > 0 ? code : "—", nom.Length > 0 ? nom : "Sans groupe", c, ordre);
+        return new GroupeRow(IdGroupe(conseil, legislature, code), IdChambre(conseil), legislature, SigleUsuel(code), nom.Length > 0 ? nom : "Sans groupe", c, ordre);
     }
 
     /// <summary>
@@ -278,17 +292,36 @@ public sealed class SwitzerlandSource : IDisposable
         _api.DefaultRequestHeaders.Add("X-API-KEY", cle);
     }
 
+    private DateTime _dernierAppelApi = DateTime.MinValue;
+    private const int PauseApiMs = 300;   // au plus ~3 requêtes par seconde : l'API limite le débit (429 « Too Many Requests » constaté en production après ~2 000 appels rapprochés)
+
+    /// <summary>
+    /// Appel de l'API à clé : cadence limitée (<see cref="PauseApiMs"/>) et reprise sur 429 / erreur serveur en respectant l'en-tête <c>Retry-After</c> (sinon attente croissante).
+    /// Symptôme corrigé : l'import du Conseil des États échouait en production avec « 429 » au milieu des ~2 100 lectures de bulletins.
+    /// </summary>
     private async Task<JsonDocument> ApiAsync(string chemin)
     {
         for (var essai = 1; ; essai++)
         {
+            var attente = PauseApiMs - (int)(DateTime.UtcNow - _dernierAppelApi).TotalMilliseconds;
+            if (attente > 0) await Task.Delay(attente);
             try
             {
                 using var r = await _api!.GetAsync(BaseApi + chemin);
+                _dernierAppelApi = DateTime.UtcNow;
+                if ((int)r.StatusCode == 429 || (int)r.StatusCode >= 500)
+                {
+                    if (essai >= 8) r.EnsureSuccessStatusCode();
+                    var delai = r.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(Math.Min(120, 5 * essai * essai));
+                    Console.WriteLine($"      API : HTTP {(int)r.StatusCode}, nouvel essai dans {delai.TotalSeconds:0} s ({essai}/8).");
+                    await Task.Delay(delai);
+                    continue;
+                }
                 r.EnsureSuccessStatusCode();
                 return await JsonDocument.ParseAsync(await r.Content.ReadAsStreamAsync());
             }
-            catch (Exception) when (essai < 3) { await Task.Delay(2000 * essai); }
+            catch (HttpRequestException) when (essai < 8) { await Task.Delay(2000 * essai); }
+            catch (TaskCanceledException) when (essai < 8) { await Task.Delay(2000 * essai); }
         }
     }
 
@@ -324,7 +357,6 @@ public sealed class SwitzerlandSource : IDisposable
                     proj.ValueKind == JsonValueKind.Object ? S(proj, "title") : "", S(l, "subject"), S(l, "meaningYes"), S(l, "meaningNo"), jour, utc));
             }
             if (!racine.GetProperty("page").GetProperty("hasNext").GetBoolean()) return liste;
-            await Task.Delay(100);
         }
     }
 
