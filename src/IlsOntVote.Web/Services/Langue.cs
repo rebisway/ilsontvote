@@ -24,7 +24,8 @@ public sealed class Langue(IHttpContextAccessor accessor, Traductions? traductio
     /// Vrai pour toute interface NON française (adresses <c>/en/…</c>, mais aussi l'italien sous /it) : les pages qui écrivent « Anglais ? x : y » en dur prennent la branche anglaise
     /// pour une langue traduite par la table (elles ne sauraient pas afficher du français à un lecteur italien). Pour tester la langue exacte : <see cref="Code"/>.
     /// </summary>
-    public bool Anglais => Code != "fr";
+    // Suisse : l'anglais n'est pas une langue du pays (choix de Thomas) ; allemand et italien retombent sur le FRANÇAIS tant que le texte n'est pas traduit : jamais de branche anglaise.
+    public bool Anglais => Pays != "CH" && Code != "fr";
     /// <summary>Code de la langue de la page : « fr », « en », ou une langue ajoutée dans la table de traduction (« es », « it »…). Attribut <c>lang</c>, balises <c>hreflang</c>.</summary>
     public string Code => Ctx.Items[Cle_Items] as string is { Length: > 0 } c ? c : "fr";
     /// <summary>Culture pour les dates et les nombres (jamais la culture du serveur).</summary>
@@ -43,7 +44,7 @@ public sealed class Langue(IHttpContextAccessor accessor, Traductions? traductio
         if (t is not null) return t;
         if (code is "fr") return francais;
         if (code is not "en") traductions.Manque(code, cle, francais, anglais);
-        return anglais;
+        return Pays == "CH" ? francais : anglais;
     }
 
     /// <summary>Texte contenant du HTML écrit par nous (liens, gras) : affiché tel quel. Jamais pour une donnée venant de la base ou de l'URL.</summary>
@@ -60,6 +61,20 @@ public sealed class Langue(IHttpContextAccessor accessor, Traductions? traductio
 
     // Libellés issus de données (noms de chambres, positions, thèmes, pays) : le texte français / anglais vient du code ou de la base, la clé est FIXE et dérive du code de la donnée
     // (« chambre.SENAT.nom »), jamais du libellé.
+    /// <summary>Nom du site dans la langue courante (« Ils ont voté », « They voted », « Hanno votato », « Sie haben abgestimmt »).</summary>
+    public string Marque => Pays == "CH" ? Code switch { "de" => "Sie haben abgestimmt", "it" => "Hanno votato", _ => "Ils ont voté" }
+        : Code == "it" ? "Hanno votato" : Pays is not null ? "They voted" : "Ils ont voté";
+
+    /// <summary>La marque avec le dernier mot en rouge (<c>&lt;em&gt;</c>), comme dans l'en-tête du site.</summary>
+    public HtmlString MarqueHtml
+    {
+        get
+        {
+            var m = Marque; var i = m.LastIndexOf(' ');
+            return new HtmlString(System.Net.WebUtility.HtmlEncode(m[..(i + 1)]) + "<em>" + System.Net.WebUtility.HtmlEncode(m[(i + 1)..]) + "</em>");
+        }
+    }
+
     /// <summary>Nom d'une chambre (« Sénat », « Chambre des Communes »).</summary>
     public string Chambre(string code) => T("chambre." + code + ".nom", Chambres.Nom(code), Chambres.Nom(code, true));
     /// <summary>Un membre de la chambre au singulier (« sénateur », « MP »).</summary>

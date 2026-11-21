@@ -13,6 +13,26 @@
     var titre = s.TitreLangue(L.Anglais);
     ViewData["Title"] = titre.Length > 60 ? titre[..60] + "…" : titre;
     var fr = L.Culture;
+    ViewData["Fil"] = new List<(string, string)> { (L.T("accueil", "Accueil", "Home"), L.Lien("/")), (L.T("votes-nominaux", "Votes nominaux", "Roll call votes"), L.Lien("/textes")), (Titres.Court(titre, 110), L.Lien("/scrutin/" + s.Id)) };
+    // Données structurées : un vote est un événement daté d'une assemblée (le résultat est dans la description, pas dans un champ inventé).
+    ViewData["JsonLd"] = new Dictionary<string, object>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "Event",
+        ["name"] = Titres.Court(titre, 200),
+        ["startDate"] = s.DateScrutin.ToString("yyyy-MM-dd"),
+        ["eventAttendanceMode"] = "https://schema.org/OfflineEventAttendanceMode",
+        ["eventStatus"] = "https://schema.org/EventScheduled",
+        ["location"] = new Dictionary<string, object> { ["@type"] = "Place", ["name"] = L.Chambre(s.Chambre) },
+        ["organizer"] = new Dictionary<string, object> { ["@type"] = "GovernmentOrganization", ["name"] = L.Chambre(s.Chambre) },
+        ["description"] = (string)ViewData["Description"]!,
+    };
+    // Phrase visible de résultat (texte indexable, calculée d'après les décomptes publiés ; rien n'est inventé).
+    var phrase = s.Sort is null
+        ? L.Tf("scrutin-phrase-neutre", "Le {0}, {1} : {2:N0} pour, {3:N0} contre, {4:N0} abstentions.", "On {0}, {1}: {2:N0} for, {3:N0} against, {4:N0} abstentions.", s.DateScrutin.ToString("d MMMM yyyy", L.Culture), L.Chambre(s.Chambre), s.NbPour ?? 0, s.NbContre ?? 0, s.NbAbstentions ?? 0)
+        : s.Adopte
+            ? L.Tf("scrutin-phrase-adopte", "Le {0}, {1} : vote adopté, {2:N0} pour, {3:N0} contre, {4:N0} abstentions.", "On {0}, {1}: vote adopted, {2:N0} for, {3:N0} against, {4:N0} abstentions.", s.DateScrutin.ToString("d MMMM yyyy", L.Culture), L.Chambre(s.Chambre), s.NbPour ?? 0, s.NbContre ?? 0, s.NbAbstentions ?? 0)
+            : L.Tf("scrutin-phrase-rejete", "Le {0}, {1} : vote rejeté, {2:N0} pour, {3:N0} contre, {4:N0} abstentions.", "On {0}, {1}: vote rejected, {2:N0} for, {3:N0} against, {4:N0} abstentions.", s.DateScrutin.ToString("d MMMM yyyy", L.Culture), L.Chambre(s.Chambre), s.NbPour ?? 0, s.NbContre ?? 0, s.NbAbstentions ?? 0);
     string Libelle(string p) => L.Position(p);
     // Types de vote publiés par les assemblées (données françaises) : traduits quand on les connaît, sinon laissés tels quels.
     string TypeVoteLangue(string t) => !L.Anglais ? t : t.ToLowerInvariant() switch
@@ -45,6 +65,7 @@
     </p>
     <h1>@Titres.Court(titre, 400)</h1>
     @if (titre.Length > 400) { <details class="titre-complet"><summary>@L.T("titre-complet", "Titre complet", "Full title")</summary><p>@titre</p></details> }
+<p class="resume-vote">@phrase</p>
 <partial name="_OrdreNom" />
 </header>
 @if (s.TitreTraduitAuto(L.Anglais))

@@ -22,7 +22,7 @@ int[] LegislaturesCompletes = [15, 16, 17];
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var argv = args.ToList();
-if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements" or "communes" or "lords" or "us" or "italie" or "irlande" or "themes" or "bills"))
+if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements" or "communes" or "lords" or "us" or "italie" or "irlande" or "suisse" or "themes" or "bills"))
 {
     Console.Error.WriteLine("Usage : IlsOntVote.Importer an [--legislature 17|15,16,17|all] [--scrutins-dir D --amo-dir D]");
     Console.Error.WriteLine("        IlsOntVote.Importer senat [--senateurs-dir D --dosleg-sql F]");
@@ -74,6 +74,7 @@ return argv[0] switch
     "lords" => await ImporterLordsAsync(),
     "us" => await ImporterEtatsUnisAsync(),
     "irlande" => await ImporterIrlandeAsync(),
+    "suisse" => await ImporterSuisseAsync(),
     "italie" => Option("--chambre") == "senat" ? await ImporterItalieSenatAsync() : await ImporterItalieAsync(),
     "bills" => await ImporterBillsRoyaumeUniAsync(),
     _ => await ImporterTextesAsync(),
@@ -744,6 +745,172 @@ async Task<int> ImporterItalieSenatAsync()
         await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
         return 1;
     }
+}
+
+/// <summary>
+/// Assemblée fédérale suisse (service OData des Services du Parlement) : <c>--legislature N</c> ou plage <c>49-51</c> (la plus récente par défaut). Les deux conseils sont dans le même flux : le conseil
+/// d'un vote se DÉDUIT de l'annuaire des mandats. Totaux et résultat CALCULÉS d'après les bulletins (la source n'en donne pas). Mandats datés fournis par l'annuaire ; groupes DÉDUITS des bulletins.
+/// Lecture incrémentale : un vote déjà en base n'est relu que s'il a moins de 7 jours.
+/// </summary>
+async Task<int> ImporterSuisseAsync()
+{
+    Console.WriteLine("=== Suisse : Conseil national et Conseil des États (service OData du Parlement) ===");
+    var runId = await repo.DemarrerAsync("CH");
+    try
+    {
+        using var source = new SwitzerlandSource();
+        var spec = Option("--legislature");
+        var bornes = spec is null ? [await source.LegislatureCouranteAsync()] : spec.Split('-', 2).Select(int.Parse).ToArray();
+        var legislatures = Enumerable.Range(bornes[0], (bornes.Length > 1 ? bornes[1] : bornes[0]) - bornes[0] + 1).ToList();
+        var existants = await repo.LireSlugsAsync();
+        var slugs = existants.Values.ToHashSet();
+        var seuil = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-7);
+        Console.WriteLine("  Annuaire des conseillers…");
+        var mandatsTous = await source.LireMandatsAsync();
+        var parPersonne = mandatsTous.ToLookup(m => m.Personne);
+        var dejaTous = new Dictionary<string, HashSet<string>>();
+        foreach (var ch in new[] { Chambres.ChNr, Chambres.ChSr }) dejaTous[ch] = (await repo.LireScrutinsAsync(ch)).Item1.ToHashSet();
+        int nbScrutins = 0; long nbVotes = 0;
+
+        foreach (var leg in legislatures)
+        {
+            var votes = await source.LireVotesAsync(leg);
+            if (votes.Count == 0) { Console.WriteLine($"  Législature {leg} : aucun vote."); continue; }
+            // Bulletins de TOUS les votes de la législature (environ 500 000 lignes pour 4 200 votes) : l'annuaire et les groupes en dépendent, on les lit avant d'écrire.
+            var bulletins = new Dictionary<long, List<BulletinCh>>();
+            var intern = new Dictionary<string, string>();
+            string I(string s) => intern.TryGetValue(s, out var v) ? v : intern[s] = s;
+            var ids = votes.Select(v => v.Id).ToList();
+            var lus = 0;
+            foreach (var lot in ids.Chunk(40))
+            {
+                foreach (var b in await source.LireBulletinsAsync(lot))
+                {
+                    var c = b with { Prenom = I(b.Prenom), Nom = I(b.Nom), Canton = I(b.Canton), GroupeCode = I(b.GroupeCode), GroupeNom = I(b.GroupeNom), GroupeCouleur = b.GroupeCouleur is null ? null : I(b.GroupeCouleur) };
+                    if (!bulletins.TryGetValue(c.IdVote, out var l)) bulletins[c.IdVote] = l = [];
+                    l.Add(c);
+                }
+                lus += lot.Length;
+                if (lus % 800 < 40) Console.WriteLine($"    {lus}/{ids.Count} votes lus…");
+            }
+
+            // Conseil de chaque vote (déduit de l'annuaire) ; les votes mêlant les deux conseils (Assemblée fédérale réunie) ou sans mandat connu ne sont pas importés.
+            var parConseil = new Dictionary<string, List<VoteCh>> { ["CN"] = [], ["CE"] = [] };
+            int mixtes = 0, sansBulletin = 0;
+            foreach (var v in votes)
+            {
+                if (!bulletins.TryGetValue(v.Id, out var bs)) { sansBulletin++; continue; }
+                var conseil = SwitzerlandSource.ConseilDuVote(bs, v.Date, parPersonne);
+                if (conseil is null) mixtes++; else parConseil[conseil].Add(v);
+            }
+            Console.WriteLine($"  Législature {leg} : {votes.Count} votes, {parConseil["CN"].Count} au Conseil national, {parConseil["CE"].Count} au Conseil des États, {mixtes} non importés (conseils mêlés ou mandats inconnus), {sansBulletin} sans bulletin.");
+            var debut = votes.Min(v => v.Date); var finSpan = votes.Max(v => v.Date);
+
+            var annuairesParConseil = new Dictionary<string, Annuaire>();
+            foreach (var conseil in new[] { "CN", "CE" })
+            {
+                var chambre = SwitzerlandSource.IdChambre(conseil);
+                var vs = parConseil[conseil];
+                if (vs.Count == 0) continue;
+                var bs = vs.SelectMany(v => bulletins[v.Id].Select(b => (V: v, B: b))).ToList();
+                var groupes = bs.Where(x => x.B.GroupeCode.Length > 0).GroupBy(x => x.B.GroupeCode)
+                    .Select(g => SwitzerlandSource.Groupe(conseil, leg, g.Key, g.First().B.GroupeNom, g.First().B.GroupeCouleur)).ToList();
+                // Mandats du conseil qui chevauchent la période des votes (législature), avec leurs dates officielles.
+                var stints = mandatsTous.Where(m => m.Conseil == conseil && m.Debut <= finSpan && (m.Fin is null || m.Fin >= debut)).ToList();
+                var personnes = stints.Select(m => m.Personne).Concat(bs.Select(x => x.B.Personne)).Distinct().ToList();
+                var noms = bs.GroupBy(x => x.B.Personne).ToDictionary(g => g.Key, g => (g.First().B.Prenom, g.First().B.Nom, g.First().B.Canton));
+                var parlementaires = personnes.Select(p =>
+                {
+                    var (prenom, nom, canton) = noms.TryGetValue(p, out var n) ? n : stints.Where(s => s.Personne == p).Select(s => (s.Prenom, s.Nom, s.Canton)).First();
+                    var pid = SwitzerlandSource.IdMembre(conseil, p);
+                    var slug = existants.TryGetValue(pid, out var s0) ? s0 : Slugs.Unique(slugs, prenom, nom, pid);
+                    return new ParlementaireRow(pid, chambre, null, prenom, nom, slug, canton, null);
+                }).ToList();
+                var mandats = stints.Select(m => new MandatRow(SwitzerlandSource.IdMembre(conseil, m.Personne), leg, m.Debut, m.Fin)).ToList();
+                var appartenances = SwitzerlandSource.AppartenancesDeduites(conseil, leg, bs.Select(x => (x.B.Personne, x.V.Date, x.B.GroupeCode)));
+                await repo.EcrireAnnuaireAsync(new Annuaire(groupes, parlementaires, mandats, appartenances), chambre, [leg]);
+                annuairesParConseil[conseil] = new Annuaire(groupes, parlementaires, [], []);
+            }
+
+            var annuaire = new Annuaire(annuairesParConseil.Values.SelectMany(a => a.Groupes).ToList(), annuairesParConseil.Values.SelectMany(a => a.Parlementaires).ToList(), [], []);
+            foreach (var conseil in new[] { "CN", "CE" })
+            {
+                var chambre = SwitzerlandSource.IdChambre(conseil);
+                var connus = parlementairesDe(annuairesParConseil, conseil);
+                var inconnus = new HashSet<int>();
+                var aEcrire = parConseil[conseil].Where(v => !dejaTous[chambre].Contains(SwitzerlandSource.IdScrutin(conseil, leg, v.Id)) || v.Date >= seuil).ToList();
+                foreach (var lot in aEcrire.Chunk(100))
+                {
+                    var scrutins = lot.Select(v => SwitzerlandSource.VersScrutin(v, conseil, bulletins[v.Id], connus, inconnus)).ToList();
+                    var (n, v2, _) = await repo.EcrireScrutinsAsync(scrutins, annuaire);
+                    nbScrutins += n; nbVotes += v2;
+                }
+                Console.WriteLine($"    {chambre} : {aEcrire.Count} vote(s) écrit(s).");
+                if (inconnus.Count > 0) Console.WriteLine($"    {inconnus.Count} conseiller(s) sans fiche ignoré(s).");
+            }
+
+            // Conseil des États : absent du flux OData, lu dans l'API à clé (Parlament:ApiKey, jamais commitée). Sans clé : on le dit, le Conseil national est importé quand même.
+            var cle = config["Parlament:ApiKey"];
+            if (string.IsNullOrWhiteSpace(cle)) { Console.WriteLine("    Conseil des États ignoré : clé « Parlament:ApiKey » absente."); continue; }
+            source.UtiliserCle(cle);
+            var (du, au) = await source.BornesLegislatureAsync(leg);
+            var votesCs = await source.LireVotesCsAsync(leg, du, au);
+            Console.WriteLine($"    Conseil des États : {votesCs.Count} votes dans la législature {leg}.");
+            if (votesCs.Count == 0) continue;
+            var bulletinsCs = new Dictionary<long, IReadOnlyList<BulletinCh>>();
+            foreach (var v in votesCs)
+            {
+                bulletinsCs[v.Id] = await source.LireBulletinsCsAsync(v.Id);
+                if (bulletinsCs.Count % 500 == 0) Console.WriteLine($"      {bulletinsCs.Count}/{votesCs.Count} votes lus…");
+            }
+            {
+                const string ce = "CE";
+                var chambre = SwitzerlandSource.IdChambre(ce);
+                var bs = votesCs.SelectMany(v => bulletinsCs[v.Id].Select(b => (V: v, B: b))).ToList();
+                var groupes = bs.Where(x => x.B.GroupeCode.Length > 0).GroupBy(x => x.B.GroupeCode)
+                    .Select(g => SwitzerlandSource.Groupe(ce, leg, g.Key, g.First().B.GroupeNom, null)).ToList();
+                var debutCs = votesCs.Min(v => v.Date); var finCs = votesCs.Max(v => v.Date);
+                var stints = mandatsTous.Where(m => m.Conseil == ce && m.Debut <= finCs && (m.Fin is null || m.Fin >= debutCs)).ToList();
+                var noms = bs.GroupBy(x => x.B.Personne).ToDictionary(g => g.Key, g => (g.First().B.Prenom, g.First().B.Nom, g.First().B.Canton));
+                var parlementaires = stints.Select(m => m.Personne).Concat(noms.Keys).Distinct().Select(p =>
+                {
+                    var (prenom, nom, canton) = noms.TryGetValue(p, out var n) ? n : stints.Where(s => s.Personne == p).Select(s => (s.Prenom, s.Nom, s.Canton)).First();
+                    var pid = SwitzerlandSource.IdMembre(ce, p);
+                    var slug = existants.TryGetValue(pid, out var s0) ? s0 : Slugs.Unique(slugs, prenom, nom, pid);
+                    return new ParlementaireRow(pid, chambre, null, prenom, nom, slug, canton, null);
+                }).ToList();
+                var mandats = stints.Select(m => new MandatRow(SwitzerlandSource.IdMembre(ce, m.Personne), leg, m.Debut, m.Fin)).ToList();
+                var appartenances = SwitzerlandSource.AppartenancesDeduites(ce, leg, bs.Select(x => (x.B.Personne, x.V.Date, x.B.GroupeCode)));
+                var annuaireCs = new Annuaire(groupes, parlementaires, mandats, appartenances);
+                await repo.EcrireAnnuaireAsync(annuaireCs, chambre, [leg]);
+                var connus = parlementaires.Select(p => int.Parse(p.Id[(p.Id.LastIndexOf('-') + 1)..])).ToHashSet();
+                var inconnus = new HashSet<int>();
+                var dejaCs = (await repo.LireScrutinsAsync(chambre)).Item1.ToHashSet();
+                var aEcrire = votesCs.Where(v => !dejaCs.Contains(SwitzerlandSource.IdScrutin(ce, leg, v.Id)) || v.Date >= seuil).ToList();
+                foreach (var lot in aEcrire.Chunk(100))
+                {
+                    var scrutins = lot.Select(v => SwitzerlandSource.VersScrutin(v, ce, bulletinsCs[v.Id], connus, inconnus, totauxOfficiels: true)).ToList();
+                    var (n, v2, _) = await repo.EcrireScrutinsAsync(scrutins, annuaireCs);
+                    nbScrutins += n; nbVotes += v2;
+                }
+                Console.WriteLine($"    {chambre} : {aEcrire.Count} vote(s) écrit(s).");
+                if (inconnus.Count > 0) Console.WriteLine($"    {inconnus.Count} conseiller(s) sans fiche ignoré(s).");
+            }
+        }
+        Console.WriteLine($"  {nbScrutins} votes, {nbVotes:N0} bulletins exprimés.");
+        await repo.TerminerAsync(runId, true, nbScrutins, nbVotes, null);
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex);
+        await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
+        return 1;
+    }
+
+    // Identifiants de conseillers (numéro de personne) connus pour un conseil : ceux de l'annuaire qu'on vient d'écrire.
+    static HashSet<int> parlementairesDe(Dictionary<string, Annuaire> a, string conseil) =>
+        a.TryGetValue(conseil, out var an) ? an.Parlementaires.Select(p => int.Parse(p.Id[(p.Id.LastIndexOf('-') + 1)..])).ToHashSet() : [];
 }
 
 /// <summary>

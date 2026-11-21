@@ -719,3 +719,9 @@ a.raccourci:hover { background: var(--tag-delegation); color: var(--surface); }
 .titre-complet { margin: 8px 0 0; max-width: 70ch; }
 .titre-complet summary { cursor: pointer; color: var(--ink-soft); font-size: 0.9rem; }
 .titre-complet p { margin: 8px 0 0; max-height: 18em; overflow: auto; font-size: 0.9rem; line-height: 1.5; overflow-wrap: anywhere; }
+
+/* Texte visible sous le titre d'un vote ou d'une loi (indexable par les moteurs de recherche) et texte d'accueil. */
+.resume-vote { margin: 6px 0 0; color: var(--ink-soft); font-size: 1rem; }
+.seo-texte { max-width: 760px; margin: 28px auto; padding: 0 16px; color: var(--ink-soft); }
+.seo-texte h2 { font-size: 1.15rem; margin: 0 0 8px; color: var(--ink); }
+.seo-texte p { margin: 0; line-height: 1.55; }

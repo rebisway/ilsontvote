@@ -16,3 +16,7 @@ UPDATE chambres SET actif = true WHERE pays = 'IT';
 -- UPDATE chambres SET actif = true WHERE pays IN ('GB', 'US');
 
 SELECT p.code, p.prefixe_url, p.actif, count(c.*) FILTER (WHERE c.actif) AS chambres_actives FROM pays p LEFT JOIN chambres c ON c.pays = p.code GROUP BY 1, 2, 3 ORDER BY p.ordre;
+
+-- Suisse (le Conseil des États exige la clé d'API Parlament:ApiKey dans appsettings.Local.json) :
+-- UPDATE pays SET actif = true WHERE code = 'CH';
+-- UPDATE chambres SET actif = true WHERE pays = 'CH';

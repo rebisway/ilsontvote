@@ -52,6 +52,16 @@ public static class DescriptionsDonnees
         ["votes"] = "Each member's vote in each roll call (pour = yea, contre = nay, abstention = present). Not voting members and merely announced or paired positions are not in this file.",
     };
 
+    private static readonly Dictionary<string, string> EnCh = new()
+    {
+        ["groupes"] = "Parliamentary groups of the Swiss National Council and Council of States (one identifier per term; the group is the one carried by the ballots).",
+        ["parlementaires"] = "National Councillors and Councillors of States (identity, canton).",
+        ["mandats"] = "Terms of office: dates from the official directory of councillors. One row per term (legislature column).",
+        ["appartenances_groupes"] = "Membership of a councillor in a group, with dates: DEDUCED from the sequence of imported ballots (calculated).",
+        ["scrutins"] = "Votes of the National Council and the Council of States. Totals, result and council are CALCULATED by the site from the ballots (the source does not publish them); sur_ensemble = final or overall vote (calculated from the subject); url_officielle = page of the business (Curia Vista).",
+        ["votes"] = "Each councillor's ballot in each vote (pour = yes, contre = no, abstention, non_votant = the president does not vote). Absentees (“did not take part”, “excused”) are not in this file: they are deduced from the mandates.",
+    };
+
     private static readonly Dictionary<string, string> EnIe = new()
     {
         ["groupes"] = "Parties (groups) of the Irish Dáil and Seanad (one identifier per term).",
@@ -76,7 +86,7 @@ public static class DescriptionsDonnees
     public static string? Anglais(string fichier)
     {
         var nom = fichier.Split('.')[0];
-        return nom.StartsWith("gb_") ? EnGb.GetValueOrDefault(nom[3..]) : nom.StartsWith("us_") ? EnUs.GetValueOrDefault(nom[3..]) : nom.StartsWith("it_") ? EnIt.GetValueOrDefault(nom[3..]) : nom.StartsWith("ie_") ? EnIe.GetValueOrDefault(nom[3..]) : En.GetValueOrDefault(nom);
+        return nom.StartsWith("gb_") ? EnGb.GetValueOrDefault(nom[3..]) : nom.StartsWith("us_") ? EnUs.GetValueOrDefault(nom[3..]) : nom.StartsWith("it_") ? EnIt.GetValueOrDefault(nom[3..]) : nom.StartsWith("ie_") ? EnIe.GetValueOrDefault(nom[3..]) : nom.StartsWith("ch_") ? EnCh.GetValueOrDefault(nom[3..]) : En.GetValueOrDefault(nom);
     }
 }
 

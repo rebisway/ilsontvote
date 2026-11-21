@@ -13,6 +13,8 @@ public static class Chambres
     public const string ItSenate = "ITSENATE";
     public const string IeDail = "IEDAIL";
     public const string IeSeanad = "IESEANAD";
+    public const string ChNr = "CHNR";
+    public const string ChSr = "CHSR";
 }
 
 /// <summary>Position d'un vote, telle que stockée en base (colonne votes.position).</summary>

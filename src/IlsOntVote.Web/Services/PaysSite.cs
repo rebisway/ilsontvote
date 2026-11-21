@@ -104,10 +104,10 @@ public sealed class PaysSite(DapperContext db)
     /// <summary>Middleware à placer AVANT <see cref="Langue.Middleware"/> : lit le préfixe de pays, applique le choix explicite et la détection de l'accueil.</summary>
     /// <summary>Cookie de la langue choisie sous un préfixe de pays (« fr » ou « en »).</summary>
     /// <summary>Langues proposées par le sélecteur d'un pays : français et anglais partout, plus la langue du pays quand l'interface est traduite (Italie : « it »).</summary>
-    public static IReadOnlyList<string> LanguesDuPays(string? pays) => pays == "IT" ? ["fr", "en", "it"] : ["fr", "en"];
+    public static IReadOnlyList<string> LanguesDuPays(string? pays) => pays switch { "IT" => ["fr", "en", "it"], "CH" => ["fr", "de", "it"], _ => ["fr", "en"] };
 
     /// <summary>Langue de l'interface sans choix du lecteur : la langue du pays si elle est traduite (Italie), anglais sinon.</summary>
-    public static string LangueParDefaut(string? pays) => pays == "IT" ? "it" : "en";
+    public static string LangueParDefaut(string? pays) => pays switch { "IT" => "it", "CH" => "fr", _ => "en" };
 
     public const string CookieLanguePays = "ilsontvote_lang_pays";
 

@@ -51,6 +51,8 @@ public sealed class Planificateur(string connectionString)
         ["us"] = ["us"],
         ["italie"] = ["italie"],
         ["themes"] = ["themes"],
+        ["suisse"] = ["suisse"],
+        ["suisse_historique"] = ["suisse", "--legislature", "49-51"],
         ["irlande"] = ["irlande"],
         ["irlande_seanad"] = ["irlande", "--chambre", "seanad"],
         ["irlande_historique"] = ["irlande", "--mandature", "31-33"],

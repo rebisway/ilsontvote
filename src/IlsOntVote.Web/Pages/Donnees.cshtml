@@ -25,6 +25,10 @@
 {
     <p class="note-source">@L.TH("ces-fichiers-ne-contiennent-que-les", "Ces fichiers ne contiennent que les données des États-Unis (Chambre des représentants et Sénat) : leur nom commence par <code>us_</code>. Les votes nominaux sont dans <code>us_scrutins</code>, les votes individuels dans <code>us_votes</code> ; les absents ne sont pas stockés (ils se déduisent des mandats).", "These files only contain data for the United States (House of Representatives and Senate): their name starts with <code>us_</code>. Roll call votes are in <code>us_scrutins</code>, individual votes in <code>us_votes</code>; absent members are not stored (they are deduced from the mandates).")</p>
 }
+else if (L.Pays == "CH")
+{
+    <p class="note-source">@L.TH("ces-fichiers-ne-contiennent-que-les-4", "Ces fichiers ne contiennent que les données de la Suisse (Conseil national et Conseil des États) : leur nom commence par <code>ch_</code>. Les votes sont dans <code>ch_scrutins</code>, les bulletins dans <code>ch_votes</code> ; les conseillers absents ne sont pas stockés (ils se déduisent des mandats).", "These files only contain data for Switzerland (National Council and Council of States): their name starts with <code>ch_</code>. Votes are in <code>ch_scrutins</code>, ballots in <code>ch_votes</code>; absent councillors are not stored (they are deduced from the mandates).")</p>
+}
 else if (L.Pays == "IE")
 {
     <p class="note-source">@L.TH("ces-fichiers-ne-contiennent-que-les-c717", "Ces fichiers ne contiennent que les données de l'Irlande (Dáil et Seanad) : leur nom commence par <code>ie_</code>. Les votes sont dans <code>ie_scrutins</code>, les votes individuels dans <code>ie_votes</code> ; les députés absents ne sont pas stockés (ils se déduisent des mandats).", "These files only contain data for Ireland (Dáil and Seanad): their name starts with <code>ie_</code>. Votes are in <code>ie_scrutins</code>, individual votes in <code>ie_votes</code>; absent members are not stored (they are deduced from the mandates).")</p>
@@ -65,7 +69,16 @@ else
 
 <section class="definitions" aria-label="@L.T("lire-les-fichiers", "Lire les fichiers", "Reading the files")">
     <h2>@L.T("comment-lire-les-fichiers", "Comment lire les fichiers", "How to read the files")</h2>
-    @if (L.Pays == "IE")
+    @if (L.Pays == "CH")
+    {
+    <dl>
+        <div><dt>ch_votes</dt><dd>@L.TH("ch-votes-def", "une ligne par conseiller et par vote où il s'est exprimé : <code>position</code> = pour (oui), contre (non), abstention, ou non_votant (le président ne vote pas). Les absents (« n'a pas pris part », « excusé ») ne sont pas inclus.", "one row per councillor and vote where they voted: <code>position</code> = pour (yes), contre (no), abstention, or non_votant (the president does not vote). Absentees (“did not take part”, “excused”) are not included.")</dd></div>
+        <div><dt>@L.T("absents", "absents", "absentees")</dt><dd>@L.TH("ch-absents-def", "<strong>Les absents ne sont pas dans <code>ch_votes</code></strong> : ils se déduisent. Un conseiller est absent à un vote s'il avait un mandat en cours à sa date (fichier <code>ch_mandats</code>, dates de la source) et aucune ligne dans <code>ch_votes</code>.", "<strong>Absentees are not in <code>ch_votes</code></strong>: they are deduced. A councillor is absent from a vote if they held a mandate on its date (file <code>ch_mandats</code>, dates from the source) and have no row in <code>ch_votes</code>.")</dd></div>
+        <div><dt>ch_scrutins</dt><dd>@L.TH("ch-scrutins-def", "<code>nb_pour</code>, <code>nb_contre</code>, <code>nb_abstentions</code> : <strong>calculés</strong> par le site d'après les bulletins au Conseil national (la source n'y publie pas de totaux) ; décompte officiel de la source au Conseil des États. <code>sort</code> : calculé (plus de oui que de non). <code>sur_ensemble</code> : « vote final » ou « vote sur l'ensemble » (calculé d'après l'objet du vote). <code>url_officielle</code> : fiche officielle de l'affaire (Curia Vista).", "<code>nb_pour</code>, <code>nb_contre</code>, <code>nb_abstentions</code>: <strong>calculated</strong> by the site from the ballots in the National Council (the source publishes no totals there); official count from the source in the Council of States. <code>sort</code>: calculated (more yes than no). <code>sur_ensemble</code>: “final vote” or “overall vote” (calculated from the subject of the vote). <code>url_officielle</code>: official page of the business (Curia Vista).")</dd></div>
+        <div><dt>chambre</dt><dd>CHNR (Conseil national), CHSR (Conseil des États).</dd></div>
+    </dl>
+    }
+    else if (L.Pays == "IE")
     {
     <dl>
         <div><dt>@Fichier("ie_votes")</dt><dd>@L.TH("une-ligne-par-membre-et-par", "une ligne par membre et par division où il a voté : <code>position</code> = pour (Tá), contre (Níl) ou abstention (Staon). Les membres qui n'ont pas voté ne sont pas inclus.", "one row per member and division where they voted: <code>position</code> = pour (Tá), contre (Níl) or abstention (Staon). Members who did not vote are not included.")</dd></div>
@@ -123,7 +136,11 @@ else
 
 <section class="definitions" aria-label="@L.T("sources-et-licences", "Sources et licences", "Sources and licences")">
     <h2>@L.T("sources-et-conditions-de-reutilisation", "Sources et conditions de réutilisation", "Sources and terms of reuse")</h2>
-    @if (L.Pays == "IE")
+    @if (L.Pays == "CH")
+    {
+    <p>@L.THf("donnees-sources-suisse", "Les votes viennent des données ouvertes des <strong>Services du Parlement</strong> (« Parlamentsdienste der Bundesversammlung, Bern »), reprises sans modification ; les totaux, résultats et groupes calculés par le site sont signalés comme tels. La date de dernière mise à jour est affichée avec chaque fichier. Voir la page <a href=\"{0}\">Méthodologie et limites</a>. Aucune photo n'est incluse.", "The votes come from the open data of the <strong>Parliamentary Services</strong> (“Parlamentsdienste der Bundesversammlung, Bern”), reproduced without modification; totals, results and groups calculated by the site are flagged as such. The date of the last update is shown with each file. See the <a href=\"{0}\">Methodology and limits</a> page. No photo is included.", L.Lien("/methodologie"))</p>
+    }
+    else if (L.Pays == "IE")
     {
     <p>@L.THf("donnees-sources-irlande", "Les votes viennent de l'open data des <strong>Chambres de l'Oireachtas</strong> (api.oireachtas.ie), sous la <a href='https://www.oireachtas.ie/en/open-data/license/'>Oireachtas (Open Data) PSI Licence</a>, qui reprend la licence <strong>CC BY 4.0</strong> (attribution). Les mandats, la casse des noms et les taux calculés par le site sont fournis sans garantie ; voir la page <a href=\"{0}\">Méthodologie et limites</a>. Aucune photo n'est incluse.", "The votes come from the open data of the <strong>Houses of the Oireachtas</strong> (api.oireachtas.ie), under the <a href='https://www.oireachtas.ie/en/open-data/license/'>Oireachtas (Open Data) PSI Licence</a>, which incorporates the <strong>CC BY 4.0</strong> licence (attribution). Mandates, name capitalisation and rates calculated by the site are provided without warranty; see the Methodology and limits page. No photo is included.", L.Lien("/methodologie"))</p>
     }

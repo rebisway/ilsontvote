@@ -72,6 +72,22 @@ public static class ExportDonnees
     private static JeuDonnees PourEtatsUnis(JeuDonnees j) => new("us_" + j.Nom, DescriptionsUs.GetValueOrDefault(j.Nom, j.Description),
         j.Sql.Replace(ChambresActives, ChambresUs).Replace("nominatif_incomplet, texte_id, texte_lie_id", "nominatif_incomplet, dossier_ref AS url_officielle"), "US");
 
+    private const string ChambresCh = "chambre IN (SELECT code FROM chambres WHERE actif AND pays = 'CH')";
+
+    private static readonly Dictionary<string, string> DescriptionsCh = new()
+    {
+        ["groupes"] = "Groupes parlementaires du Conseil national et du Conseil des États (un identifiant par législature ; le groupe est celui porté par les bulletins).",
+        ["parlementaires"] = "Conseillers nationaux et conseillers aux États (identité, canton).",
+        ["mandats"] = "Périodes de mandat : dates de l'annuaire officiel des conseillers. Une ligne par législature (colonne legislature).",
+        ["appartenances_groupes"] = "Appartenance d'un conseiller à un groupe, avec dates : DÉDUITE de la suite des bulletins importés (calculé).",
+        ["scrutins"] = "Votes du Conseil national et du Conseil des États. Totaux, résultat et conseil sont CALCULÉS par le site d'après les bulletins (la source ne les publie pas) ; sur_ensemble = vote final ou vote sur l'ensemble (calculé d'après l'objet) ; url_officielle = fiche de l'affaire (Curia Vista).",
+        ["votes"] = "Bulletin de chaque conseiller à chaque vote (pour = oui, contre = non, abstention, non_votant = le président ne vote pas). Les absents (« n'a pas pris part », « excusé ») ne figurent pas dans ce fichier : ils se déduisent des mandats.",
+    };
+
+    /// <summary>Déclinaison suisse d'un jeu commun : chambres de Suisse, fichier « ch_… », fiche officielle de l'affaire à la place du rattachement aux textes français.</summary>
+    private static JeuDonnees PourSuisse(JeuDonnees j) => new("ch_" + j.Nom, DescriptionsCh.GetValueOrDefault(j.Nom, j.Description),
+        j.Sql.Replace(ChambresActives, ChambresCh).Replace("nominatif_incomplet, texte_id, texte_lie_id", "nominatif_incomplet, dossier_ref AS url_officielle"), "CH");
+
     private const string ChambresIe = "chambre IN (SELECT code FROM chambres WHERE actif AND pays = 'IE')";
 
     private static readonly Dictionary<string, string> DescriptionsIe = new()
@@ -111,6 +127,7 @@ public static class ExportDonnees
     private static string? LicenceDe(string pays) => pays switch
     {
         "IT" => "CC BY-SA 4.0 (Camera dei deputati, dati.camera.it) ; CC BY 3.0 (Senato della Repubblica, dati.senato.it) — attribution required, share-alike for derived data",
+        "CH" => "Parlamentsdienste der Bundesversammlung, Bern (ws.parlament.ch) — data reproduced without modification, source and download date to be credited; totals, results and groups are calculated by this site",
         "IE" => "Oireachtas (Open Data) PSI Licence, incorporating CC BY 4.0 (Houses of the Oireachtas, api.oireachtas.ie) — attribution required",
         _ => null,
     };
@@ -121,7 +138,8 @@ public static class ExportDonnees
         .. Jeux.Where(j => j.Nom is "bills" or "bill_etapes").Select(j => j with { Nom = "gb_" + j.Nom, Pays = "GB" }),
         .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom) && !j.Nom.StartsWith("petitions")).Select(PourEtatsUnis),
         .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom) && !j.Nom.StartsWith("petitions")).Select(PourItalie),
-        .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom) && !j.Nom.StartsWith("petitions")).Select(PourIrlande)];
+        .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom) && !j.Nom.StartsWith("petitions")).Select(PourIrlande),
+        .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom) && !j.Nom.StartsWith("petitions")).Select(PourSuisse)];
 
     public static readonly IReadOnlyList<JeuDonnees> Jeux =
     [

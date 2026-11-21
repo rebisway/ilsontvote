@@ -7,6 +7,7 @@
     var b = Model.Bilan;
     var fr = L.Culture;
     ViewData["Title"] = e.NomComplet;
+    ViewData["Fil"] = new List<(string, string)> { (L.T("accueil", "Accueil", "Home"), L.Lien("/")), (L.Membres(e.Chambre), L.Lien("/" + Chambres.Liste(e.Chambre))), (e.NomComplet, L.Lien("/" + Chambres.Fiche(e.Chambre) + "/" + e.Slug)) };
     ViewData["JsonLd"] = new Dictionary<string, object>
     {
         ["@context"] = "https://schema.org",

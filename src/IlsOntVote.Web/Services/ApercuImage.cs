@@ -122,6 +122,8 @@ public sealed class ApercuImage
             ? "How every Representative and Senator voted in Congress, roll call by roll call. Official data, free software."
             : pays == "IT"
             ? "How every Italian deputy voted, final vote by final vote. Official data, free software."
+            : pays == "CH"
+            ? "How every Swiss councillor voted in the National Council and the Council of States. Official data, free software."
             : pays == "IE"
             ? "How every TD and senator voted in the Oireachtas, division by division. Official data, free software."
             : en ? "How every French deputy, senator and MEP voted, law by law. Official data, free software."

@@ -8,6 +8,11 @@
     var fr = L.Culture;
     var titre = t.TitreLangue(L.Anglais);
     ViewData["Title"] = titre.Length > 60 ? titre[..60] + "…" : titre;
+    ViewData["Fil"] = new List<(string, string)> { (L.T("accueil", "Accueil", "Home"), L.Lien("/")), (L.T("lois-b08d", "Lois", "Laws"), L.Lien("/lois")), (Titres.Court(titre, 110), L.Lien("/texte/" + t.Id)) };
+    // Phrase visible (texte indexable) : statut + dates publiées ; une date absente n'est pas écrite.
+    var phrase = L.Tf("texte-phrase", "Statut : {0}.", "Status: {0}.", st.Libelle)
+        + (t.DatePromulgation is { } dp ? " " + L.Tf("texte-phrase-promulgue", "Promulgué le {0}.", "Promulgated on {0}.", dp.ToString("d MMMM yyyy", L.Culture)) : "")
+        + (t.DateJo is { } dj ? " " + L.Tf("texte-phrase-jo", "Publié au Journal officiel le {0}.", "Published in the Journal officiel on {0}.", dj.ToString("d MMMM yyyy", L.Culture)) : "");
     ViewData["JsonLd"] = new Dictionary<string, object?>
     {
         ["@context"] = "https://schema.org",
@@ -33,6 +38,7 @@
     <h1>@Titres.Court(titre, 400)</h1>
     @if (titre.Length > 400) { <details class="titre-complet"><summary>@L.T("titre-complet", "Titre complet", "Full title")</summary><p>@titre</p></details> }
     <p><span class="statut @st.Classe">@st.Libelle</span></p>
+    <p class="resume-vote">@phrase</p>
 </header>
 @if (t.TitreTraduitAuto(L.Anglais))
 {

@@ -37,6 +37,76 @@ else
     </div>
 }
 
+<h2>Par chambre</h2>
+<p class="note-source">Une ligne par chambre décrite dans le référentiel. <strong>En exercice</strong> = élus dont un mandat couvre aujourd'hui (législature la plus récente) ; au-dessus du nombre de sièges, des mandats sont mal datés
+    (suppléants, départs non enregistrés) ; pour les chambres dont les mandats sont <em>déduits des votes importés</em> (Chambre italienne, Congrès), l'effectif peut être au-dessous des sièges.</p>
+<div class="table-wrap">
+    <table>
+        <thead><tr><th>Chambre</th><th class="num">Scrutins</th><th>Dernier</th><th class="num">Incomplets</th><th class="num">Sans résultat</th><th class="num">En exercice</th><th class="num">Sièges</th><th class="num">Mandats chevauchants</th><th class="num">Élus sans groupe</th></tr></thead>
+        <tbody>
+        @foreach (var c in Model.Chambres)
+        {
+            <tr class="@(c.Actif ? "" : "inactif")">
+                <td><strong>@c.Code</strong> <span class="note">@c.Nom@(c.Actif ? "" : " · inactive")</span></td>
+                <td class="num">@c.Scrutins.ToString("N0", fr)</td>
+                <td class="nowrap">@if (c.Dernier is null) { @Doute.Html(NiveauDoute.Manquant, "aucun", "Aucun scrutin importé pour cette chambre.") }
+                                   else if (c.Actif && c.AgeJours > QualiteModel.SeuilChambreJours) { @Doute.Html(NiveauDoute.Incertain, c.Dernier.Value.ToString("d MMM yyyy", fr), $"Dernier scrutin il y a {c.AgeJours} jours : import en panne ou vacances parlementaires prolongées.") }
+                                   else { @c.Dernier.Value.ToString("d MMM yyyy", fr) }</td>
+                <td class="num">@if (c.Incomplets > 0) { @Doute.Html(NiveauDoute.Incertain, c.Incomplets.ToString("N0", fr) + " (" + (100.0 * c.Incomplets / Math.Max(1, c.Scrutins)).ToString("0.#", fr) + " %)", "Décompte nominatif plus court que le total officiel : exclus des taux de participation.") } else { <text>0</text> }</td>
+                <td class="num">@c.SansResultat.ToString("N0", fr)</td>
+                <td class="num">@if (c.AuDessusDesSieges) { @Doute.Html(NiveauDoute.Incertain, c.EnExercice.ToString("N0", fr), $"Plus d'élus en exercice ({c.EnExercice}) que de sièges ({c.Sieges}) : mandats mal datés.") }
+                                else if (c.Actif && c.EnExercice == 0) { @Doute.Html(NiveauDoute.Manquant, "0", "Aucun élu en exercice : annuaire ou mandats absents.") }
+                                else { @c.EnExercice.ToString("N0", fr) }</td>
+                <td class="num">@(c.Sieges?.ToString("N0", fr) ?? "—")</td>
+                <td class="num">@if (c.Chevauchants > 0) { @Doute.Html(NiveauDoute.Incertain, c.Chevauchants.ToString("N0", fr), "Deux mandats du même élu, dans la même législature, se recoupent : un scrutin peut compter l'élu deux fois dans l'effectif.") } else { <text>0</text> }</td>
+                <td class="num">@c.SansGroupe.ToString("N0", fr)</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<h2>Tâches planifiées</h2>
+<p class="note-source">Dernière exécution de chaque tâche du catalogue. Une tâche <strong>non ponctuelle</strong> sans exécution depuis plus de @QualiteModel.SeuilTacheHeures h, ou dont la dernière exécution a échoué, est signalée.</p>
+<div class="table-wrap">
+    <table>
+        <thead><tr><th>Tâche</th><th>Pays</th><th>Dernière exécution</th><th>Âge</th><th>Durée</th><th>Résultat</th></tr></thead>
+        <tbody>
+        @foreach (var t in Model.Taches)
+        {
+            var vieille = !t.Ponctuelle && (t.AgeHeures is null || t.AgeHeures > QualiteModel.SeuilTacheHeures);
+            <tr>
+                <td><code>@t.Code</code> <span class="note">@t.Libelle@(t.Ponctuelle ? " · ponctuelle" : "")</span></td>
+                <td>@(t.Pays ?? "—")</td>
+                <td class="nowrap">@(t.Debut?.ToLocalTime().ToString("g", fr) ?? "jamais")</td>
+                <td>@if (t.AgeHeures is null) { @(t.Ponctuelle ? "—" : "") }
+                    else if (vieille) { @Doute.Html(NiveauDoute.Incertain, Age(t.AgeHeures.Value), "Cette tâche régulière n'a pas tourné depuis plus de 48 h.") }
+                    else { @Age(t.AgeHeures.Value) }</td>
+                <td class="nowrap">@(t.Duree is { } d ? (d.TotalMinutes >= 1 ? $"{(int)d.TotalMinutes} min {d.Seconds} s" : $"{(int)d.TotalSeconds} s") : "—")</td>
+                <td>@if (t.Ok == false) { @Doute.Html(NiveauDoute.Incertain, "échec", "La dernière exécution a échoué : voir le détail dans le journal des imports.") }
+                    else if (t.Ok == true) { <text>réussie@(t.NbErreurs is > 0 ? $" · {t.NbErreurs} erreur(s) signalée(s)" : "")</text> }
+                    else if (t.Debut is not null) { <text>en cours ou interrompue</text> }
+                    else { <text>—</text> }</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<h2>Couverture des thèmes</h2>
+<p class="note-source">Classement par mots-clés du titre (approximatif, assumé) : la part « sans thème » dit ce que le filtre ne pourra pas retrouver. Les motifs se corrigent dans la table <code>themes</code>.</p>
+<div class="table-wrap">
+    <table>
+        <thead><tr><th>Données</th><th class="num">Total</th><th class="num">Sans thème</th><th class="num">Part</th></tr></thead>
+        <tbody>
+        @foreach (var t in Model.Themes)
+        {
+            <tr><td>@t.Table</td><td class="num">@t.Total.ToString("N0", fr)</td><td class="num">@t.SansTheme.ToString("N0", fr)</td><td class="num">@((100.0 * t.SansTheme / Math.Max(1, t.Total)).ToString("0.#", fr)) %</td></tr>
+        }
+        </tbody>
+    </table>
+</div>
+
 <h2>Contrôles</h2>
 <div class="table-wrap">
     <table>

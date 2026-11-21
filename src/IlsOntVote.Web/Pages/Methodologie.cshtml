@@ -49,6 +49,39 @@
     </ul>
 </section>
 }
+else if (L.Pays == "CH")
+{
+<h1 class="titre-page">@L.T("methodologie-et-limites", "Méthodologie et limites", "Methodology and limits")</h1>
+<p class="chapo">@L.T("le-site-ne-juge-personne-il", "Le site ne juge personne : il affiche ce que la source publie. Quand une donnée est calculée, douteuse ou manquante, il le dit.", "The site judges no one: it displays what the source publishes. When a piece of data is calculated, doubtful or missing, it says so.")</p>
+
+<section class="bloc-texte">
+    <h2>@L.T("d-ou-viennent-les-donnees", "D'où viennent les données", "Where the data comes from")</h2>
+    <ul>
+        <li>@L.TH("methodo-ch-source", "<strong>Conseil national et Conseil des États</strong> : source <strong>officielle</strong>, le service de données ouvertes des Services du Parlement (<a href=\"https://www.parlament.ch/fr/services/open-data-webservices\">parlament.ch</a>) et, pour le Conseil des États, son interface à clé : un bulletin par conseiller et par vote, annuaire des conseillers avec leurs <strong>mandats datés</strong>. Source citée : « Parlamentsdienste der Bundesversammlung, Bern ». Les données sont reprises sans modification (les fichiers téléchargeables sont les données de la source) ; la date de la dernière mise à jour est affichée.", "<strong>National Council and Council of States</strong>: <strong>official</strong> source, the open data service of the Parliamentary Services (<a href=\"https://www.parlament.ch/fr/services/open-data-webservices\">parlament.ch</a>) and, for the Council of States, its keyed interface: one ballot per councillor and per vote, a directory of councillors with their <strong>dated mandates</strong>. Source credited: “Parlamentsdienste der Bundesversammlung, Bern”. Data is reproduced without modification; the date of the last update is shown.")</li>
+        <li>@L.T("mise-a-jour-automatique-chaque-nuit-les", "Mise à jour automatique chaque nuit : les votes de moins de sept jours sont relus. Le code est un logiciel libre (GPL-3.0).", "Automatic update every night: votes less than seven days old are read again. The code is free software (GPL-3.0).")</li>
+    </ul>
+</section>
+
+<section class="bloc-texte">
+    <h2>@L.T("comment-se-lit-un-vote", "Comment se lit un vote", "How a vote is read")</h2>
+    <ul>
+        <li>@L.TH("methodo-ch-positions", "<strong>Oui, non, abstention</strong> : tels que publiés. <strong>Le président ne vote pas</strong> : compté comme non-votant déclaré.", "<strong>Yes, no, abstention</strong>: as published. <strong>The president does not vote</strong>: counted as a declared non-voter.")</li>
+        <li>@L.TH("methodo-ch-absent", "<strong>Absent</strong> : le conseiller siégeait à la date du vote mais n'a pas voté (« n'a pas pris part au vote » ou « excusé » dans la source). Le site ne donne <em>aucune raison</em>.", "<strong>Absent</strong>: the councillor held a mandate on the date of the vote but did not vote (“did not take part” or “excused” in the source). The site gives <em>no reason</em>.")</li>
+        <li>@L.TH("methodo-ch-calcule", "<strong>Totaux et résultat</strong> : au Conseil national, <strong>calculés</strong> par le site d'après les bulletins (la source ne publie ni totaux ni résultat) ; au Conseil des États, décompte <strong>officiel</strong> de la source. Dans les deux cas, « adopté » = plus de oui que de non (<strong>calculé</strong>), rien d'indiqué en cas d'égalité.", "<strong>Totals and result</strong>: in the National Council, <strong>calculated</strong> by the site from the ballots (the source publishes neither totals nor a result); in the Council of States, the <strong>official</strong> count from the source. In both, “adopted” = more yes than no (<strong>calculated</strong>), nothing shown in a tie.")</li>
+        <li>@L.TH("methodo-ch-groupes", "<strong>Groupe</strong> : celui du conseiller <em>au moment du vote</em>, porté par chaque bulletin ; l'appartenance datée affichée sur la fiche est <strong>déduite</strong> de la suite des bulletins importés.", "<strong>Group</strong>: the councillor's group <em>at the time of the vote</em>, carried by each ballot; the dated membership shown on the profile is <strong>deduced</strong> from the sequence of imported ballots.")</li>
+    </ul>
+</section>
+
+<section class="bloc-texte">
+    <h2>@L.T("limites-connues", "Limites connues", "Known limits")</h2>
+    <ul>
+        <li>@L.TH("methodo-ch-ensemble", "<strong>Vote sur l'ensemble</strong> : « vote final » et « vote sur l'ensemble » sont repérés d'après l'objet du vote (<strong>calculé</strong>) ; les autres votes (propositions, amendements, motions) s'affichent en cochant la case.", "<strong>Overall vote</strong>: “final vote” and “overall vote” are found from the subject of the vote (<strong>calculated</strong>); other votes (proposals, amendments, motions) appear when the box is ticked.")</li>
+        <li>@L.TH("methodo-ch-reunie", "<strong>Assemblée fédérale réunie</strong> (élections du Conseil fédéral, des juges) : ces scrutins mêlent les deux conseils et ne sont pas importés.", "<strong>United Federal Assembly</strong> (Federal Council and judge elections): these ballots mix both councils and are not imported.")</li>
+        <li>@L.TH("methodo-ch-conseil", "<strong>Conseil d'un vote</strong> : la source ne l'indique pas ; il se déduit de l'annuaire des mandats à la date du vote.", "<strong>Council of a vote</strong>: the source does not state it; it is deduced from the mandate directory on the date of the vote.")</li>
+        <li>@L.TH("methodo-ch-historique", "<strong>Données historiques</strong> : seule la législature en cours est importée par défaut.", "<strong>Historical data</strong>: only the current term is imported by default.")</li>
+    </ul>
+</section>
+}
 else if (L.Pays == "IE")
 {
 <h1 class="titre-page">@L.T("methodologie-et-limites", "Méthodologie et limites", "Methodology and limits")</h1>
