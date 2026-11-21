@@ -721,11 +721,15 @@ a.raccourci:hover { background: var(--tag-delegation); color: var(--surface); }
 .titre-complet p { margin: 8px 0 0; max-height: 18em; overflow: auto; font-size: 0.9rem; line-height: 1.5; overflow-wrap: anywhere; }
 
 /* Texte visible sous le titre d'un vote ou d'une loi (indexable par les moteurs de recherche) et texte d'accueil. */
-.resume-vote { margin: 6px 0 0; color: var(--ink-soft); font-size: 1rem; }
+.resume-vote { margin: 14px 0 18px; line-height: 1.5; color: var(--ink-soft); font-size: 1rem; }
 .seo-texte { max-width: 760px; margin: 28px auto; padding: 0 16px; color: var(--ink-soft); }
 .seo-texte h2 { font-size: 1.15rem; margin: 0 0 8px; color: var(--ink); }
 .seo-texte p { margin: 0; line-height: 1.55; }
 
 /* Libellé discret (« Pays », « Langue ») devant la valeur choisie ; masqué sur téléphone pour ne pas élargir l'en-tête. */
-.combo-etiq { color: var(--ink-soft); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+.combo-etiq { color: var(--ink-soft); font-size: .8rem; }
 @media (max-width: 720px) { .combo-etiq { display: none; } }
+
+/* Petite chambre (< 100 sièges : Conseil des États, Seanad) : même dessin serré, mais affiché plus petit et centré pour que l'ensemble reste harmonieux avec les cartes voisines. */
+.hemicycle.mini { width: 72%; margin-inline: auto; }
+@media (max-width: 720px) { .hemicycle.mini { width: 88%; } }

@@ -213,11 +213,19 @@ public sealed class SwitzerlandSource : IDisposable
         _ => code,
     };
 
+    /// <summary>Couleurs des groupes telles que publiées par la source pour le Conseil national (Verts, PS, PVL, Centre, PLR, UDC), reprises pour le Conseil des États.</summary>
+    public static string? CouleurDuGroupe(string code) => code.ToUpperInvariant() switch
+    {
+        "G" => "#90EE90", "S" => "#FF0000", "GL" => "#EE82EE", "M-E" or "CE" or "C" => "#FFA500", "RL" or "R" => "#00BFFF", "V" => "#006400", _ => null,
+    };
+
     /// <summary>Groupe parlementaire d'une législature et d'un conseil, tel que porté par les bulletins (le groupe est donné sur chaque bulletin : celui du conseiller au moment du vote).</summary>
     public static GroupeRow Groupe(string conseil, int legislature, string code, string nom, string? couleur)
     {
         var ordre = OrdreGroupe(code);
-        var c = couleur ?? Palette[(ordre < 50 ? ordre - 1 : Math.Abs(code.GetHashCode()) % Palette.Length) % Palette.Length];
+        // L'API du Conseil des États ne donne aucune couleur : on reprend celles du Conseil national pour le même groupe (un parti garde sa couleur d'un conseil à l'autre) ;
+        // groupe inconnu ou sans groupe : gris neutre, jamais une couleur de palette qui ressemblerait à celle d'un autre parti.
+        var c = couleur ?? CouleurDuGroupe(code) ?? "#8a8f98";
         return new GroupeRow(IdGroupe(conseil, legislature, code), IdChambre(conseil), legislature, SigleUsuel(code), nom.Length > 0 ? nom : "Sans groupe", c, ordre);
     }
 

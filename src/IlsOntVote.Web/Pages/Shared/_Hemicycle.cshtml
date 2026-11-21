@@ -11,6 +11,21 @@
     // repoussé au-delà du dernier rang de points. Grandes chambres : valeurs d'origine, dessin inchangé.
     var rArc = vue.Rayon > 11 ? HemicycleLayout.RayonMax + vue.Rayon + 12 : HemicycleLayout.RayonArc;
     var rEtiq = rArc + (HemicycleLayout.RayonEtiquette - HemicycleLayout.RayonArc);
+    // Marge latérale du dessin : un sigle accroché à l'extérieur d'un arc vertical (extrémités de l'hémicycle) sortait du cadre et se voyait coupé (« Verts » devenait « /erts »).
+    // On élargit la zone visible, des deux côtés, de la largeur estimée du plus long de ces sigles (≈ 0,6 × la taille de police du CSS : 30 px si « petit », 21 px sinon).
+    // Marge basse : la rangée du bas est centrée sur la ligne de base (y = CentreY) ; pour une petite chambre (gros points, ex. Conseil des États : 46 sièges) la moitié basse des points sortait du cadre.
+    var margeBasse = vue.FaceAFace ? 0 : Math.Ceiling(Math.Max(0, vue.Rayon + HemicycleLayout.CentreY - HemicycleLayout.Hauteur + 2));
+    double margeLaterale = 0;
+    if (Model.Detaille && !vue.FaceAFace)
+    {
+        var police = vue.Sieges.Count < 200 ? 30.0 : 21.0;
+        foreach (var a0 in vue.Arcs.Where(x => x.Etiquetable && Math.Abs(Math.Cos(x.AngleMilieu)) > 0.85))
+        {
+            var largeurTexte = a0.Sigle.Length * police * 0.62 + 4;
+            margeLaterale = Math.Max(margeLaterale, largeurTexte - (HemicycleLayout.CentreX - (rArc + 14)));
+        }
+        margeLaterale = Math.Ceiling(Math.Max(0, margeLaterale));
+    }
 
     // Chaque groupe reçoit une classe g0, g1… dont la couleur est définie UNE fois dans un <style> propre à ce
     // dessin (l'identifiant le rend indépendant des autres hémicycles de la page) : plus léger qu'un style par point.
@@ -35,7 +50,7 @@
         return $"M{F(x1)} {F(y1)}A{F(r)} {F(r)} 0 {grand} 1 {F(x2)} {F(y2)}";
     }
 }
-<svg id="@id" class="hemicycle@(vue.FaceAFace ? " faceaface" : "")@(!vue.FaceAFace && vue.Sieges.Count < 200 ? " petit" : "")" viewBox="0 0 @vue.LargeurVue.ToString(inv) @vue.HauteurVue.ToString(inv)"
+<svg id="@id" class="hemicycle@(vue.FaceAFace ? " faceaface" : "")@(!vue.FaceAFace && vue.Sieges.Count < 200 ? " petit" : "")@(!vue.FaceAFace && vue.Sieges.Count < 100 ? " mini" : "")" viewBox="@((-margeLaterale).ToString(inv)) 0 @((vue.LargeurVue + 2 * margeLaterale).ToString(inv)) @((vue.HauteurVue + margeBasse).ToString(inv))"
      role="img" aria-label="@L.T("hemicycle-un-point-par-elu-colore", "Hémicycle : un point par élu, coloré selon son vote, entouré de la couleur de son groupe", "Hemicycle: one dot per elected official, coloured by vote, ringed with the colour of their group")">
 
     @* Couleurs des groupes, propres à ce dessin. <style> est valide dans un SVG en ligne. *@

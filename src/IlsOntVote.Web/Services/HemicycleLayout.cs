@@ -153,6 +153,20 @@ public static class HemicycleLayout
         double rMin = RayonMax * 0.38;
 
         int rangees = Math.Max(2, (int)Math.Round(Math.Sqrt(n / 4.0)));
+        // Petite chambre (< 100 sièges, ex. Conseil des États : 46) : la formule ci-dessus donne trop peu de rangées (3), très espacées entre elles alors que les points d'une même rangée se touchent.
+        // On retient le nombre de rangées qui rend les points les PLUS GROS, c'est-à-dire celui où l'écart entre rangées s'approche de l'écart entre points d'une rangée (rangs serrés).
+        if (n < 100)
+        {
+            double meilleur = -1;
+            for (int r = 2; r <= 10; r++)
+            {
+                var ray = Enumerable.Range(0, r).Select(i => rMin + i * (RayonMax - rMin) / (r - 1)).ToArray();
+                double sm = ray.Sum();
+                int dernier = (int)Math.Round(n * ray[^1] / sm);
+                double score = Math.Min((RayonMax - rMin) / (r - 1), Math.PI * RayonMax / Math.Max(1, dernier - 1));
+                if (score > meilleur) { meilleur = score; rangees = r; }
+            }
+        }
         var rayons = Enumerable.Range(0, rangees)
             .Select(i => rMin + i * (RayonMax - rMin) / (rangees - 1))
             .ToArray();
