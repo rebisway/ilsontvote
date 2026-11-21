@@ -47,28 +47,27 @@ public class PetitionsModel(IPetitionRepository petitions, Langue langue, Themes
     /// <summary>Plateforme affichée : sur le site britannique (/uk) la seule « UK » ; sur le site français, selon le paramètre (null = les deux plateformes françaises).</summary>
     public string? ChambreCode => langue.Pays == "GB" ? "UK" : Chambre switch { "senat" => "SENAT", "an" => "AN", _ => null };
 
-    /// <summary>Nom de la plateforme dans la langue de la page.</summary>
-    public static string PlateformeLibelle(string code, bool anglais) => code switch
+    /// <summary>Nom de la plateforme dans la langue de la page (textes en base).</summary>
+    public static string PlateformeLibelle(string code, Langue l) => code switch
     {
-        "AN" => anglais ? "National Assembly" : "Assemblée nationale",
-        "SENAT" => anglais ? "Senate" : "Sénat",
-        "UK" => anglais ? "UK Parliament" : "Parlement britannique",
+        "AN" => l.Chambre("AN"),
+        "SENAT" => l.Chambre("SENAT"),
+        "UK" => l.T("plateforme-parlement-britannique"),
         _ => code,
     };
 
-    /// <summary>Libellé du statut dans la langue de la page (les valeurs publiées par la source sont en français).</summary>
-    public static string StatutLibelle(string statut, bool anglais) => statut.ToLowerInvariant() switch
+    /// <summary>Libellé du statut dans la langue de la page (les valeurs publiées par la source sont en français ; une valeur inconnue reste telle quelle). Textes en base.</summary>
+    public static string StatutLibelle(string statut, Langue l) => statut.ToLowerInvariant() switch
     {
         // Sénat
-        "seuil non atteint" => anglais ? "Threshold not reached" : statut,
-        "seuil atteint" => anglais ? "Threshold reached" : statut,
+        "seuil non atteint" => l.T("petition-statut-seuil-non-atteint"),
+        "seuil atteint" => l.T("petition-statut-seuil-atteint"),
         // Assemblée (libellés de la source en minuscules sans accents : « archivee », « classee », « expiree »)
-        "ouverte" => anglais ? "Open" : "Ouverte",
-        "open" => anglais ? "Open" : "Ouverte",           // plateforme britannique
-        "closed" => anglais ? "Closed" : "Clôturée",
-        "archivee" => anglais ? "Archived" : "Archivée",
-        "classee" => anglais ? "Closed without action" : "Classée",
-        "expiree" => anglais ? "Expired" : "Expirée",
+        "ouverte" or "open" => l.T("petition-statut-ouverte"),   // « open » : plateforme britannique
+        "closed" => l.T("petition-statut-cloturee"),
+        "archivee" => l.T("petition-statut-archivee"),
+        "classee" => l.T("petition-statut-classee"),
+        "expiree" => l.T("petition-statut-expiree"),
         _ => statut,
     };
 
@@ -87,11 +86,11 @@ public class PetitionsModel(IPetitionRepository petitions, Langue langue, Themes
         _ => "st-neutre",   // expiree, seuil non atteint
     };
 
-    /// <summary>Libellé du type dans la langue de la page.</summary>
-    public static string TypeLibelle(string? type, bool anglais) => type is null ? "—" : !anglais ? type : type switch
+    /// <summary>Libellé du type dans la langue de la page (textes en base).</summary>
+    public static string TypeLibelle(string? type, Langue l) => type is null ? "—" : type switch
     {
-        "Texte législatif" => "Legislative text",
-        "Mission de contrôle" => "Oversight mission",
+        "Texte législatif" => l.T("petition-type-texte-legislatif"),
+        "Mission de contrôle" => l.T("petition-type-mission-de-controle"),
         _ => type,
     };
 
@@ -100,19 +99,19 @@ public class PetitionsModel(IPetitionRepository petitions, Langue langue, Themes
         var en = langue.Anglais;
         return new List<Colonne<Petition>>
         {
-            new(en ? "Platform" : "Plateforme", p => p.Chambre == "AN" ? (en ? "National Assembly" : "Assemblée nationale") : (en ? "Senate" : "Sénat")),
-            new(en ? "Published" : "Date de publication", p => p.DatePublication),
-            new(en ? "Title" : "Titre", p => p.Titre),
-            new(en ? "Topics (estimated from the title)" : "Thèmes (estimés par mots-clés du titre)", p => string.Join(", ", p.Themes)),
+            new(langue.T("plateforme"), p => p.Chambre == "AN" ? (langue.T("assemblee-nationale")) : (langue.T("senat"))),
+            new(langue.T("date-de-publication"), p => p.DatePublication),
+            new(langue.T("titre"), p => p.Titre),
+            new(langue.T("themes-estimes-par-mots-cles-du"), p => string.Join(", ", p.Themes)),
             new("Type", p => p.Type),
-            new(en ? "Status" : "Statut", p => p.Statut),
-            new(en ? "Supporters" : "Soutiens", p => p.NbVotes),
-            new(en ? "End of collection" : "Fin du recueil", p => p.DateLimiteVote),
-            new(en ? "Findings (history)" : "Constats (historique)", p => p.NbAnomalies),
-            new(en ? "Committee" : "Commission", p => p.Commission),
-            new(en ? "Government response" : "Réponse du gouvernement", p => p.ReponseLe),
-            new(en ? "Debated on" : "Débattue le", p => p.DebatLe),
-            new(en ? "Committee decision" : "Décision de la commission", p => p.DecisionCommission),
+            new(langue.T("statut"), p => p.Statut),
+            new(langue.T("soutiens"), p => p.NbVotes),
+            new(langue.T("fin-du-recueil"), p => p.DateLimiteVote),
+            new(langue.T("constats-historique"), p => p.NbAnomalies),
+            new(langue.T("commission"), p => p.Commission),
+            new(langue.T("reponse-du-gouvernement"), p => p.ReponseLe),
+            new(langue.T("debattue-le"), p => p.DebatLe),
+            new(langue.T("decision-de-la-commission"), p => p.DecisionCommission),
             new("URL", p => p.Url),
         };
     }
@@ -136,7 +135,7 @@ public class PetitionsModel(IPetitionRepository petitions, Langue langue, Themes
         if (ExportDemande)
         {
             var tout = await petitions.ListerAsync(Recherche, ChambreCode, Statut, Type, Commission, Anomalie, du, au, TriEffectif, Decroissant, 1, 0, themes.Valider(Theme));
-            return Exporteur.Ecrire(Format!, langue.Anglais ? "petitions" : "petitions", ColonnesExport(), tout.Lignes);
+            return Exporteur.Ecrire(Format!, langue.T("petitions-2"), ColonnesExport(), tout.Lignes);
         }
         Resultats = await petitions.ListerAsync(Recherche, ChambreCode, Statut, Type, Commission, Anomalie, du, au, TriEffectif, Decroissant, NumeroPage, ParPage, themes.Valider(Theme));
         return Page();

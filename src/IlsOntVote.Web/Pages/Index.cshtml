@@ -13,11 +13,16 @@
     @{
         // Pays concerné, dit en clair sous le titre : les données de la page ne portent que sur lui (étanchéité entre pays, PaysSite.ChambresVisibles).
         var infoPays = SitePays.Actifs.FirstOrDefault(x => x.Code == L.Pays);
-        var nomPays = L.Pays is null ? "France" : L.NomPays(L.Pays, infoPays?.NomFr ?? L.Pays, infoPays?.NomEn ?? L.Pays);
+        var nomPays = L.Pays is null ? L.T("pays-france") : L.NomPays(L.Pays, infoPays?.NomFr ?? L.Pays, infoPays?.NomEn ?? L.Pays);
         var drapeau = (L.Pays ?? "FR").ToLowerInvariant();
     }
     <p class="pays-ligne"><img src="/img/flags/@(drapeau).svg" alt="" width="20" height="14" onerror="this.remove()" /> <strong>@nomPays</strong> · @string.Join(", ", Model.Sections.Select(x => L.Chambre(x.Chambre)))</p>
     <p>@L.TH("voyez-en-un-coup-d-il")</p>
+    @{
+        // Quelques lignes propres au pays, sous l'accroche (texte en base : clé par pays).
+        var cleDecouvrez = "accueil-decouvrez-" + (L.Pays ?? "fr").ToLowerInvariant();
+    }
+    <p class="intro-decouvrez">@L.T(cleDecouvrez)</p>
 </section>
 </div>
 
@@ -48,7 +53,7 @@
                         <time datetime="@c.Scrutin.DateScrutin.ToString("yyyy-MM-dd")">@c.Scrutin.DateScrutin.ToString("d MMMM yyyy", fr)</time>
                         <span class="sort @(c.Scrutin.Adopte ? "adopte" : "rejete")">@(c.Scrutin.Adopte ? L.T("adopte") : L.T("rejete"))</span>
                     </header>
-                    <h3><a href="@L.Lien("/scrutin/" + c.Scrutin.Id)" title="@Titres.Info(c.Scrutin.TitreLangue(L.Anglais), c.Scrutin.InfobulleTitre(L.Anglais))">@Titres.Court(c.Scrutin.TitreLangue(L.Anglais))</a></h3>
+                    <h3><a href="@L.Lien("/scrutin/" + c.Scrutin.Id)" title="@Titres.Info(c.Scrutin.TitreLangue(L.Anglais), c.Scrutin.InfobulleTitre(L))">@Titres.Court(c.Scrutin.TitreLangue(L.Anglais))</a></h3>
 
                     <a class="carte-hemicycle" href="@L.Lien("/scrutin/" + c.Scrutin.Id)" tabindex="-1" aria-hidden="true">
                         <partial name="_Hemicycle" model="(c.Vue, false)" />
@@ -69,25 +74,6 @@
 
 @* Bas de page : séparation nette, puis l'encart de soutien (mêmes liens que /soutenir). *@
 <hr class="separateur" />
-<section class="seo-texte" aria-labelledby="t-apropos">
-    @{
-        // Texte descriptif de la page d'accueil (visible, donc indexable) : ce que couvre le site pour CE pays, puis comment lire les données. Chaque pays décrit ses chambres et ses sources.
-        string aproposPays = L.Pays switch
-        {
-            null => L.T("accueil-apropos-fr"),
-            "GB" => L.T("accueil-apropos-gb"),
-            "US" => L.T("accueil-apropos-us"),
-            "IT" => L.T("accueil-apropos-it"),
-            "IE" => L.T("accueil-apropos-ie"),
-            "CH" => L.T("accueil-apropos-ch"),
-            _ => "",
-        };
-    }
-    <h2 id="t-apropos">@L.T("accueil-apropos-titre")</h2>
-    @if (aproposPays.Length > 0) { <p>@aproposPays</p> }
-    <p>@L.T("accueil-apropos-lecture")</p>
-</section>
-
 <aside class="encart-don" aria-labelledby="t-don">
     <div>
         <h2 id="t-don">@L.T("ce-site-est-gratuit-sans-publicite")</h2>

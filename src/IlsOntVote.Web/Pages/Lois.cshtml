@@ -94,13 +94,13 @@ else
             <tbody>
             @foreach (var t in Model.Resultats.Lignes)
             {
-                var st = t.Statut.Traduit(L.Anglais);
+                var st = t.Statut.Traduit(L);
                 <tr>
                     <td class="nowrap col-date" data-label="@L.T("dernier-vote")">@(t.DernierVote?.ToString("d MMM yy", fr))</td>
-                    <td class="col-titre"><a href="@L.Lien("/texte/" + t.Id)" title="@Titres.Info(t.TitreLangue(L.Anglais), t.InfobulleTitre(L.Anglais))">@Titres.Court(t.TitreLangue(L.Anglais))</a></td>
+                    <td class="col-titre"><a href="@L.Lien("/texte/" + t.Id)" title="@Titres.Info(t.TitreLangue(L.Anglais), t.InfobulleTitre(L))">@Titres.Court(t.TitreLangue(L.Anglais))</a></td>
                     <td class="col-statut" data-label="@L.T("statut")">
                         <span class="statut @st.Classe" title="@st.Libelle">@st.Court</span>
-                        @foreach (var c in new[] { t.EtatAnEn(L.Anglais), t.EtatSenatEn(L.Anglais) })
+                        @foreach (var c in new[] { t.EtatAnEn(L), t.EtatSenatEn(L) })
                         {
                             <span class="tag-ch @c.Classe" title="@c.Infobulle" tabindex="0">@c.Etiquette @c.Symbole</span>
                         }
@@ -121,7 +121,7 @@ else
                         }
                         
                     </td>
-                    <td class="nowrap col-date" data-label="Promulgation" title="@(string.IsNullOrEmpty(t.NumeroLoi) ? "" : L.T("loi-n") + t.NumeroLoi)">@(t.DatePromulgation?.ToString("d MMM yy", fr))</td>
+                    <td class="nowrap col-date" data-label="@L.T("promulgation")" title="@(string.IsNullOrEmpty(t.NumeroLoi) ? "" : L.T("loi-n") + t.NumeroLoi)">@(t.DatePromulgation?.ToString("d MMM yy", fr))</td>
                     <td class="nowrap col-date" data-label="@L.T("parution-au-jo")">@(t.DateJo?.ToString("d MMM yy", fr))</td>
                     <td class="col-liens liens" data-label="@L.T("liens")">
                         @if (!string.IsNullOrEmpty(t.UrlLegifrance)) { <a href="@t.UrlLegifrance" rel="noopener" target="_blank" title="@L.T("texte-sur-legifrance")">Légifrance ↗</a> }

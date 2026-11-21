@@ -6,7 +6,7 @@
     ViewData["Title"] = L.T("statistiques");
     ViewData["Description"] = L.T("nombre-de-textes-votes-lois-promulguees");
     var fr = L.Culture;
-    string Pct(double? v) => v is null ? "—" : v.Value.ToString("0.0", fr) + (L.Anglais ? "%" : " %");
+    string Pct(double? v) => v is null ? "—" : v.Value.ToString("0.0", fr) + (L.T("suffixe-pourcent"));
 }
 
 <h1 class="titre-page">@L.T("statistiques")</h1>
@@ -82,7 +82,7 @@ else
     <div class="table-wrap">
         <table class="liste-textes">
             <thead>
-                <tr><th scope="col">@L.T("groupe")</th><th scope="col" class="num">@L.T("effectif-moyen")</th><th scope="col">Participation</th>
+                <tr><th scope="col">@L.T("groupe")</th><th scope="col" class="num">@L.T("effectif-moyen")</th><th scope="col">@L.T("participation-titre")</th>
                     <th scope="col" class="num">@L.T("pour-2ecc")</th><th scope="col" class="num">@L.T("contre-b885")</th><th scope="col" class="num">@L.T("abst-29c5")</th>
                     <th scope="col" class="num" title="@L.T("part-des-presents-du-groupe-qui")">@L.T("cohesion")</th></tr>
             </thead>
@@ -92,13 +92,13 @@ else
                 <tr>
                     <td data-label="@L.T("groupe")" title="@g.Libelle"><span class="pastille" style="background:@(g.Couleur ?? "#8d949a")"></span> <strong>@g.Sigle</strong></td>
                     <td data-label="@L.T("effectif-moyen")" class="num">@g.EffectifMoyen.ToString("0.#", fr)</td>
-                    <td data-label="Participation">
+                    <td data-label="@L.T("participation-titre")">
                         <span class="jauge" role="img" aria-label="Participation @Pct(g.ParticipationPct)"><span style="width:@((g.ParticipationPct ?? 0).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%"></span></span>
                         <span class="jauge-val">@Pct(g.ParticipationPct)</span>
                     </td>
                     <td data-label="@L.T("pour-2ecc")" class="num c-pour">@Pct(g.PourPct)</td>
                     <td data-label="@L.T("contre-b885")" class="num c-contre">@Pct(g.ContrePct)</td>
-                    <td data-label="Abstention" class="num c-abstention">@Pct(g.AbstentionPct)</td>
+                    <td data-label="@L.T("abstention")" class="num c-abstention">@Pct(g.AbstentionPct)</td>
                     <td data-label="@L.T("cohesion")" class="num">@Pct(g.CohesionPct)</td>
                 </tr>
             }
@@ -131,7 +131,7 @@ else
         <table class="liste-textes">
             <thead>
                 <tr><th scope="col">@L.T("annee")</th><th scope="col" class="num">@L.T("scrutins-publics-0ef4")</th><th scope="col" class="num">@L.T("votes-sur-l-ensemble")</th>
-                    <th scope="col" class="num">@L.T("adoptes-4f8e")</th><th scope="col" class="num">@L.T("rejetes-09fa")</th><th scope="col" class="num">Participation</th></tr>
+                    <th scope="col" class="num">@L.T("adoptes-4f8e")</th><th scope="col" class="num">@L.T("rejetes-09fa")</th><th scope="col" class="num">@L.T("participation-titre")</th></tr>
             </thead>
             <tbody>
             @foreach (var a in Model.Annees)
@@ -142,7 +142,7 @@ else
                     <td data-label="@L.T("votes-sur-l-ensemble")" class="num">@a.VotesEnsemble.ToString("N0", fr)</td>
                     <td data-label="@L.T("adoptes-4f8e")" class="num">@a.Adoptes.ToString("N0", fr)</td>
                     <td data-label="@L.T("rejetes-09fa")" class="num">@a.Rejetes.ToString("N0", fr)</td>
-                    <td data-label="Participation" class="num">@Pct(a.ParticipationPct)</td>
+                    <td data-label="@L.T("participation-titre")" class="num">@Pct(a.ParticipationPct)</td>
                 </tr>
             }
             </tbody>

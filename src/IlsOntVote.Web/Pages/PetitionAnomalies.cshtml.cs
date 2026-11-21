@@ -39,12 +39,12 @@ public class PetitionAnomaliesModel(IPetitionRepository petitions, Langue langue
     protected override IEnumerable<(string Nom, string? Valeur)> Filtres =>
         [("type", Type), ("chambre", Chambre), ("du", Du), ("au", Au), ("baisse", BaisseTexte), ("pct", PctTexte), ("avant", AvantTexte), ("q", Recherche)];
 
-    /// <summary>Libellé d'un type d'anomalie dans la langue de la page.</summary>
-    public static string TypeLibelle(string type, bool anglais) => type switch
+    /// <summary>Libellé d'un type d'anomalie dans la langue de la page (textes en base).</summary>
+    public static string TypeLibelle(string type, Langue l) => type switch
     {
-        "baisse" => anglais ? "Drop in supporters" : "Baisse des soutiens",
-        "disparition" => anglais ? "Missing from source file" : "Absente du fichier source",
-        "reapparition" => anglais ? "Back in source file" : "De nouveau dans le fichier source",
+        "baisse" => l.T("anomalie-type-baisse"),
+        "disparition" => l.T("anomalie-type-disparition"),
+        "reapparition" => l.T("anomalie-type-reapparition"),
         _ => type,
     };
 
@@ -62,16 +62,16 @@ public class PetitionAnomaliesModel(IPetitionRepository petitions, Langue langue
         var en = langue.Anglais;
         return new List<Colonne<AnomaliePetition>>
         {
-            new(en ? "Detected on" : "Détectée le", a => a.DetecteLe),
-            new(en ? "Previous snapshot" : "Relevé précédent", a => a.ReleveAvant),
-            new(en ? "Platform" : "Plateforme", a => PetitionsModel.PlateformeLibelle(a.Chambre, en)),
-            new(en ? "Title" : "Titre", a => a.Titre),
+            new(langue.T("detectee-le"), a => a.DetecteLe),
+            new(langue.T("releve-precedent-2"), a => a.ReleveAvant),
+            new(langue.T("plateforme"), a => PetitionsModel.PlateformeLibelle(a.Chambre, langue)),
+            new(langue.T("titre"), a => a.Titre),
             new("Type", a => a.Type),
-            new(en ? "Supporters before" : "Soutiens avant", a => a.ValeurAvant),
-            new(en ? "Supporters after" : "Soutiens après", a => a.ValeurApres),
-            new(en ? "Drop" : "Baisse", a => a.Baisse),
-            new(en ? "Drop (%)" : "Baisse (%)", a => a.BaissePct is { } p ? Math.Round(p, 1) : null),
-            new(en ? "Petition id" : "Identifiant pétition", a => a.PetitionId),
+            new(langue.T("soutiens-avant-2"), a => a.ValeurAvant),
+            new(langue.T("soutiens-apres"), a => a.ValeurApres),
+            new(langue.T("baisse"), a => a.Baisse),
+            new(langue.T("baisse-2"), a => a.BaissePct is { } p ? Math.Round(p, 1) : null),
+            new(langue.T("identifiant-petition"), a => a.PetitionId),
         };
     }
 
@@ -83,7 +83,7 @@ public class PetitionAnomaliesModel(IPetitionRepository petitions, Langue langue
         if (ExportDemande)
         {
             var tout = await petitions.ListerAnomaliesAsync(c, TriEffectif, Decroissant, 1, 0);
-            return Exporteur.Ecrire(Format!, langue.Anglais ? "petition-anomalies" : "anomalies-petitions", ColonnesExport(), tout.Lignes);
+            return Exporteur.Ecrire(Format!, langue.T("anomalies-petitions"), ColonnesExport(), tout.Lignes);
         }
         Resultats = await petitions.ListerAnomaliesAsync(c, TriEffectif, Decroissant, NumeroPage, ParPage);
         ParType = await petitions.CompterAnomaliesParTypeAsync();

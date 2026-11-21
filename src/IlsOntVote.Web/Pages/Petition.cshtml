@@ -26,12 +26,12 @@
 <section class="definitions fiche-petition @PetitionsModel.StatutClasse(f.Statut)" aria-label="@L.T("fiche")">
     <dl>
         <div><dt>@L.T("publiee")</dt><dd>@(f.DatePublication?.ToString("d MMMM yyyy", fr) ?? "—")</dd></div>
-        <div><dt>@L.T("plateforme")</dt><dd>@PetitionsModel.PlateformeLibelle(f.Chambre, en)</dd></div>
-        @if (f.Type is not null) { <div><dt>Type</dt><dd>@PetitionsModel.TypeLibelle(f.Type, en)</dd></div> }
+        <div><dt>@L.T("plateforme")</dt><dd>@PetitionsModel.PlateformeLibelle(f.Chambre, L)</dd></div>
+        @if (f.Type is not null) { <div><dt>@L.T("petition-champ-type")</dt><dd>@PetitionsModel.TypeLibelle(f.Type, L)</dd></div> }
         @if (f.Commission is not null) { <div><dt>@L.T("commission-saisie")</dt><dd>@f.Commission</dd></div> }
         @if (f.DecisionCommission is null && f.Chambre == "AN" && f.Statut is "classee" or "archivee") { <div><dt>@L.T("decision-publiee")</dt><dd><span class="doute doute-manquant" title="@L.T("la-source-ne-publie-aucune-decision")">? @L.T("non-publiee-par-la-source")</span></dd></div> }
         @if (f.DecisionCommission is not null) { <div><dt>@L.T("decision-publiee")</dt><dd>@f.DecisionCommission</dd></div> }
-        <div><dt>@L.T("statut-publie")</dt><dd><span class="puce-statut @PetitionsModel.StatutClasse(f.Statut)">@PetitionsModel.StatutLibelle(f.Statut, en)</span></dd></div>
+        <div><dt>@L.T("statut-publie")</dt><dd><span class="puce-statut @PetitionsModel.StatutClasse(f.Statut)">@PetitionsModel.StatutLibelle(f.Statut, L)</span></dd></div>
         <div><dt>@L.T("soutiens")</dt><dd><strong class="grand-nombre">@(f.NbVotes?.ToString("N0", fr) ?? "—")</strong></dd></div>
         @if (f.DateLimiteVote is { } lim) { <div><dt>@L.T("fin-du-recueil")</dt><dd>@lim.ToString("d MMMM yyyy", fr)</dd></div> }
         <div><dt>@L.T("source")</dt><dd><a href="@f.Url" rel="noopener">@(f.Chambre == "AN" ? "petitions.assemblee-nationale.fr" : f.Chambre == "UK" ? "petition.parliament.uk" : "petitions.senat.fr")</a></dd></div>
@@ -40,19 +40,19 @@
     {
         @* Étapes de la plateforme du Parlement britannique, telles que publiées : seuil de réponse (10 000), réponse, seuil de débat (100 000), débat. Une étape sans date n'a pas eu lieu (ou n'est pas publiée). *@
         <dl>
-            <div><dt>Response threshold (10,000)</dt><dd>@(f.SeuilReponseLe is { } sr ? "reached on " + sr.ToString("d MMMM yyyy", fr) : "not reached")</dd></div>
+            <div><dt>@L.T("petition-seuil-reponse")</dt><dd>@(f.SeuilReponseLe is { } sr ? L.Tf("petition-atteint-le", sr.ToString("d MMMM yyyy", fr)) : L.T("petition-non-atteint"))</dd></div>
             @if (f.ReponseLe is { } rl)
             {
-                <div><dt>Government response</dt><dd>@rl.ToString("d MMMM yyyy", fr)@if (f.ReponseResume is not null) { <br /><span class="note-source">@f.ReponseResume</span> }</dd></div>
+                <div><dt>@L.T("petition-reponse-gouv")</dt><dd>@rl.ToString("d MMMM yyyy", fr)@if (f.ReponseResume is not null) { <br /><span class="note-source">@f.ReponseResume</span> }</dd></div>
             }
-            <div><dt>Debate threshold (100,000)</dt><dd>@(f.SeuilDebatLe is { } sd ? "reached on " + sd.ToString("d MMMM yyyy", fr) : "not reached")</dd></div>
+            <div><dt>@L.T("petition-seuil-debat")</dt><dd>@(f.SeuilDebatLe is { } sd ? L.Tf("petition-atteint-le", sd.ToString("d MMMM yyyy", fr)) : L.T("petition-non-atteint"))</dd></div>
             @if (f.DebatLe is { } dl)
             {
-                <div><dt>Debate in Parliament</dt><dd>@dl.ToString("d MMMM yyyy", fr)@if (f.DebatUrl is not null) { <text> · <a href="@f.DebatUrl" rel="noopener">transcript</a></text> }</dd></div>
+                <div><dt>@L.T("petition-debat-parlement")</dt><dd>@dl.ToString("d MMMM yyyy", fr)@if (f.DebatUrl is not null) { <text> · <a href="@f.DebatUrl" rel="noopener">@L.T("petition-compte-rendu")</a></text> }</dd></div>
             }
             else if (f.DebatPrevuLe is { } dp)
             {
-                <div><dt>Debate scheduled</dt><dd>@dp.ToString("d MMMM yyyy", fr)</dd></div>
+                <div><dt>@L.T("petition-debat-prevu")</dt><dd>@dp.ToString("d MMMM yyyy", fr)</dd></div>
             }
         </dl>
     }
@@ -71,16 +71,16 @@ else
 {
     <div class="table-wrap">
         <table class="liste-textes">
-            <thead><tr><th>@L.T("detecte-le")</th><th>Type</th><th class="num">@L.T("avant")</th><th class="num">@L.T("apres")</th><th class="num">@L.T("baisse")</th></tr></thead>
+            <thead><tr><th>@L.T("detecte-le")</th><th>@L.T("petition-champ-type")</th><th class="num">@L.T("avant")</th><th class="num">@L.T("apres")</th><th class="num">@L.T("baisse")</th></tr></thead>
             <tbody>
             @foreach (var a in Model.Anomalies)
             {
                 <tr>
                     <td class="nowrap" data-label="@L.T("detecte-le")" title="@L.T("releve-precedent")@a.ReleveAvant.ToString("d MMM yyyy", fr)">@a.DetecteLe.ToString("d MMM yyyy", fr)</td>
-                    <td data-label="Type"><span class="doute doute-incertain">⚠ @PetitionAnomaliesModel.TypeLibelle(a.Type, en)</span></td>
+                    <td data-label="@L.T("petition-champ-type")"><span class="doute doute-incertain">⚠ @PetitionAnomaliesModel.TypeLibelle(a.Type, L)</span></td>
                     <td class="num" data-label="@L.T("avant")">@(a.ValeurAvant?.ToString("N0", fr) ?? "—")</td>
                     <td class="num" data-label="@L.T("apres")">@(a.ValeurApres?.ToString("N0", fr) ?? "—")</td>
-                    <td class="num" data-label="@L.T("baisse")">@(a.Baisse is { } b ? b.ToString("N0", fr) + (a.BaissePct is { } p ? " (" + p.ToString("0.0", fr) + (en ? "%" : " %") + ")" : "") : "—")</td>
+                    <td class="num" data-label="@L.T("baisse")">@(a.Baisse is { } b ? b.ToString("N0", fr) + (a.BaissePct is { } p ? " (" + p.ToString("0.0", fr) + (L.T("suffixe-pourcent")) + ")" : "") : "—")</td>
                 </tr>
             }
             </tbody>
@@ -108,7 +108,7 @@ else
                 <tr>
                     <td class="nowrap" data-label="@L.T("releve-du")">@r.ReleveLe.ToString("d MMM yyyy", fr)</td>
                     <td class="num" data-label="@L.T("soutiens")">@(r.NbVotes?.ToString("N0", fr) ?? "—")</td>
-                    <td data-label="@L.T("statut-publie")">@PetitionsModel.StatutLibelle(r.Statut, en)</td>
+                    <td data-label="@L.T("statut-publie")">@PetitionsModel.StatutLibelle(r.Statut, L)</td>
                 </tr>
             }
             </tbody>

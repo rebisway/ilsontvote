@@ -1,3 +1,4 @@
+using IlsOntVote.Web.Services;
 using System.Text.RegularExpressions;
 
 namespace IlsOntVote.Web.Models;
@@ -39,8 +40,6 @@ public static class Chambres
 
     /// <summary>Vrai si la chambre a des fiches d'élus et une liste d'élus (toutes, depuis les pages /members et /member/{slug} des Communes).</summary>
     public static bool AUneFiche(string chambre) => true;
-    /// <summary>Mot qui désigne un scrutin de la chambre (« scrutin », « division » aux Communes).</summary>
-    public static string Terme(string chambre, bool en = false) => chambre is Commons or Lords or IeDail or IeSeanad ? (en ? "division" : "division") : chambre is UsHouse or UsSenate or ItCamera or ItSenate or ChNr or ChSr ? (en ? "roll call vote" : "vote nominal") : (en ? "vote" : "scrutin");
 
     /// <summary>Préfixe d'URL des fiches : /depute/{slug}, /senateur/{slug} ou /eurodepute/{slug}.</summary>
     public static string Fiche(string chambre) => chambre switch { Senat => "senateur", UE => "eurodepute", Commons => "member", Lords => "lord", UsHouse => "representative", UsSenate => "senator", ItCamera => "deputy", ItSenate => "senatore", IeDail => "td", IeSeanad => "seanadoir", ChNr => "conseiller-national", ChSr => "conseiller-etats", _ => "depute" };
@@ -140,7 +139,7 @@ public sealed class Scrutin
     /// <summary>Vrai quand le titre affiché est une traduction automatique (à signaler au lecteur).</summary>
     public bool TitreTraduitAuto(bool en) => !string.IsNullOrWhiteSpace(TitreEn) && (en ? TitreEnAuto : TitreFrAuto);
     /// <summary>Infobulle d'un titre traduit automatiquement : le titre officiel français ; null sinon (attribut omis).</summary>
-    public string? InfobulleTitre(bool en) => !TitreTraduitAuto(en) ? null : en ? "Official title (French): " + TitreAffiche : "Titre original (anglais) : " + TitreEn;
+    public string? InfobulleTitre(Langue l) => !TitreTraduitAuto(l.Anglais) ? null : l.Anglais ? l.T("infobulle-titre-officiel") + TitreAffiche : l.T("infobulle-titre-original") + TitreEn;
     private static string Majuscule(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
 
     public bool Adopte => Sort is not null && Sort.StartsWith("adopt", StringComparison.OrdinalIgnoreCase);
@@ -197,11 +196,12 @@ public sealed record GroupeDecompte(
 /// <summary>Traduction des statuts d'annuaire à restriction (congé, suspension, déchéance) : seuls ceux que l'import retient.</summary>
 public static class StatutTexte
 {
-    public static string? Libelle(string? statut, bool en) =>
+    /// <summary>Libellé du statut d'annuaire dans la langue courante (textes en base) ; un statut inconnu reste tel que publié.</summary>
+    public static string? Libelle(string? statut, Langue l) =>
         statut is null ? null
-        : statut.Contains("leave", StringComparison.OrdinalIgnoreCase) ? (en ? "on leave of absence" : "en congé")
-        : statut.Contains("suspend", StringComparison.OrdinalIgnoreCase) ? (en ? "suspended" : "suspendu")
-        : statut.Contains("disqualif", StringComparison.OrdinalIgnoreCase) ? (en ? "disqualified" : "disqualifié")
+        : statut.Contains("leave", StringComparison.OrdinalIgnoreCase) ? l.T("statut-annuaire-conge")
+        : statut.Contains("suspend", StringComparison.OrdinalIgnoreCase) ? l.T("statut-annuaire-suspendu")
+        : statut.Contains("disqualif", StringComparison.OrdinalIgnoreCase) ? l.T("statut-annuaire-decheance")
         : statut;
 }
 
@@ -224,7 +224,7 @@ public sealed class Parlementaire
     public string? Statut { get; set; }
 
     /// <summary>Libellé du statut dans la langue de la page (la source est en anglais).</summary>
-    public string? StatutLibelle(bool en) => StatutTexte.Libelle(Statut, en);
+    public string? StatutLibelle(Langue l) => StatutTexte.Libelle(Statut, l);
 
     public string NomComplet => $"{Prenom} {Nom}";
     public string Lien => $"/{Chambres.Fiche(Chambre)}/{Slug}";
@@ -300,7 +300,7 @@ public sealed class LigneVote
     /// <summary>Vrai quand le titre affiché est une traduction automatique (à signaler au lecteur).</summary>
     public bool TitreTraduitAuto(bool en) => !string.IsNullOrWhiteSpace(TitreEn) && (en ? TitreEnAuto : TitreFrAuto);
     /// <summary>Infobulle d'un titre traduit automatiquement : le titre officiel français ; null sinon (attribut omis).</summary>
-    public string? InfobulleTitre(bool en) => !TitreTraduitAuto(en) ? null : en ? "Official title (French): " + TitreAffiche : "Titre original (anglais) : " + TitreEn;
+    public string? InfobulleTitre(Langue l) => !TitreTraduitAuto(l.Anglais) ? null : l.Anglais ? l.T("infobulle-titre-officiel") + TitreAffiche : l.T("infobulle-titre-original") + TitreEn;
     private static string Majuscule(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
 
 }

@@ -67,10 +67,10 @@
     @foreach (var e in Model.Elus)
     {
         <li data-groupe="@(e.GroupeSigle ?? "NI")" data-q="@((e.NomComplet + " " + e.Departement + " " + e.GroupeSigle).ToLowerInvariant())">
-            <a href="@L.Lien(e.Lien)" title="@e.NomComplet — @(e.GroupeLibelle ?? e.GroupeSigle)@(string.IsNullOrEmpty(e.Departement) ? "" : " — " + Drapeaux.Avec(e.Chambre, e.Departement, L.Anglais))">
+            <a href="@L.Lien(e.Lien)" title="@e.NomComplet — @(e.GroupeLibelle ?? e.GroupeSigle)@(string.IsNullOrEmpty(e.Departement) ? "" : " — " + Drapeaux.Avec(e.Chambre, e.Departement, L))">
                 <span class="pastille" style="background:@(e.GroupeCouleur ?? "#8d949a")"></span>
                 <span class="nom">@Noms.Html(e.Prenom, e.Nom)</span>
-                <span class="sous">@e.GroupeSigle@(string.IsNullOrEmpty(e.Departement) ? "" : " · " + Drapeaux.Avec(e.Chambre, e.Departement, L.Anglais))@(e.Statut is null ? "" : " · " + e.StatutLibelle(L.Anglais))</span>
+                <span class="sous">@e.GroupeSigle@(string.IsNullOrEmpty(e.Departement) ? "" : " · " + Drapeaux.Avec(e.Chambre, e.Departement, L))@(e.Statut is null ? "" : " · " + e.StatutLibelle(L))</span>
             </a>
         </li>
     }

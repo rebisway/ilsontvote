@@ -56,7 +56,7 @@ else
             {
                 <tr>
                     <td data-label="@L.T("fichier")"><a href="@L.Lien("/donnees/fichier/" + f.Fichier)" download>@f.Fichier</a><br /><span class="note-source" title="SHA-256">@(f.Sha256[..Math.Min(16, f.Sha256.Length)])…</span></td>
-                    <td data-label="@L.T("contenu")">@(L.Anglais ? DescriptionsDonnees.Anglais(f.Fichier) ?? f.Description : f.Description)</td>
+                    <td data-label="@L.T("contenu")">@(L.Code == "fr" ? f.Description : L.TexteOuNull(DescriptionsDonnees.Cle(f.Fichier)) ?? f.Description)</td>
                     <td class="num" data-label="@L.T("lignes")">@f.Lignes.ToString("N0", fr)</td>
                     <td class="num" data-label="@L.T("taille")">@Taille(f.Octets)</td>
                     <td class="nowrap" data-label="@L.T("mis-a-jour")">@f.GenereLe.ToString("d MMM yyyy", fr)</td>

@@ -5,11 +5,10 @@
 @{
     var s = Model.Scrutin;
     ViewData["OgImage"] = L.Lien("/apercu/scrutin/" + s.Id + ".png");
-    ViewData["Description"] = L.Code == "it"
-        ? $"{(s.Adopte ? "Approvato" : "Respinto")}: {s.NbPour} a favore, {s.NbContre} contro, {s.NbAbstentions} astenuti ({s.DateScrutin.ToString("d MMMM yyyy", L.Culture)}, {L.Chambre(s.Chambre)}). Vedete chi ha votato cosa, gruppo per gruppo."
-        : L.Anglais
-        ? $"{(s.Adopte ? "Adopted" : "Rejected")}: {s.NbPour} for, {s.NbContre} against, {s.NbAbstentions} abstentions ({s.DateScrutin.ToString("d MMMM yyyy", L.Culture)}, {Chambres.Nom(s.Chambre, true)}). See who voted what, group by group."
-        : $"{(s.Adopte ? "Adopté" : "Rejeté")} : {s.NbPour} pour, {s.NbContre} contre, {s.NbAbstentions} abstentions ({s.DateScrutin.ToString("d MMMM yyyy", L.Culture)}, {Chambres.Nom(s.Chambre)}). Voyez qui a voté quoi, groupe par groupe.";
+    // Description (méta) : résultat et décomptes, textes en base (un modèle par résultat).
+    ViewData["Description"] = s.Adopte
+        ? L.Tf("scrutin-desc-adopte", s.NbPour, s.NbContre, s.NbAbstentions, s.DateScrutin.ToString("d MMMM yyyy", L.Culture), L.Chambre(s.Chambre))
+        : L.Tf("scrutin-desc-rejete", s.NbPour, s.NbContre, s.NbAbstentions, s.DateScrutin.ToString("d MMMM yyyy", L.Culture), L.Chambre(s.Chambre));
     var titre = s.TitreLangue(L.Anglais);
     ViewData["Title"] = titre.Length > 60 ? titre[..60] + "…" : titre;
     var fr = L.Culture;
@@ -35,11 +34,11 @@
             : L.Tf("scrutin-phrase-rejete", s.DateScrutin.ToString("d MMMM yyyy", L.Culture), L.Chambre(s.Chambre), s.NbPour ?? 0, s.NbContre ?? 0, s.NbAbstentions ?? 0);
     string Libelle(string p) => L.Position(p);
     // Types de vote publiés par les assemblées (données françaises) : traduits quand on les connaît, sinon laissés tels quels.
-    string TypeVoteLangue(string t) => !L.Anglais ? t : t.ToLowerInvariant() switch
+    string TypeVoteLangue(string t) => L.Code == "fr" ? t : t.ToLowerInvariant() switch
     {
-        "scrutin public" or "scrutin public (appel nominal)" => "Roll-call vote",
-        "scrutin public ordinaire" => "Ordinary roll-call vote",
-        "scrutin public solennel" => "Solemn roll-call vote",
+        "scrutin public" or "scrutin public (appel nominal)" => L.T("type-vote-nominal"),
+        "scrutin public ordinaire" => L.T("type-vote-ordinaire"),
+        "scrutin public solennel" => L.T("type-vote-solennel"),
         _ => t,
     };
 }
@@ -72,11 +71,11 @@
 {
     @if (L.Anglais)
     {
-        <p class="note-source">@Doute.Html(NiveauDoute.Calcule, "automatic translation", "Machine-translated title (not official). The official title is the French one.") Official title: <span lang="fr">@s.TitreAffiche</span></p>
+        <p class="note-source">@Doute.Html(NiveauDoute.Calcule, L.T("trad-auto-court"), L.T("trad-auto-info-fr")) @L.T("trad-titre-officiel") <span lang="fr">@s.TitreAffiche</span></p>
     }
     else
     {
-        <p class="note-source">@Doute.Html(NiveauDoute.Calcule, "traduction automatique", "Titre traduit automatiquement de l'anglais (non officiel) : le Parlement européen n'en publie pas de version française pour ce vote. Le titre officiel est l'original anglais.") Titre original : <span lang="en">@s.TitreEn</span></p>
+        <p class="note-source">@Doute.Html(NiveauDoute.Calcule, L.T("trad-auto-court"), L.T("trad-auto-info-en")) @L.T("trad-titre-original") <span lang="en">@s.TitreEn</span></p>
     }
 }
 
@@ -96,7 +95,7 @@
     if (s.UrlOfficielle is { } uo) liensPrompt.Add(uo);
     if (Model.Bill is { } b0) liensPrompt.Add("https://bills.parliament.uk/bills/" + b0.Id);
     if (Model.Loi is { } l0) { liensPrompt.Add(l0.UrlLegifrance ?? ""); liensPrompt.Add(l0.UrlDossierAn ?? ""); liensPrompt.Add(l0.UrlDossierSenat ?? ""); }
-    var promptIA = PromptResume.Construire(L.Anglais, titre, liensPrompt);
+    var promptIA = PromptResume.Construire(L, titre, liensPrompt);
 }
 @* Sans bloc « texte » (UE, vote isolé) : le bouton reste seul ; sinon il est dans la rangée des raccourcis du bloc. *@
 @if (Model.Loi is null && Model.Bill is null && !Chambres.EstNominal(s.Chambre))
@@ -126,7 +125,7 @@
 }
 @if (Model.Loi is { } loi)
 {
-    var statutLoi = loi.Statut.Traduit(L.Anglais);
+    var statutLoi = loi.Statut.Traduit(L);
     <section class="bloc-texte" aria-label="@L.T("le-texte-vote")">
         <div class="bloc-texte-titre"><span class="statut @statutLoi.Classe">@statutLoi.Libelle</span>
             <a class="raccourci" href="@L.Lien("/texte/" + loi.Id)">@L.T("voir-tout-le-parcours-de-ce")</a>
@@ -146,7 +145,7 @@
 <section class="fiche-vote" aria-label="@L.T("caracteristiques-du-vote")">
     <dl>
         <div><dt>@L.T("type-de-vote")</dt><dd>@typeVote</dd></div>
-        <div><dt>@L.T("votants")</dt><dd>@(s.NbVotants?.ToString("N0", fr) ?? "—")</dd><dd class="detail">@(s.NbNonVotants is > 0 ? (L.Code == "it" ? $"{s.NbNonVotants} non votanti" : L.Anglais ? $"{s.NbNonVotants} non-voting" : $"{s.NbNonVotants} non-votant{(s.NbNonVotants > 1 ? "s" : "")}") : "")</dd></div>
+        <div><dt>@L.T("votants")</dt><dd>@(s.NbVotants?.ToString("N0", fr) ?? "—")</dd><dd class="detail">@(s.NbNonVotants is > 0 ? (s.NbNonVotants > 1 ? L.Tf("non-votants-pl", s.NbNonVotants) : L.Tf("non-votants-sg", s.NbNonVotants)) : "")</dd></div>
         <div><dt>@L.T("suffrages-exprimes")</dt><dd>@exprimes.ToString("N0", fr)</dd><dd class="detail">@L.T("pour-contre-hors-abstentions")</dd></div>
         @if (s.SuffragesRequis is not null)
         {
@@ -177,20 +176,7 @@
 {
     <p class="alerte" role="note">
         @Doute.Html(NiveauDoute.Incertain, L.T("decompte-incomplet"), L.T("la-source-ne-detaille-pas-tous"))
-        @if (L.Code == "it")
-        {
-            <text>Dati ufficiali incompleti: per questa votazione, la @L.Chambre(s.Chambre) non dettaglia il voto di @s.NbVotesManquants @(s.NbVotesManquants > 1 ? L.Membres(s.Chambre) : L.Membre(s.Chambre)). Alcuni «assenti» qui sotto potrebbero quindi aver votato; fanno fede solo i totali ufficiali.</text>
-        }
-        else if (L.Anglais)
-        {
-            <text>Incomplete official data: for this vote, the @Chambres.Nom(s.Chambre, true) does not detail the vote of @s.NbVotesManquants @(s.NbVotesManquants > 1 ? Chambres.Membres(s.Chambre, true) : Chambres.Membre(s.Chambre, true)). Some “absent” members below may therefore have voted; only the official totals are authoritative.</text>
-        }
-        else
-        {
-            <text>Données officielles incomplètes : pour ce scrutin, l'@Chambres.Nom(s.Chambre) ne détaille pas le vote de
-            @s.NbVotesManquants @Chambres.Membre(s.Chambre)@(s.NbVotesManquants > 1 ? "s" : ""). Certains « absents » ci-dessous peuvent donc
-            avoir voté ; seuls les totaux officiels font foi.</text>
-        }
+        <text>@L.Tf("alerte-donnees-incompletes", L.Chambre(s.Chambre), s.NbVotesManquants, s.NbVotesManquants > 1 ? L.Membres(s.Chambre) : L.Membre(s.Chambre))</text>
     </p>
 }
 
@@ -258,7 +244,7 @@
             <tr>
                 <th>@L.T("groupe")</th>
                 <th class="th-pour">@L.T("pour-2ecc")</th><th class="th-contre">@L.T("contre-b885")</th><th class="th-abstention">@L.T("abst-29c5")</th>
-                <th>@L.T("non-votant")</th><th>@L.T("absents-fe06")</th><th>Total</th><th class="col-barre">@L.T("repartition")</th>
+                <th>@L.T("non-votant")</th><th>@L.T("absents-fe06")</th><th>@L.T("total")</th><th class="col-barre">@L.T("repartition")</th>
             </tr>
         </thead>
         <tbody>

@@ -51,6 +51,20 @@ public sealed class Langue(IHttpContextAccessor accessor, Traductions? traductio
         return (Pays == "CH" ? traductions.Lire("fr", cle) : traductions.Lire("en", cle)) ?? traductions.Lire("fr", cle) ?? repli ?? cle;
     }
 
+    /// <summary>
+    /// Texte en base pour la clé dans la langue courante (mêmes replis que <see cref="T"/>), ou null s'il n'y en a pas : pour les vocabulaires fermés des sources (type de texte, décision…)
+    /// où une valeur inconnue doit rester telle que publiée, jamais être remplacée par une clé.
+    /// </summary>
+    public string? TexteOuNull(string cle)
+    {
+        if (traductions is null) return null;
+        var code = Code;
+        var t = traductions.Lire(code, cle);
+        if (t is not null) return t;
+        if (code is not ("fr" or "en") && (traductions.Lire("en", cle) ?? traductions.Lire("fr", cle)) is not null) traductions.Manque(code, cle);
+        return (Pays == "CH" ? traductions.Lire("fr", cle) : traductions.Lire("en", cle)) ?? traductions.Lire("fr", cle);
+    }
+
     /// <summary>Texte contenant du HTML écrit par nous (liens, gras) : affiché tel quel. Jamais pour une donnée venant de la base ou de l'URL.</summary>
     public HtmlString TH(string cle) => new(T(cle));
 
@@ -129,6 +143,16 @@ public sealed class Langue(IHttpContextAccessor accessor, Traductions? traductio
 
         // Choix explicite : cookie, puis adresse nettoyée du paramètre hl.
         var hl = req.Query["hl"].ToString();
+        if (hl is "de" or "it")
+        {
+            // Allemand et italien sur le site français : pas de préfixe d'adresse (« /it » est le préfixe de l'Italie), la langue est mémorisée dans le cookie et la même adresse est resservie.
+            ctx.Response.Cookies.Append(Cookie_Langue, hl, new CookieOptions
+            { MaxAge = TimeSpan.FromDays(365), SameSite = SameSiteMode.Lax, Secure = req.IsHttps, HttpOnly = true, IsEssential = true });
+            var autresDi = req.Query.Where(q => q.Key != "hl").Select(q => $"{Uri.EscapeDataString(q.Key)}={Uri.EscapeDataString(q.Value.ToString())}");
+            var qDi = string.Join('&', autresDi);
+            ctx.Response.Redirect((chemin.Value ?? "/") + (qDi.Length > 0 ? "?" + qDi : ""));
+            return Task.FromResult(true);
+        }
         if (hl is "fr" or "en")
         {
             ctx.Response.Cookies.Append(Cookie_Langue, hl, new CookieOptions
@@ -187,6 +211,11 @@ public sealed class Langue(IHttpContextAccessor accessor, Traductions? traductio
             ctx.Request.PathBase = ctx.Request.PathBase.Add("/en");
             ctx.Request.Path = reste.HasValue ? reste : new PathString("/");
             ctx.Items[Cle_Items] = "en";
+        }
+        else if (!ctx.Items.ContainsKey(PaysSite.CleItems) && ctx.Request.Cookies[Cookie_Langue] is "de" or "it")
+        {
+            // Site français en allemand ou en italien (choix mémorisé) ; l'adresse /en garde la priorité (elle est explicite).
+            ctx.Items[Cle_Items] = ctx.Request.Cookies[Cookie_Langue];
         }
         await suite();
     }

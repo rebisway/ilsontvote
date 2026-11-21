@@ -308,9 +308,9 @@ app.MapGet("/apercu/scrutin/{id}.png", async (string id, IScrutinRepository scru
     var s = await scrutins.GetAsync(id);
     if (s is null) return Results.NotFound();
     var vue = HemicycleLayout.Construire(await scrutins.GetSiegesAsync(id), pays.Disposition(s.Chambre));   // demi-cercle ou croissants selon la chambre
-    return Results.File(image.Scrutin(s, vue, langue.Anglais, langue.Pays), "image/png");
+    return Results.File(image.Scrutin(s, vue, langue, langue.Pays), "image/png");
 }).CacheOutput(p => p.Expire(TimeSpan.FromHours(12)).SetVaryByRouteValue("id").VaryByValue(c => new KeyValuePair<string, string>("lang", (c.Items["lang"] as string ?? "fr") + "|" + (c.Items["pays"] as string ?? ""))));
-app.MapGet("/apercu/defaut.png", (ApercuImage image, Langue langue) => Results.File(image.Defaut(langue.Anglais, langue.Pays), "image/png"))
+app.MapGet("/apercu/defaut.png", (ApercuImage image, Langue langue) => Results.File(image.Defaut(langue, langue.Pays), "image/png"))
     .CacheOutput(p => p.Expire(TimeSpan.FromHours(12)).VaryByValue(c => new KeyValuePair<string, string>("lang", (c.Items["lang"] as string ?? "fr") + "|" + (c.Items["pays"] as string ?? ""))));   // la clé inclut le PAYS : /uk et /en n'ont pas la même image
 
 app.MapRazorPages();

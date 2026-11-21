@@ -4,170 +4,38 @@
     ViewData["Description"] = L.T("editeur-hebergeur-propriete-intellectuelle-c");
 }
 
-@if (L.Code == "it")
-{
-@* Versione italiana (sotto /it, Italia soltanto) : stesso contenuto della versione inglese. *@
-<h1 class="titre-page">Note legali e privacy</h1>
+<h1 class="titre-page">@L.T("mentions-titre")</h1>
 
 <section class="bloc-texte">
-    <h2>Editore</h2>
-    <p>Questo sito è pubblicato da Thomas Gourgnier, a titolo personale.<br />
-    Contatto: <a href="mailto:contact@rebisway.com">contact@rebisway.com</a></p>
+    <h2>@L.T("mentions-editeur-titre")</h2>
+    <p>@L.TH("mentions-editeur")</p>
 </section>
 
 <section class="bloc-texte">
-    <h2>Hosting</h2>
-    <p>OVH SAS, 2 rue Kellermann, 59100 Roubaix, Francia · <a href="https://www.ovhcloud.com/">www.ovhcloud.com</a></p>
+    <h2>@L.T("mentions-hebergement-titre")</h2>
+    <p>@L.TH("mentions-hebergement")</p>
 </section>
 
 <section class="bloc-texte">
-    <h2>Proprietà intellettuale e dati</h2>
-    <p>Il codice sorgente del sito è pubblicato con licenza GNU GPL v3.0. Le votazioni provengono dai dati aperti della <a href="https://dati.camera.it/">Camera dei deputati</a> italiana, pubblicati con licenza <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> (attribuzione e condivisione alla pari), e dai dati aperti del <a href="https://dati.senato.it/">Senato italiano</a> (licenza <a href='https://creativecommons.org/licenses/by/3.0/'>CC BY 3.0</a>, attribuzione). Sono riprodotti come pubblicati, con i calcoli descritti nella <a href="@L.Lien("/methodologie")">metodologia</a>. Gli altri contenuti (testi, impaginazione) sono protetti dal diritto d'autore.</p>
-    <p>I nomi e i voti degli eletti sono dati pubblici relativi all'esercizio di un mandato. Per segnalare un errore, scrivete al contatto indicato sopra.</p>
+    <h2>@L.T("mentions-propriete-titre")</h2>
+    @* Propriété intellectuelle et sources : un paragraphe par pays (textes en base), avec le lien vers la méthodologie du pays. *@
+    <p>@(L.Pays switch
+    {
+        "US" => L.THf("mentions-propriete-us", L.Lien("/methodologie")),
+        "CH" => L.THf("mentions-propriete-ch", L.Lien("/methodologie")),
+        "IE" => L.THf("mentions-propriete-ie", L.Lien("/methodologie")),
+        "IT" => L.THf("mentions-propriete-it", L.Lien("/methodologie")),
+        "GB" => L.THf("mentions-propriete-gb", L.Lien("/methodologie")),
+        _ => L.THf("mentions-propriete-fr", L.Lien("/methodologie")),
+    })</p>
+    <p>@L.T("mentions-donnees-publiques")</p>
 </section>
 
 <section class="bloc-texte" id="confidentialite">
-    <h2>Privacy</h2>
-    <p><strong>Conteggio delle visite.</strong> Per sapere quante persone visitano il sito, ogni visualizzazione di pagina è registrata nel nostro database, ospitato sul nostro server, senza servizi di analisi di terzi né script esterni. Registriamo solo: la data, la pagina visualizzata, il paese (dedotto dal vostro indirizzo IP con un file conservato sul nostro server, senza chiamare alcun servizio esterno), se il visitatore è un robot e un'impronta del vostro indirizzo IP.</p>
-    <p><strong>Il vostro indirizzo IP non viene mai conservato.</strong> È trasformato in un codice a senso unico, calcolato con una chiave segreta nota solo al nostro server: questo codice ci permette di contare la stessa persona una sola volta, ma da esso non si può risalire all'indirizzo. Il codice cambia all'inizio di ogni mese: non può servire a seguirvi oltre un mese. Le visite sono cancellate automaticamente dopo 400 giorni. Se il vostro browser invia il segnale «Do Not Track» (DNT) o «Global Privacy Control» (GPC), la vostra visita non viene contata.</p>
-    <p><strong>Cookie e archiviazione.</strong> Nessun cookie pubblicitario o di misurazione dell'audience, nessun tracciatore di terzi. La vostra scelta dell'ordine dei nomi («Nome Cognome» / «Cognome Nome») è ricordata solo nel vostro browser (archiviazione locale); non viene mai inviata al server. Un cookie funzionale ricorda per un anno la vostra scelta della lingua (e, quando saranno pubblicati più paesi, del paese): non contiene alcun dato personale e non serve mai a tracciarvi. Un cookie di accesso esiste solo per l'amministrazione del sito.</p>
-    <p>Come ogni server, anche questo può annotare errori di funzionamento nei propri log tecnici, per il funzionamento e la sicurezza. I link ai siti ufficiali vi portano fuori da questo sito: valgono allora le loro regole.</p>
-    <p><strong>I vostri diritti.</strong> Per qualsiasi domanda o richiesta sui vostri dati (accesso, cancellazione), scrivete a <a href="mailto:contact@rebisway.com">contact@rebisway.com</a>. Poiché non conserviamo account né elenchi di utenti, in genere non deteniamo alcun dato su di voi oltre a questo conteggio anonimizzato.</p>
+    <h2>@L.T("mentions-confidentialite-titre")</h2>
+    <p>@L.TH("mentions-conf-visites")</p>
+    <p>@L.TH("mentions-conf-ip")</p>
+    <p>@L.TH("mentions-conf-cookies")</p>
+    <p>@L.T("mentions-conf-journaux")</p>
+    <p>@L.TH("mentions-conf-droits")</p>
 </section>
-}
-else if (L.Anglais)
-{
-<h1 class="titre-page">Legal notice and privacy</h1>
-
-<section class="bloc-texte">
-    <h2>Publisher</h2>
-    <p>This site is published by Thomas Gourgnier, in a personal capacity.<br />
-    Contact: <a href="mailto:contact@rebisway.com">contact@rebisway.com</a></p>
-</section>
-
-<section class="bloc-texte">
-    <h2>Hosting</h2>
-    <p>OVH SAS, 2 rue Kellermann, 59100 Roubaix, France · <a href="https://www.ovhcloud.com/">www.ovhcloud.com</a></p>
-</section>
-
-<section class="bloc-texte">
-    <h2>Intellectual property and data</h2>
-    @if (L.Pays == "US")
-    {
-    <p>The site's source code is published under the GNU GPL v3.0 licence. The roll call votes come from the <a href="https://clerk.house.gov/Votes">Clerk of the House of Representatives</a> (official files) and, for the Senate, from <a href="https://voteview.com/">Voteview</a> (UCLA and the University of Georgia), a third-party academic project that reprocesses the <a href="https://www.senate.gov/legislative/votes_new.htm">Senate</a> records. It is reproduced as published, with the calculations described in the <a href="@L.Lien("/methodologie")">methodology</a>. Other content (texts, layout) is protected by copyright.</p>
-    }
-    else if (L.Pays == "IE")
-    {
-    <p>The site's source code is published under the GNU GPL v3.0 licence. The votes come from the open data of the <a href="https://www.oireachtas.ie/en/open-data/">Houses of the Oireachtas</a>, published under the <a href="https://www.oireachtas.ie/en/open-data/license/">Oireachtas (Open Data) PSI Licence</a>, which incorporates the Creative Commons CC BY 4.0 licence (attribution). It is reproduced as published, with the calculations described in the <a href="@L.Lien("/methodologie")">methodology</a>. Other content (texts, layout) is protected by copyright.</p>
-    }
-    else if (L.Pays == "IT")
-    {
-    <p>The site's source code is published under the GNU GPL v3.0 licence. The votes come from the open data of the Italian <a href="https://dati.camera.it/">Chamber of Deputies</a>, published under the <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> licence (attribution and share-alike), and from the open data of the <a href="https://dati.senato.it/">Italian Senate</a> (<a href='https://creativecommons.org/licenses/by/3.0/'>CC BY 3.0</a> licence, attribution). It is reproduced as published, with the calculations described in the <a href="@L.Lien("/methodologie")">methodology</a>. Other content (texts, layout) is protected by copyright.</p>
-    }
-    else if (L.Pays == "GB")
-    {
-    <p>The site's source code is published under the GNU GPL v3.0 licence. The voting data and petitions come from the UK Parliament's public
-    <a href="https://commonsvotes-api.parliament.uk/">Commons Votes API</a>, <a href="https://lordsvotes-api.parliament.uk/">Lords Votes API</a> and <a href="https://petition.parliament.uk/">petitions site</a>. Contains Parliamentary information licensed under the
-    <a href="https://www.parliament.uk/site-information/copyright-parliament/open-parliament-licence/">Open Parliament Licence v3.0</a>.
-    It is reproduced as published, with the calculations described in the <a href="@L.Lien("/methodologie")">methodology</a>. Other content (texts, layout) is protected by copyright.</p>
-    }
-    else
-    {
-    <p>The site's source code is published under the GNU GPL v3.0 licence. The voting data comes from public sources: the
-    <a href="https://data.assemblee-nationale.fr/">National Assembly</a> and the <a href="https://data.senat.fr/">Senate</a> (open data), and
-    <a href="https://howtheyvote.eu/">HowTheyVote.eu</a> for the European Parliament (data under the <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License</a>: the European data used here and its exports remain under that licence).
-    It is reproduced as published, with the calculations described in the <a href="/en/methodologie">methodology</a>. Other content (texts, layout) is protected by copyright.</p>
-    }
-    <p>The names and votes of elected officials are public data relating to the exercise of a mandate. To report an error, write to the contact above.</p>
-</section>
-
-<section class="bloc-texte" id="confidentialite">
-    <h2>Privacy</h2>
-    <p><strong>Visit counting.</strong> To know how many people visit the site, each page view is recorded in our own database, hosted on our own server,
-    with no third-party analytics service or external script. We record only: the date, the page viewed, the country (deduced from your IP address with a file stored on our own server, without calling any external service),
-    whether the visitor is a robot, and a fingerprint of your IP address.</p>
-    <p><strong>Your IP address is never stored.</strong> It is turned into a one-way code, calculated with a secret key known only to our server: this code lets us count the same person only once,
-    but the address cannot be recovered from it. This code changes at the start of each month: it cannot be used to follow you beyond a month. Visits are automatically deleted after 400 days.
-    If your browser sends the “Do Not Track” (DNT) or “Global Privacy Control” (GPC) signal, your visit is not counted.</p>
-    <p><strong>Cookies and storage.</strong> No advertising or audience-measurement cookies, no third-party trackers. Your choice of name display
-    (“First Last” / “Last First”) is remembered only in your browser (local storage); it is never sent to the server.
-    One functional cookie remembers your choice of language (and, once several countries are published, of country) for one year: it holds no personal data and is never used to track you.
-    A login cookie exists only for the site's administration.</p>
-    <p>Like any server, this one may note operating errors in its technical logs, for operation and security. Links to official sites take you away from this site: their own rules then apply.</p>
-    <p><strong>Your rights.</strong> For any question or request about your data (access, deletion), write to <a href="mailto:contact@rebisway.com">contact@rebisway.com</a>.
-    As we keep no accounts or user lists, we generally hold no data about you beyond this anonymised counting.</p>
-</section>
-}
-else
-{
-<h1 class="titre-page">Mentions légales et confidentialité</h1>
-
-<section class="bloc-texte">
-    <h2>Éditeur</h2>
-    <p>Ce site est édité par Thomas Gourgnier, à titre personnel.<br />
-    Contact : <a href="mailto:contact@rebisway.com">contact@rebisway.com</a></p>
-</section>
-
-<section class="bloc-texte">
-    <h2>Hébergement</h2>
-    <p>OVH SAS, 2 rue Kellermann, 59100 Roubaix, France · <a href="https://www.ovhcloud.com/">www.ovhcloud.com</a></p>
-</section>
-
-<section class="bloc-texte">
-    <h2>Propriété intellectuelle et données</h2>
-    @if (L.Pays == "US")
-    {
-    <p>Le code source du site est publié sous licence GNU GPL v3.0. Les votes nominaux proviennent du <a href="https://clerk.house.gov/Votes">greffe de la Chambre des représentants</a> (fichiers officiels) et, pour le Sénat, de <a href="https://voteview.com/">Voteview</a> (UCLA et Université de Géorgie), un projet universitaire tiers qui retraite les enregistrements du <a href="https://www.senate.gov/legislative/votes_new.htm">Sénat</a>. Ils sont repris tels que publiés, avec les calculs décrits dans la <a href="@L.Lien("/methodologie")">méthodologie</a>. Les autres contenus (textes, mise en page) sont protégés par le droit d'auteur.</p>
-    }
-    else if (L.Pays == "CH")
-    {
-    <p>Le code source du site est publié sous licence GNU GPL v3.0. Les votes proviennent des données ouvertes des <a href="https://www.parlament.ch/fr/services/open-data-webservices">Services du Parlement</a> (« Parlamentsdienste der Bundesversammlung, Bern »), reprises sans modification ; les totaux, les résultats et les groupes calculés par ce site sont signalés comme tels, voir la <a href="@L.Lien("/methodologie")">méthodologie</a>. La date de dernière mise à jour est affichée avec chaque fichier de données. Le site ne se présente pas comme une publication officielle du Parlement. Les autres contenus (textes, mise en page) sont protégés par le droit d'auteur.</p>
-    }
-    else if (L.Pays == "IE")
-    {
-    <p>Le code source du site est publié sous licence GNU GPL v3.0. Les votes proviennent de l'open data des <a href="https://www.oireachtas.ie/en/open-data/">Chambres de l'Oireachtas</a>, publié sous la <a href="https://www.oireachtas.ie/en/open-data/license/">Oireachtas (Open Data) PSI Licence</a>, qui reprend la licence Creative Commons CC BY 4.0 (attribution). Ils sont repris tels que publiés, avec les calculs décrits dans la <a href="@L.Lien("/methodologie")">méthodologie</a>. Les autres contenus (textes, mise en page) sont protégés par le droit d'auteur.</p>
-    }
-    else if (L.Pays == "IT")
-    {
-    <p>Le code source du site est publié sous licence GNU GPL v3.0. Les votes proviennent de l'open data de la <a href="https://dati.camera.it/">Chambre des députés d'Italie</a>, publié sous licence <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr">CC BY-SA 4.0</a> (attribution et partage à l'identique), et de l'open data du <a href="https://dati.senato.it/">Sénat italien</a> (licence <a href='https://creativecommons.org/licenses/by/3.0/'>CC BY 3.0</a>, attribution). Ils sont repris tels que publiés, avec les calculs décrits dans la <a href="@L.Lien("/methodologie")">méthodologie</a>. Les autres contenus (textes, mise en page) sont protégés par le droit d'auteur.</p>
-    }
-    else if (L.Pays == "GB")
-    {
-    <p>Le code source du site est publié sous licence GNU GPL v3.0. Les données de vote et les pétitions proviennent des services publics du Parlement britannique :
-    <a href="https://commonsvotes-api.parliament.uk/">Commons Votes API</a>, <a href="https://lordsvotes-api.parliament.uk/">Lords Votes API</a> et <a href="https://petition.parliament.uk/">site des pétitions</a>. Contient des informations parlementaires sous
-    <a href="https://www.parliament.uk/site-information/copyright-parliament/open-parliament-licence/">Open Parliament Licence v3.0</a>.
-    Elles sont reprises telles que publiées, avec les calculs décrits dans la <a href="@L.Lien("/methodologie")">méthodologie</a>. Les autres contenus (textes, mise en page) sont protégés par le droit d'auteur.</p>
-    }
-    else
-    {
-    <p>Le code source du site est publié sous licence GNU GPL v3.0. Les données de vote proviennent de sources publiques :
-    <a href="https://data.assemblee-nationale.fr/">Assemblée nationale</a> et <a href="https://data.senat.fr/">Sénat</a> (données ouvertes), et
-    <a href="https://howtheyvote.eu/">HowTheyVote.eu</a> pour le Parlement européen (données sous <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License</a> : les données européennes reprises ici et leurs exports restent sous cette licence).
-    Elles sont reprises telles que publiées, avec les calculs décrits dans la
-    <a href="/methodologie">méthodologie</a>. Les autres contenus (textes, mise en page) sont protégés par le droit d'auteur.</p>
-    }
-    <p>Les noms et votes des élus sont des données publiques relatives à l'exercice d'un mandat. Pour signaler une erreur, écrivez au contact ci-dessus.</p>
-</section>
-
-<section class="bloc-texte" id="confidentialite">
-    <h2>Confidentialité</h2>
-    <p><strong>Comptage des visites.</strong> Pour savoir combien de personnes consultent le site, chaque page vue est enregistrée dans notre propre base de données,
-    hébergée sur notre serveur, sans service d'analyse tiers ni script externe. Nous enregistrons seulement : la date, la page consultée,
-    le pays (déduit de votre adresse IP avec un fichier stocké sur notre propre serveur, sans appeler de service extérieur),
-    si le visiteur est un robot, et une empreinte de votre adresse IP.</p>
-    <p><strong>Votre adresse IP n'est jamais enregistrée.</strong> Elle est transformée en un code à sens unique, calculé avec une clé secrète connue
-    de notre seul serveur : ce code permet de compter une même personne une seule fois, mais l'adresse ne peut pas en être retrouvée.
-    Ce code change au début de chaque mois : il ne permet pas de vous suivre au-delà d'un mois. Les visites sont effacées automatiquement
-    au bout de 400 jours. Si votre navigateur envoie le signal « Do Not Track » (DNT) ou « Global Privacy Control » (GPC),
-    votre visite n'est pas comptée.</p>
-    <p><strong>Cookies et stockage.</strong> Aucun cookie publicitaire ou de mesure d'audience, aucun traceur tiers. Le choix d'affichage
-    « Prénom Nom » / « Nom Prénom » est mémorisé uniquement dans votre navigateur (stockage local), il n'est jamais envoyé au serveur.
-    Un cookie fonctionnel mémorise votre choix de langue (et, quand plusieurs pays seront publiés, de pays) pendant un an : il ne contient aucune donnée personnelle et ne sert jamais à vous suivre.
-    Un cookie de connexion n'existe que pour l'administration du site.</p>
-    <p>Comme tout serveur, celui-ci peut noter des erreurs de fonctionnement dans ses journaux techniques, pour l'exploitation et la sécurité.
-    Les liens vers les sites officiels vous font quitter ce site : leurs propres règles s'appliquent.</p>
-    <p><strong>Vos droits.</strong> Pour toute question ou demande concernant vos données (accès, suppression), écrivez à
-    <a href="mailto:contact@rebisway.com">contact@rebisway.com</a>. Comme nous ne gardons ni compte ni liste d'utilisateurs,
-    nous ne détenons en général aucune donnée vous concernant au-delà de ce comptage anonymisé.</p>
-</section>
-}

@@ -8,7 +8,7 @@
     ViewData["Title"] = titreElus;
     ViewData["Description"] = L.T("tous-les-elus-avec-leur-taux");
     var fr = L.Culture;
-    string Pct(double? v) => v is null ? "—" : v.Value.ToString("0.0", fr) + (L.Anglais ? "%" : " %");
+    string Pct(double? v) => v is null ? "—" : v.Value.ToString("0.0", fr) + (L.T("suffixe-pourcent"));
     var decalage = (Model.Resultats.Page - 1) * Model.Resultats.ParPage;
     var rang = decalage;
 }
@@ -19,7 +19,7 @@
     <p class="def-base">@L.TH("chaque-taux-est-calcule-sur-les")</p>
     @if (L.Pays == "IT") { <p class="note-source">@Doute.Html(NiveauDoute.Incertain, L.T("import-partiel"), L.T("seuls-les-votes-finaux-et-pour"))</p> }
     <dl>
-        <div><dt>Participation</dt><dd>@L.T("un-vote-a-ete-exprime-pour")</dd></div>
+        <div><dt>@L.T("participation-titre")</dt><dd>@L.T("un-vote-a-ete-exprime-pour")</dd></div>
         <div><dt>@L.T("presence")</dt><dd>@L.T("vote-exprime-par-l-elu-lui")</dd></div>
         <div><dt>@L.T("delegation")</dt><dd>@L.T("vote-exprime-par-un-collegue-a")</dd></div>
         <div><dt>@L.T("mise-au-point")</dt><dd>@L.T("position-rectifiee-apres-le-scrutin")</dd></div>
@@ -125,10 +125,10 @@ else
                 rang++;
                 <tr>
                     <td class="num rang" data-label="@L.T("rang")">@rang.ToString("N0", fr)</td>
-                    <td data-label="@L.T("elu")"><a href="@L.Lien("/" + Chambres.Fiche(e.Chambre) + "/" + e.Slug)">@Noms.Html(e.Prenom, e.Nom)</a>@if (e.Statut is not null) { <text> </text>@Doute.Html(NiveauDoute.Incertain, StatutTexte.Libelle(e.Statut, L.Anglais)!, L.T("statut-du-jour-d-apres-l")) }</td>
+                    <td data-label="@L.T("elu")"><a href="@L.Lien("/" + Chambres.Fiche(e.Chambre) + "/" + e.Slug)">@Noms.Html(e.Prenom, e.Nom)</a>@if (e.Statut is not null) { <text> </text>@Doute.Html(NiveauDoute.Incertain, StatutTexte.Libelle(e.Statut, L)!, L.T("statut-du-jour-d-apres-l")) }</td>
                     <td data-label="@L.T("groupe")"><span class="pastille" style="background:@(e.GroupeCouleur ?? "#8d949a")"></span> @(e.GroupeSigle ?? "—")</td>
                     <td data-label="@L.T("scrutins")" class="num">@e.Scrutins.ToString("N0", fr)</td>
-                    <td data-label="Participation" class="num" title="@e.Votants.ToString("N0", fr) / @e.Scrutins.ToString("N0", fr)">@Pct(e.ParticipationPct)</td>
+                    <td data-label="@L.T("participation-titre")" class="num" title="@e.Votants.ToString("N0", fr) / @e.Scrutins.ToString("N0", fr)">@Pct(e.ParticipationPct)</td>
                     <td data-label="@L.T("presence")" class="num" title="@((e.Votants - e.Delegations).ToString("N0", fr)) / @e.Scrutins.ToString("N0", fr)">@Pct(e.PresencePct)</td>
                     <td data-label="@L.T("delegation")" class="num" title="@e.Delegations.ToString("N0", fr) / @e.Scrutins.ToString("N0", fr)">@Pct(e.DelegationPct)</td>
                     <td data-label="@L.T("mise-au-point")" class="num" title="@e.MisesAuPoint.ToString("N0", fr) / @e.Scrutins.ToString("N0", fr)">@Pct(e.MiseAuPointPct)</td>

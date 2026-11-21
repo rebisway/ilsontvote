@@ -24,9 +24,9 @@
         <option value="an" selected="@(Model.Chambre == "an")">@L.T("assemblee-nationale")</option>
     </select>
     }
-    <select name="type" aria-label="Type">
+    <select name="type" aria-label="@L.T("petition-champ-type")">
         <option value="">@L.T("tous-les-types")</option>
-        @foreach (var t in PetitionAnomaliesModel.Types) { <option value="@t" selected="@(Model.Type == t)">@PetitionAnomaliesModel.TypeLibelle(t, en)</option> }
+        @foreach (var t in PetitionAnomaliesModel.Types) { <option value="@t" selected="@(Model.Type == t)">@PetitionAnomaliesModel.TypeLibelle(t, L)</option> }
     </select>
     <span class="periode" title="@L.T("date-du-releve-ou-le-constat")">
         <label class="champ-date">@L.T("du") <input type="date" name="du" value="@Model.Du" aria-label="@L.T("du-date-de-debut")" /></label>
@@ -53,7 +53,7 @@
 </form>
 
 <div class="barre-liste">
-    <p class="compte">@Model.Resultats.Total.ToString("N0", fr) @(Model.Resultats.Total > 1 ? L.T("plur-constat-pl") : L.T("plur-constat-sg"))@(Model.ParType.Count > 0 && !Model.FiltreActif ? " (" + string.Join(", ", Model.ParType.Select(t => t.Nombre.ToString("N0", fr) + " " + PetitionAnomaliesModel.TypeLibelle(t.Libelle, en).ToLowerInvariant())) + ")" : "")</p>
+    <p class="compte">@Model.Resultats.Total.ToString("N0", fr) @(Model.Resultats.Total > 1 ? L.T("plur-constat-pl") : L.T("plur-constat-sg"))@(Model.ParType.Count > 0 && !Model.FiltreActif ? " (" + string.Join(", ", Model.ParType.Select(t => t.Nombre.ToString("N0", fr) + " " + PetitionAnomaliesModel.TypeLibelle(t.Libelle, L).ToLowerInvariant())) + ")" : "")</p>
     <p class="export">@L.T("exporter-ce-tableau")
         @foreach (var f in Exporteur.Formats) { <a href="@Model.Lien(format: f)" download>@f.ToUpperInvariant()</a> }
     </p>
@@ -71,7 +71,7 @@ else
                 <tr>
                     @Model.Th("date", L.T("detectee-le"), "nowrap")
                     @Model.Th("titre", L.T("petition"))
-                    @Model.Th("type", "Type")
+                    @Model.Th("type", L.T("petition-champ-type"))
                     @Model.Th("avant", L.T("avant"), "num")
                     @Model.Th("apres", L.T("apres"), "num")
                     @Model.Th("baisse", L.T("baisse"), "num")
@@ -84,11 +84,11 @@ else
                 <tr>
                     <td class="nowrap" data-label="@L.T("detectee-le")" title="@L.T("releve-precedent")@a.ReleveAvant.ToString("d MMM yyyy", fr)">@a.DetecteLe.ToString("d MMM yyyy", fr)</td>
                     <td data-label="@L.T("petition")"><a href="@L.Lien("/petition/" + a.PetitionId)">@a.Titre</a> <span class="note-source">@(a.Chambre == "AN" ? L.T("assemblee") : a.Chambre == "UK" ? "UK Parliament" : L.T("senat"))</span></td>
-                    <td data-label="Type">@PetitionAnomaliesModel.TypeLibelle(a.Type, en)</td>
+                    <td data-label="@L.T("petition-champ-type")">@PetitionAnomaliesModel.TypeLibelle(a.Type, L)</td>
                     <td class="num" data-label="@L.T("avant")">@Nb(a.ValeurAvant)</td>
                     <td class="num" data-label="@L.T("apres")">@(a.ValeurApres is null ? "—" : Nb(a.ValeurApres))</td>
                     <td class="num" data-label="@L.T("baisse")">@Nb(a.Baisse)</td>
-                    <td class="num" data-label="%">@(a.BaissePct is { } p ? p.ToString("0.0", fr) + (en ? "%" : " %") : "—")</td>
+                    <td class="num" data-label="%">@(a.BaissePct is { } p ? p.ToString("0.0", fr) + (L.T("suffixe-pourcent")) : "—")</td>
                 </tr>
             }
             </tbody>
@@ -97,7 +97,7 @@ else
 
     @if (Model.Resultats.NbPages > 1)
     {
-        <nav class="pagination" aria-label="Pagination">
+        <nav class="pagination" aria-label="@L.T("pagination")">
             @if (Model.Resultats.Page > 1) { <a href="@Model.Lien(page: Model.Resultats.Page - 1)" rel="prev">@L.T("precedent")</a> }
             <span>@L.T("page") @Model.Resultats.Page / @Model.Resultats.NbPages</span>
             @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">@L.T("suivant")</a> }

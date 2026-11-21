@@ -34,9 +34,9 @@
         {
             <text> · </text><span class="pastille" style="background:@(e.GroupeCouleur ?? "#8d949a")"></span><span title="@e.GroupeLibelle">@e.GroupeSigle</span>
         }
-        @if (!string.IsNullOrEmpty(e.Departement)) { <text> · @Drapeaux.Avec(e.Chambre, e.Departement, L.Anglais)</text> }
+        @if (!string.IsNullOrEmpty(e.Departement)) { <text> · @Drapeaux.Avec(e.Chambre, e.Departement, L)</text> }
         @if (!e.EnExercice) { <text> · @L.T("ancien")@L.Membre(e.Chambre)</text> }
-        @if (e.EnExercice && e.Statut is not null) { <text> · </text>@Doute.Html(NiveauDoute.Incertain, e.StatutLibelle(L.Anglais)!, L.T("statut-du-jour-d-apres-l")) }
+        @if (e.EnExercice && e.Statut is not null) { <text> · </text>@Doute.Html(NiveauDoute.Incertain, e.StatutLibelle(L)!, L.T("statut-du-jour-d-apres-l")) }
     </p>
     @if (Model.Mandats.Count > 0)
     {
@@ -159,13 +159,13 @@
     {
         <div class="table-wrap">
             <table class="liste-textes">
-                <thead><tr><th>Date</th><th>@L.T("texte")</th><th>@L.T("resultat")</th><th>@L.T("son-vote")</th></tr></thead>
+                <thead><tr><th>@L.T("date")</th><th>@L.T("texte")</th><th>@L.T("resultat")</th><th>@L.T("son-vote")</th></tr></thead>
                 <tbody>
                 @foreach (var v in Model.Votes.Lignes)
                 {
                     <tr>
-                        <td class="nowrap" data-label="Date"><time datetime="@v.DateScrutin.ToString("yyyy-MM-dd")">@v.DateScrutin.ToString("d MMM yyyy", fr)</time></td>
-                        <td><a href="@L.Lien("/scrutin/" + v.ScrutinId)" title="@Titres.Info(v.TitreLangue(L.Anglais), v.InfobulleTitre(L.Anglais))">@Titres.Court(v.TitreLangue(L.Anglais))</a></td>
+                        <td class="nowrap" data-label="@L.T("date")"><time datetime="@v.DateScrutin.ToString("yyyy-MM-dd")">@v.DateScrutin.ToString("d MMM yyyy", fr)</time></td>
+                        <td><a href="@L.Lien("/scrutin/" + v.ScrutinId)" title="@Titres.Info(v.TitreLangue(L.Anglais), v.InfobulleTitre(L))">@Titres.Court(v.TitreLangue(L.Anglais))</a></td>
                         <td data-label="@L.T("resultat")">@if (v.Sort is not null) { <span class="sort @(v.Sort.StartsWith("adopt") ? "adopte" : "rejete")">@(v.Sort.StartsWith("adopt") ? L.T("adopte") : L.T("rejete"))</span> }</td>
                         <td data-label="@L.T("son-vote")">
                             <span class="badge b-@v.Position">@L.Position(v.Position)</span>

@@ -160,247 +160,125 @@ else if (L.Pays == "IT")
     </ul>
 </section>
 }
-else if (L.Pays == "GB" && L.Anglais)
-{
-<h1 class="titre-page">Methodology and limits</h1>
-<p class="chapo">The site judges no one: it displays what the official source publishes. When a piece of data is calculated, doubtful or missing, it says so.</p>
-
-<section class="bloc-texte">
-    <h2>Where the data comes from</h2>
-    <ul>
-        <li><strong>House of Commons divisions</strong>: the UK Parliament's public <a href="https://commonsvotes-api.parliament.uk/">Commons Votes API</a> (JSON), from the start of the 58th Parliament (17 December 2019) to today (the 59th opened on 9 July 2024). Contains Parliamentary information licensed under the <a href="https://www.parliament.uk/site-information/copyright-parliament/open-parliament-licence/">Open Parliament Licence v3.0</a>.</li>
-        <li><strong>House of Lords divisions</strong>: the <a href="https://lordsvotes-api.parliament.uk/">Lords Votes API</a> (divisions: only the peers who voted are published, as Content or Not content) and the <a href="https://members-api.parliament.uk/">Members API</a> (dates of entry and exit of each peer). <strong>Absent peers are deduced</strong> from those membership dates and are not stored: peers on leave of absence or suspended cannot be told apart from absent ones, so absence rates in the Lords are overstated; each division says so. A peer's party is the latest one known (the votes carry the party of the day). The Lords have no recorded vote on the whole bill, so every division is shown and there is no &ldquo;whole bill&rdquo; filter.</li>
-        <li><strong>Petitions</strong>: the public JSON of <a href="https://petition.parliament.uk/">petition.parliament.uk</a> (same licence): open and closed petitions with their supporters, the government response (from 10,000 supporters) and the debate (from 100,000). The site takes one snapshot a day and keeps all of them, so a drop in supporters can be shown; it is never explained, because the source gives no cause. Petitions rejected before publication are not imported; the history starts on the day of the first import.</li>
-        <li>Automatic update: divisions less than seven days old are read again, because the source corrects its lists after publication. The <a href="https://github.com/rebisway/ilsontvote">code is free software</a> (GPL-3.0).</li>
-    </ul>
-</section>
-
-<section class="bloc-texte">
-    <h2>How a division is read</h2>
-    <ul>
-        <li><strong>For (aye), against (no)</strong>: as published in the division lists. Tellers, listed separately by the source, are counted on their side.</li>
-        <li><strong>Both lobbies</strong>: a member listed in both the ayes and the noes voted in both lobbies, which parliamentary practice treats as an abstention. The site records an abstention and says so in the note of the division. There is no formal abstention in the Commons.</li>
-        <li><strong>Absent</strong>: the member was in office on the date of the division but is in neither list. The source publishes a “no vote recorded” list (absent members, the Speaker and Deputy Speakers who do not vote, abstentionist members): the site gives <em>no reason</em> and shows all of them as absent.</li>
-        <li><strong>Proxy</strong>: a member can vote through a colleague under the proxy voting scheme; the vote counts and is indicated.</li>
-        <li><strong>Mandates</strong>: the source has no dated directory. A mandate runs from the first to the last division in which the member appears in any list (<strong>calculated by the site</strong>); the number of seats on a given day never exceeds 650.</li>
-    </ul>
-</section>
-
-<section class="bloc-texte">
-    <h2>Calculated by the site (not published as is)</h2>
-    <ul>
-        <li><strong>Result “adopted / rejected”</strong>: computed from the official counts (more ayes than noes); a tie is left undetermined.</li>
-        <li><strong>Participation</strong>: among the members in office on the date of a division, the share who voted (aye, no or both lobbies). The others are absent. Divisions whose lists are incomplete (see below) are not counted.</li>
-        <li><strong>Seating chart</strong>: the government benches (left) and all other groups (right) are drawn as two facing crescents, one dot per member. Which group sits with the government is set by the site's administrator and revisited after each change of majority; within a side, groups are ordered by size. It is a layout, not the real bench position of each member.</li>
-    </ul>
-</section>
-
-<section class="bloc-texte">
-    <h2>Known limits</h2>
-    <ul>
-        <li><strong>Incomplete lists</strong>: in most divisions the source names a few members fewer than its own official count (2.5 fewer on average). Such divisions are marked “incomplete count” and excluded from participation rates, because their absentees are not reliable.</li>
-        <li><strong>Divisions only</strong>: votes without a recorded division (on the voices) leave no individual vote and do not appear.</li>
-        <li><strong>History</strong>: the 58th and 59th Parliaments (since December 2019) are loaded; earlier ones are not. Bills are linked to divisions by title, a calculation made by this site (flagged as such on each division).</li>
-        <li>To report an error, write to <a href="mailto:contact@rebisway.com">contact@rebisway.com</a>.</li>
-    </ul>
-</section>
-}
 else if (L.Pays == "GB")
 {
-<h1 class="titre-page">Méthodologie et limites</h1>
-<p class="chapo">Le site ne juge personne : il affiche ce que la source officielle publie. Quand une donnée est calculée, douteuse ou manquante, il le dit.</p>
+<h1 class="titre-page">@L.T("methodo-gb-0")</h1>
+<p class="chapo">@L.T("methodo-gb-1")</p>
 
 <section class="bloc-texte">
-    <h2>D'où viennent les données</h2>
+    <h2>@L.T("methodo-gb-2")</h2>
     <ul>
-        <li><strong>Divisions de la Chambre des Communes</strong> : l'<a href="https://commonsvotes-api.parliament.uk/">API publique Commons Votes</a> du Parlement britannique (JSON), du début de la 58e législature (17 décembre 2019) à aujourd'hui (la 59e s'est ouverte le 9 juillet 2024). Contient des informations parlementaires sous <a href="https://www.parliament.uk/site-information/copyright-parliament/open-parliament-licence/">Open Parliament Licence v3.0</a>.</li>
-        <li><strong>Divisions de la Chambre des Lords</strong> : l'<a href="https://lordsvotes-api.parliament.uk/">API Lords Votes</a> (divisions : seuls les pairs qui ont voté sont publiés, en « Content » ou « Not content ») et l'<a href="https://members-api.parliament.uk/">API Members</a> (dates d'entrée et de sortie de chaque pair). <strong>Les pairs absents sont déduits</strong> de ces dates d'appartenance et ne sont pas stockés : un pair en congé ou suspendu ne se distingue pas d'un absent, donc les taux d'absence aux Lords sont surestimés ; chaque division le dit. Le parti d'un pair est le dernier connu (les votes portent le parti du jour). Les Lords n'ont pas de vote sur l'ensemble d'un projet de loi : toutes leurs divisions sont affichées, sans filtre « ensemble ».</li>
-        <li><strong>Pétitions</strong> : le JSON public de <a href="https://petition.parliament.uk/">petition.parliament.uk</a> (même licence) : pétitions ouvertes et closes avec leurs soutiens, la réponse du gouvernement (à partir de 10 000 soutiens) et le débat (à partir de 100 000). Le site prend un relevé par jour et les garde tous, pour pouvoir montrer une baisse de soutiens ; elle n'est jamais expliquée, car la source n'en donne pas la cause. Les pétitions rejetées avant publication ne sont pas importées ; l'historique commence le jour du premier import.</li>
-        <li>Mise à jour automatique : les divisions de moins de sept jours sont relues, car la source corrige ses listes après publication. Le <a href="https://github.com/rebisway/ilsontvote">code est un logiciel libre</a> (GPL-3.0).</li>
+        <li>@L.TH("methodo-gb-3")</li>
+        <li>@L.TH("methodo-gb-4")</li>
+        <li>@L.TH("methodo-gb-5")</li>
+        <li>@L.TH("methodo-gb-6")</li>
     </ul>
 </section>
 
 <section class="bloc-texte">
-    <h2>Comment se lit une division</h2>
+    <h2>@L.T("methodo-gb-7")</h2>
     <ul>
-        <li><strong>Pour (aye), contre (no)</strong> : tels que publiés dans les listes de la division. Les scrutateurs (tellers), listés à part par la source, sont comptés de leur côté.</li>
-        <li><strong>Les deux couloirs</strong> : un membre présent à la fois dans la liste des « ayes » et des « noes » a voté dans les deux couloirs, ce que la pratique parlementaire traite comme une abstention. Le site enregistre une abstention et le dit dans la note de la division. Il n'y a pas d'abstention formelle aux Communes.</li>
-        <li><strong>Absent</strong> : le membre siégeait à la date de la division mais ne figure dans aucune liste. La source publie une liste « no vote recorded » (absents, président et vice-présidents de séance qui ne votent pas, élus abstentionnistes) : le site ne donne <em>aucune raison</em> et les montre tous comme absents.</li>
-        <li><strong>Procuration</strong> : un député peut voter par l'intermédiaire d'un collègue (système de vote par procuration) ; le vote compte et est signalé.</li>
-        <li><strong>Mandats</strong> : la source n'a pas d'annuaire daté. Un mandat va de la première à la dernière division où le membre figure dans une liste (<strong>calculé par le site</strong>) ; le nombre de sièges un jour donné ne dépasse jamais 650.</li>
+        <li>@L.TH("methodo-gb-8")</li>
+        <li>@L.TH("methodo-gb-9")</li>
+        <li>@L.TH("methodo-gb-10")</li>
+        <li>@L.TH("methodo-gb-11")</li>
+        <li>@L.TH("methodo-gb-12")</li>
     </ul>
 </section>
 
 <section class="bloc-texte">
-    <h2>Calculé par le site (non publié tel quel)</h2>
+    <h2>@L.T("methodo-gb-13")</h2>
     <ul>
-        <li><strong>Résultat « adopté / rejeté »</strong> : calculé d'après les décomptes officiels (plus de pour que de contre) ; une égalité reste indéterminée.</li>
-        <li><strong>Participation</strong> : parmi les membres en fonction à la date d'une division, la part de ceux qui ont voté (pour, contre ou les deux couloirs). Les autres sont absents. Les divisions dont les listes sont incomplètes (voir ci-dessous) ne sont pas comptées.</li>
-        <li><strong>Plan de la salle</strong> : les bancs du gouvernement (à gauche) et tous les autres groupes (à droite) sont dessinés en deux croissants face à face, un point par membre. Le groupe qui siège avec le gouvernement est réglé par l'administrateur du site et revu après chaque changement de majorité ; d'un côté, les groupes sont classés par taille. C'est une mise en page, pas la place réelle de chaque membre.</li>
+        <li>@L.TH("methodo-gb-14")</li>
+        <li>@L.TH("methodo-gb-15")</li>
+        <li>@L.TH("methodo-gb-16")</li>
     </ul>
 </section>
 
 <section class="bloc-texte">
-    <h2>Limites connues</h2>
+    <h2>@L.T("methodo-gb-17")</h2>
     <ul>
-        <li><strong>Listes incomplètes</strong> : dans la plupart des divisions, la source nomme quelques membres de moins que son propre décompte officiel (2,5 de moins en moyenne). Ces divisions sont marquées « décompte incomplet » et exclues des taux de participation, car leurs absents ne sont pas fiables.</li>
-        <li><strong>Divisions seulement</strong> : les votes sans division enregistrée (à main levée) ne laissent aucun vote individuel et n'apparaissent pas.</li>
-        <li><strong>Historique</strong> : les 58e et 59e législatures (depuis décembre 2019) sont chargées ; les précédentes ne le sont pas. Les projets de loi sont rattachés aux divisions d'après le titre, un calcul de ce site (signalé comme tel sur chaque division).</li>
-        <li>Pour signaler une erreur, écrivez à <a href="mailto:contact@rebisway.com">contact@rebisway.com</a>.</li>
+        <li>@L.TH("methodo-gb-18")</li>
+        <li>@L.TH("methodo-gb-19")</li>
+        <li>@L.TH("methodo-gb-20")</li>
+        <li>@L.TH("methodo-gb-21")</li>
     </ul>
 </section>
 }
 else
-@if (L.Anglais)
 {
-<h1 class="titre-page">Methodology and limits</h1>
-<p class="chapo">The site judges no one: it displays what the official sources publish. When a piece of data is calculated, doubtful or missing, it says so.</p>
+<h1 class="titre-page">@L.T("methodo-fr-0")</h1>
+<p class="chapo">@L.T("methodo-fr-1")</p>
 
 <section class="bloc-texte">
-    <h2>Where the data comes from</h2>
+    <h2>@L.T("methodo-fr-2")</h2>
     <ul>
-        <li><strong>National Assembly</strong>: <a href="https://data.assemblee-nationale.fr/">open data</a> (votes, deputies, mandates, groups), legislatures 15 to 17 (since 2017).</li>
-        <li><strong>Senate</strong>: <a href="https://data.senat.fr/">open data</a> (votes database and senators database), from 2006 to today.</li>
-        <li><strong>European Parliament</strong>: <a href="https://howtheyvote.eu/">HowTheyVote.eu</a>, an independent project that reprocesses the Parliament's official roll-call votes (the official portal blocks robots). Data under the <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License</a> (ODbL): the European data shown here and its exports remain under that licence. Third-party source, flagged on each vote; the title of main votes comes from the Parliament's Legislative Observatory (in French); amendment votes keep the HowTheyVote title, in English.</li>
-        <li><strong>Laws</strong>: the Senate's legislative files database, linked to the votes (see “Calculated by the site”).</li>
-        <li>Automatic update every night. The <a href="https://github.com/rebisway/ilsontvote">code is free software</a> (GPL-3.0).</li>
+        <li>@L.TH("methodo-fr-3")</li>
+        <li>@L.TH("methodo-fr-4")</li>
+        <li>@L.TH("methodo-fr-5")</li>
+        <li>@L.TH("methodo-fr-6")</li>
+        <li>@L.TH("methodo-fr-7")</li>
     </ul>
 </section>
 
 <section class="bloc-texte">
-    <h2>How a vote is read</h2>
+    <h2>@L.T("methodo-fr-8")</h2>
     <ul>
-        <li><strong>For, against, abstention</strong>: as published at the vote.</li>
-        <li><strong>Non-voting</strong>: declared as such by the assembly (for example the presiding officer).</li>
-        <li><strong>Absent</strong>: the official was in office on the date of the vote but does not appear in the votes. The site gives <em>no reason</em>.</li>
-        <li><strong>Proxy</strong>: an absent member may have voted through a colleague; the vote counts and this is indicated.</li>
-        <li><strong>Vote correction</strong>: a member can correct their vote afterwards; both the vote published at the ballot and the corrected vote are shown.</li>
+        <li>@L.TH("methodo-fr-9")</li>
+        <li>@L.TH("methodo-fr-10")</li>
+        <li>@L.TH("methodo-fr-11")</li>
+        <li>@L.TH("methodo-fr-12")</li>
+        <li>@L.TH("methodo-fr-13")</li>
     </ul>
 </section>
 
 <section class="bloc-texte" id="statistiques">
-    <h2>How the statistics are calculated</h2>
+    <h2>@L.T("methodo-fr-14")</h2>
     <ul>
-        <li><strong>Participation</strong>: among the officials who held a mandate on the date of a roll-call vote, the share who voted (for, against or abstention). The others are “absent”: the site gives no reason.</li>
-        <li><strong>Declared non-voting members</strong>: officials that the assembly declares “non-voting” for a vote (for example the presiding officer, who does not vote by virtue of the role) are removed from the calculation for that vote.</li>
-        <li><strong>Group cohesion</strong>: at each vote, the share of the group's members present who vote like the majority of their group (100%: the group votes with one voice); weighted average over the period.</li>
-        <li><strong>Groups</strong>: a group is attached to officials according to their membership on the date of the vote; groups that share the same acronym across several legislatures are merged.</li>
-        <li><strong>Manual corrections</strong>: when the automatic matching of a vote to a text is wrong or missing, the administrator can correct it; the correction is kept with its reason and replayed at every update. Without a correction, the matching remains the one computed from titles.</li>
-        <li><strong>Resolutions</strong>: votes on proposals for a resolution have their own page. A resolution states an assembly's position (or its opinion on a European text, or its internal organisation); it has no force of law. A vote is classified as a “resolution” when its title mentions a “proposal for a resolution”.</li>
-        <li><strong>Officials' rates</strong>: the “Attendance rates of elected officials” page lists <em>all</em> officials, without any minimum number of votes: the number of votes is shown next to each rate. A recently arrived official, or a member of the government who does not sit, may therefore have a rate based on very few votes or a very low one.</li>
-        <li><strong>Excluded</strong>: votes whose roll-call count is incomplete are not counted (their absentees are not reliable).</li>
-        <li>These figures are <strong>calculated by the site</strong> (≈ label), not published by the assemblies. They are recalculated every night.</li>
+        <li>@L.TH("methodo-fr-15")</li>
+        <li>@L.TH("methodo-fr-16")</li>
+        <li>@L.TH("methodo-fr-17")</li>
+        <li>@L.TH("methodo-fr-18")</li>
+        <li>@L.TH("methodo-fr-19")</li>
+        <li>@L.TH("methodo-fr-20")</li>
+        <li>@L.TH("methodo-fr-21")</li>
+        <li>@L.TH("methodo-fr-22")</li>
+        <li>@L.TH("methodo-fr-23")</li>
     </ul>
 </section>
 
 <section class="bloc-texte">
-    <h2>Calculated by the site (not published as is)</h2>
+    <h2>@L.T("methodo-fr-24")</h2>
     <ul>
-        <li><strong>Absentees</strong>: deduced from the mandates in force on the date of the vote.</li>
-        <li><strong>Linking a vote to a text</strong>: done by comparing titles. When several texts match, the site does not choose: the vote stays without a text.</li>
-        <li><strong>Status of a text</strong> (adopted, promulgated, struck down…): deduced from official dates and decisions.</li>
-        <li><strong>Adopted / rejected in the Senate</strong>: recalculated when the source does not state it (majority of votes cast).</li>
+        <li>@L.TH("methodo-fr-25")</li>
+        <li>@L.TH("methodo-fr-26")</li>
+        <li>@L.TH("methodo-fr-27")</li>
+        <li>@L.TH("methodo-fr-28")</li>
     </ul>
 </section>
 
 <section class="bloc-texte">
-    <h2>Legend of doubt</h2>
-    <p>When a piece of data is not published as is, a label says so, with a tooltip explaining why:</p>
+    <h2>@L.T("methodo-fr-29")</h2>
+    <p>@L.T("methodo-fr-30")</p>
     <ul>
-        <li>@Doute.Html(NiveauDoute.Calcule, "calculated", "Deduced by the site, not published as is."): calculated or deduced by the site (absentees, status of a text, link to a text).</li>
-        <li>@Doute.Html(NiveauDoute.Incertain, "uncertain", "Source incomplete or contradictory."): the source is incomplete or contradictory; only the official totals are authoritative.</li>
-        <li>@Doute.Html(NiveauDoute.Manquant, "missing", "Absent from the source."): the data does not exist in the source (it is neither an absence nor a zero).</li>
+        <li>@Doute.Html(NiveauDoute.Calcule, L.T("doute-court-calcule"), L.T("doute-info-calcule"))@L.T("methodo-fr-31")</li>
+        <li>@Doute.Html(NiveauDoute.Incertain, L.T("doute-court-incertain"), L.T("doute-info-incertain"))@L.T("methodo-fr-32")</li>
+        <li>@Doute.Html(NiveauDoute.Manquant, L.T("doute-court-manquant"), L.T("doute-info-manquant"))@L.T("methodo-fr-33")</li>
     </ul>
 </section>
 
 <section class="bloc-texte">
-    <h2>Known limits</h2>
+    <h2>@L.T("methodo-fr-34")</h2>
     <ul>
-        <li><strong>Show-of-hands votes</strong>: they do not record each member's vote, so the detail “who voted what” does not exist in the data. The site does not leave them out: on a text's page, each reading in the National Assembly is listed, including those decided without a roll-call vote, with the label “detail not available” (a greyed “?” in the lists). For the Senate and the European Parliament, only roll-call votes are known.</li>
-        <li><strong>Laws adopted without a vote (article 49, paragraph 3)</strong>: when the Government makes a text a matter of confidence, the text is deemed adopted unless a censure motion passes. There is then <em>no vote on the text</em>: this is not a show of hands. The site says so on the text's page (“no vote · art. 49-3”) and links the censure motions, which are voted by roll call, to their text.</li>
-        <li><strong>Incomplete votes</strong>: a few roll-call votes have a nominal count shorter than the official total. They are flagged and excluded from the front page, so as not to manufacture false absentees.</li>
-        <li><strong>Senate vote corrections</strong>: the original position is not always published; it is then marked unknown.</li>
-        <li><strong>Before 2017 (Assembly) and 2006 (Senate)</strong>: no usable data in this source.</li>
-        <li><strong>Language</strong>: the interface is available in English, but law titles and official labels are shown in French, as published. Titles of European Parliament votes are shown in French when the Parliament's Observatory provides them, otherwise in English.</li>
+        <li>@L.TH("methodo-fr-35")</li>
+        <li>@L.TH("methodo-fr-36")</li>
+        <li>@L.TH("methodo-fr-37")</li>
+        <li>@L.TH("methodo-fr-38")</li>
+        <li>@L.TH("methodo-fr-39")</li>
+        <li>@L.TH("methodo-fr-40")</li>
     </ul>
-    <p>An error or a doubt? Always compare with the official source, whose link appears on each page.</p>
+    <p>@L.T("methodo-fr-41")</p>
 </section>
 
-<p>Privacy, publisher and host: see the <a href="/en/mentions-legales">legal notice</a>.</p>
-}
-else
-{
-<h1 class="titre-page">Méthodologie et limites</h1>
-<p class="chapo">Le site ne juge personne : il affiche ce que les sources officielles publient. Quand une donnée est calculée, douteuse ou absente, il le dit.</p>
-
-<section class="bloc-texte">
-    <h2>D'où viennent les données</h2>
-    <ul>
-        <li><strong>Assemblée nationale</strong> : <a href="https://data.assemblee-nationale.fr/">données ouvertes</a> (scrutins, députés, mandats, groupes), législatures 15 à 17 (depuis 2017).</li>
-        <li><strong>Sénat</strong> : <a href="https://data.senat.fr/">données ouvertes</a> (base des scrutins et base des sénateurs), de 2006 à aujourd'hui.</li>
-        <li><strong>Parlement européen</strong> : <a href="https://howtheyvote.eu/">HowTheyVote.eu</a>, projet indépendant qui retraite les votes nominatifs officiels du Parlement (le portail officiel bloque les robots). Données sous <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License</a> (ODbL) : les données européennes affichées ici et leurs exports restent sous cette licence. Source tierce, signalée sur chaque scrutin ; le titre des votes principaux vient de l'Observatoire législatif du Parlement (en français) ; les votes sur amendements gardent le titre de HowTheyVote, en anglais.</li>
-        <li><strong>Textes de loi</strong> : base des dossiers législatifs du Sénat, rattachée aux scrutins (voir « Calculé par le site »).</li>
-        <li>Mise à jour automatique chaque nuit. Le <a href="https://github.com/rebisway/ilsontvote">code est libre</a> (GPL-3.0).</li>
-    </ul>
-</section>
-
-<section class="bloc-texte">
-    <h2>Comment lit-on un vote</h2>
-    <ul>
-        <li><strong>Pour, contre, abstention</strong> : tels que publiés au scrutin.</li>
-        <li><strong>Non-votant</strong> : déclaré comme tel par l'assemblée (par exemple le président de séance).</li>
-        <li><strong>Absent</strong> : l'élu siégeait à la date du scrutin mais n'apparaît pas dans les votes. Le site n'en donne <em>aucune raison</em>.</li>
-        <li><strong>Délégation</strong> : un élu absent peut avoir voté par un collègue ; son vote compte et c'est indiqué.</li>
-        <li><strong>Mise au point</strong> : un élu peut rectifier son vote après coup ; le vote publié au scrutin et le vote rectifié sont tous deux affichés.</li>
-    </ul>
-</section>
-
-<section class="bloc-texte" id="statistiques">
-    <h2>Comment sont calculées les statistiques</h2>
-    <ul>
-        <li><strong>Participation</strong> : parmi les élus qui avaient un mandat en cours à la date d'un scrutin public, la part de ceux qui ont voté (pour, contre ou abstention). Les autres sont « absents » : le site n'en donne aucune raison.</li>
-        <li><strong>Non-votants déclarés</strong> : les élus que l'assemblée déclare « non votants » pour un scrutin (par exemple le président de séance, qui ne vote pas par fonction) sont retirés du calcul pour ce scrutin.</li>
-        <li><strong>Cohésion d'un groupe</strong> : à chaque scrutin, la part des présents du groupe qui votent comme la majorité de leur groupe (100 % : le groupe vote d'une seule voix) ; moyenne pondérée sur la période.</li>
-        <li><strong>Groupes</strong> : un groupe est rattaché aux élus d'après leur appartenance à la date du scrutin ; les groupes qui portent le même sigle sur plusieurs législatures sont regroupés.</li>
-        <li><strong>Corrections manuelles</strong> : quand le rattachement automatique d'un scrutin à un texte est faux ou absent, l'administrateur peut le corriger ; la correction est conservée avec son motif et rejouée à chaque mise à jour. Sans correction, le rattachement reste celui qui est calculé d'après les titres.</li>
-        <li><strong>Résolutions</strong> : les votes sur des propositions de résolution ont leur propre page. Une résolution exprime la position d'une assemblée (ou son avis sur un texte européen, ou son organisation interne) ; elle n'a pas force de loi. Un vote est classé « résolution » quand son intitulé cite une « proposition de résolution ».</li>
-        <li><strong>Taux des élus</strong> : la page « Taux de présence des élus » liste <em>tous</em> les élus, sans seuil de scrutins : le nombre de scrutins est affiché à côté de chaque taux. Un élu arrivé récemment, ou un membre du gouvernement qui ne siège pas, peut donc avoir un taux calculé sur très peu de scrutins ou très bas.</li>
-        <li><strong>Exclus</strong> : les scrutins au décompte nominatif incomplet ne sont pas comptés (leurs absents ne sont pas fiables).</li>
-        <li>Ces chiffres sont <strong>calculés par le site</strong> (étiquette ≈), pas publiés par les assemblées. Ils sont recalculés chaque nuit.</li>
-    </ul>
-</section>
-
-<section class="bloc-texte">
-    <h2>Calculé par le site (et non publié tel quel)</h2>
-    <ul>
-        <li><strong>Absents</strong> : déduits des mandats en cours à la date du scrutin.</li>
-        <li><strong>Rattachement d'un scrutin à un texte</strong> : fait par comparaison des titres. Quand plusieurs textes correspondent, le site ne choisit pas : le scrutin reste sans texte.</li>
-        <li><strong>Statut d'un texte</strong> (adopté, promulgué, censuré…) : déduit des dates et décisions officielles.</li>
-        <li><strong>Adopté / rejeté au Sénat</strong> : recalculé quand la source ne l'indique pas (majorité des suffrages exprimés).</li>
-    </ul>
-</section>
-
-<section class="bloc-texte">
-    <h2>Légende du doute</h2>
-    <p>Quand une donnée n'est pas publiée telle quelle, une étiquette le dit, avec une infobulle qui explique pourquoi :</p>
-    <ul>
-        <li>@Doute.Html(NiveauDoute.Calcule, "calculé", "Déduit par le site, pas publié tel quel.") : calculé ou déduit par le site (absents, statut d'un texte, rattachement à un texte).</li>
-        <li>@Doute.Html(NiveauDoute.Incertain, "incertain", "Source incomplète ou contradictoire.") : la source est incomplète ou contradictoire ; seuls les totaux officiels font foi.</li>
-        <li>@Doute.Html(NiveauDoute.Manquant, "manquant", "Absent de la source.") : la donnée n'existe pas dans la source (ce n'est ni un absent, ni un zéro).</li>
-    </ul>
-</section>
-
-<section class="bloc-texte">
-    <h2>Limites connues</h2>
-    <ul>
-        <li><strong>Votes à main levée</strong> : ils n'enregistrent pas le vote de chaque élu, donc le détail « qui a voté quoi » n'existe pas dans les données. Le site ne les omet pas : sur la fiche d'un texte, chaque lecture à l'Assemblée est listée, y compris celles décidées sans scrutin public, avec l'étiquette « détail non disponible » (un « ? » grisé dans les listes). Pour le Sénat et le Parlement européen, seuls les scrutins publics sont connus.</li>
-        <li><strong>Lois adoptées sans vote (article 49, alinéa 3)</strong> : quand le Gouvernement engage sa responsabilité, le texte est considéré comme adopté sauf si une motion de censure est votée. Il n'y a alors <em>aucun vote sur le texte</em> : ce n'est pas un vote à main levée. Le site l'indique sur la fiche du texte (« sans vote · art. 49-3 ») et relie les motions de censure, elles votées par scrutin public, à leur texte.</li>
-        <li><strong>Scrutins incomplets</strong> : quelques scrutins publics ont un décompte nominatif plus court que le total officiel. Ils sont signalés et exclus de la une, pour ne pas fabriquer de faux absents.</li>
-        <li><strong>Mises au point du Sénat</strong> : la position d'origine n'est pas toujours publiée ; elle est alors marquée inconnue.</li>
-        <li><strong>Avant 2017 (Assemblée) et 2006 (Sénat)</strong> : pas de données exploitables dans cette source.</li>
-    </ul>
-    <p>Une erreur ou un doute ? Comparez toujours avec la source officielle, dont le lien figure sur chaque page.</p>
-</section>
-
-<p>Confidentialité, éditeur et hébergeur : voir les <a href="/mentions-legales">mentions légales</a>.</p>
+<p>@L.THf("methodo-fr-42", L.Lien("/mentions-legales"))</p>
 }

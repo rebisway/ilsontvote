@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using IlsOntVote.Web.Models;
+using IlsOntVote.Web.Services;
 
 namespace IlsOntVote.Tests;
 
@@ -101,6 +102,7 @@ public class TraductionsTests
             foreach (var k in new[] { "nom", "membre", "membres", "court" }) attendues.Add($"chambre.{c}.{k}");
         foreach (var p in new[] { "pour", "contre", "abstention", "non_votant", "absent" }) attendues.Add($"position.{p}");
         foreach (var s in new[] { "tous", "promulgue", "deux-assemblees", "non-promulgue", "discussion", "rejete", "cc", "censure", "49-3" }) attendues.Add($"statut-{s}");
+        foreach (var pays in new[] { "fr", "gb", "us", "it", "ie", "ch" }) attendues.Add($"accueil-decouvrez-{pays}");
         var manquantes = attendues.Where(c => !enBase.Contains(c)).ToList();
         Assert.True(manquantes.Count == 0, $"Libellés sans ligne « {langue} » : {string.Join(", ", manquantes)}");
     }
@@ -108,9 +110,23 @@ public class TraductionsTests
     [Fact]
     public void Statuts_a_restriction_traduits()
     {
-        Assert.Equal("on leave of absence", StatutTexte.Libelle("Leave of Absence", true));
-        Assert.Equal("en congé", StatutTexte.Libelle("Leave of Absence", false));
-        Assert.Equal("suspendu", StatutTexte.Libelle("Suspended", false));
-        Assert.Null(StatutTexte.Libelle(null, true));
+        // Textes en base (clés « statut-annuaire-… ») : une table en mémoire suffit, aucun texte n'est dans le code.
+        Langue Pour(string code)
+        {
+            var ctx = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+            ctx.Items["lang"] = code;
+            var tr = new Traductions(null!, Microsoft.Extensions.Logging.Abstractions.NullLogger<Traductions>.Instance);
+            tr.Remplacer(
+            [
+                new() { Langue = "fr", Cle = "statut-annuaire-conge", Texte = "en congé" }, new() { Langue = "en", Cle = "statut-annuaire-conge", Texte = "on leave of absence" },
+                new() { Langue = "fr", Cle = "statut-annuaire-suspendu", Texte = "suspendu" }, new() { Langue = "en", Cle = "statut-annuaire-suspendu", Texte = "suspended" },
+            ]);
+            return new Langue(new Microsoft.AspNetCore.Http.HttpContextAccessor { HttpContext = ctx }, tr);
+        }
+        Assert.Equal("on leave of absence", StatutTexte.Libelle("Leave of Absence", Pour("en")));
+        Assert.Equal("en congé", StatutTexte.Libelle("Leave of Absence", Pour("fr")));
+        Assert.Equal("suspendu", StatutTexte.Libelle("Suspended", Pour("fr")));
+        Assert.Equal("Autre statut", StatutTexte.Libelle("Autre statut", Pour("en")));   // valeur inconnue : telle que publiée
+        Assert.Null(StatutTexte.Libelle(null, Pour("en")));
     }
 }

@@ -4,7 +4,7 @@
 @using IlsOntVote.Web.Services
 @{
     var t = Model.Loi;
-    var st = t.Statut.Traduit(L.Anglais);
+    var st = t.Statut.Traduit(L);
     var fr = L.Culture;
     var titre = t.TitreLangue(L.Anglais);
     ViewData["Title"] = titre.Length > 60 ? titre[..60] + "…" : titre;
@@ -34,7 +34,7 @@
 </div>
 
 <header class="scrutin-tete">
-    <p class="meta">@(t.TypeLibelle is null ? L.T("texte") : char.ToUpperInvariant(LibellesEn.TypeTexte(t.TypeLibelle, L.Anglais)[0]) + LibellesEn.TypeTexte(t.TypeLibelle, L.Anglais)[1..])@(string.IsNullOrEmpty(t.NumeroLoi) ? "" : L.Tf("loi-numero", t.NumeroLoi))</p>
+    <p class="meta">@(t.TypeLibelle is null ? L.T("texte") : char.ToUpperInvariant(LibellesEn.TypeTexte(t.TypeLibelle, L)[0]) + LibellesEn.TypeTexte(t.TypeLibelle, L)[1..])@(string.IsNullOrEmpty(t.NumeroLoi) ? "" : L.Tf("loi-numero", t.NumeroLoi))</p>
     <h1>@Titres.Court(titre, 400)</h1>
     @if (titre.Length > 400) { <details class="titre-complet"><summary>@L.T("titre-complet")</summary><p>@titre</p></details> }
     <p><span class="statut @st.Classe">@st.Libelle</span></p>
@@ -42,12 +42,12 @@
 </header>
 @if (t.TitreTraduitAuto(L.Anglais))
 {
-    <p class="note-source">@Doute.Html(NiveauDoute.Calcule, "automatic translation", "Machine-translated title (not official). The official title is the French one.") Official title: <span lang="fr">@t.TitreAffiche</span></p>
+    <p class="note-source">@Doute.Html(NiveauDoute.Calcule, L.T("trad-auto-court"), L.T("trad-auto-info-fr")) @L.T("trad-titre-officiel") <span lang="fr">@t.TitreAffiche</span></p>
 }
 
 <section class="fiche-vote" aria-label="@L.T("parcours-du-texte")">
     <dl>
-        <div><dt>Promulgation</dt><dd>@(t.DatePromulgation?.ToString("d MMMM yyyy", fr) ?? L.T("pas-de-promulgation"))</dd></div>
+        <div><dt>@L.T("promulgation")</dt><dd>@(t.DatePromulgation?.ToString("d MMMM yyyy", fr) ?? L.T("pas-de-promulgation"))</dd></div>
         <div>
             <dt>@L.T("parution-au-journal-officiel")</dt>
             <dd>@(t.DateJo?.ToString("d MMMM yyyy", fr) ?? "—")</dd>
@@ -60,7 +60,7 @@
         @if (!string.IsNullOrEmpty(t.UrlLegifrance)) { <a class="raccourci" href="@t.UrlLegifrance" rel="noopener" target="_blank">@L.T("texte-sur-legifrance") ↗</a> }
         @if (!string.IsNullOrEmpty(t.UrlDossierSenat)) { <a class="raccourci" href="@t.UrlDossierSenat" rel="noopener" target="_blank">@L.T("dossier-legislatif-du-senat") ↗</a> }
         @if (!string.IsNullOrEmpty(t.UrlDossierAn)) { <a class="raccourci" href="@t.UrlDossierAn" rel="noopener" target="_blank">@L.T("dossier-de-l-assemblee") ↗</a> }
-        @{ var promptIA = PromptResume.Construire(L.Anglais, titre, new[] { t.UrlLegifrance ?? "", t.UrlDossierAn ?? "", t.UrlDossierSenat ?? "" }); }
+        @{ var promptIA = PromptResume.Construire(L, titre, new[] { t.UrlLegifrance ?? "", t.UrlDossierAn ?? "", t.UrlDossierSenat ?? "" }); }
         <partial name="_ResumeIA" model="promptIA" />
     </div>
 </section>
@@ -80,7 +80,7 @@
                 <div>
                     <dt>@L.T("decision-0c11")</dt>
                     <dd>
-                        <span class="statut @cc">@(char.ToUpperInvariant(LibellesEn.DecisionCc(t.DecisionCcLibelle, L.Anglais)[0]) + LibellesEn.DecisionCc(t.DecisionCcLibelle, L.Anglais)[1..])</span>
+                        <span class="statut @cc">@(char.ToUpperInvariant(LibellesEn.DecisionCc(t.DecisionCcLibelle, L)[0]) + LibellesEn.DecisionCc(t.DecisionCcLibelle, L)[1..])</span>
                         @if (!string.IsNullOrEmpty(t.DecisionCcNumero)) { <span class="note"> @L.T("decision-n") @t.DecisionCcNumero</span> }
                         @if (t.DecisionCcDate is not null) { <span class="note"> @L.T("du-0f68") @t.DecisionCcDate.Value.ToString("d MMMM yyyy", fr)</span> }
                         @if (!string.IsNullOrEmpty(t.DecisionCcUrl)) { <a href="@t.DecisionCcUrl" rel="noopener" target="_blank" class="note">@L.T("texte-de-la-decision") ↗</a> }
@@ -97,14 +97,14 @@
     <p class="note-source">@L.TH("chaque-lecture-en-seance-publique-quand")</p>
     <div class="table-wrap">
         <table class="liste-textes">
-            <thead><tr><th scope="col">Date</th><th scope="col">@L.T("lecture")</th><th scope="col">@L.T("decision-0c11")</th><th scope="col">@L.T("vote-des-elus")</th></tr></thead>
+            <thead><tr><th scope="col">@L.T("date")</th><th scope="col">@L.T("lecture")</th><th scope="col">@L.T("decision-0c11")</th><th scope="col">@L.T("vote-des-elus")</th></tr></thead>
             <tbody>
             @foreach (var e in Model.Etapes)
             {
                 <tr>
-                    <td data-label="Date" class="col-date">@e.DateActe.ToString("d MMM yyyy", fr)</td>
-                    <td data-label="@L.T("lecture")"><span class="chambre-tag @Chambres.ClasseTag(e.Chambre)">@L.ChambreCourt(e.Chambre)</span> @e.LectureEn(L.Anglais)</td>
-                    <td data-label="@L.T("decision-0c11")">@(e.EstMotion ? L.T("votee-par-scrutin-public") : string.IsNullOrWhiteSpace(e.Resultat) ? "—" : char.ToUpper(LibellesEn.ResultatLecture(e.Resultat, L.Anglais)[0]) + LibellesEn.ResultatLecture(e.Resultat, L.Anglais)[1..])</td>
+                    <td data-label="@L.T("date")" class="col-date">@e.DateActe.ToString("d MMM yyyy", fr)</td>
+                    <td data-label="@L.T("lecture")"><span class="chambre-tag @Chambres.ClasseTag(e.Chambre)">@L.ChambreCourt(e.Chambre)</span> @e.LectureEn(L)</td>
+                    <td data-label="@L.T("decision-0c11")">@(e.EstMotion ? L.T("votee-par-scrutin-public") : string.IsNullOrWhiteSpace(e.Resultat) ? "—" : char.ToUpper(LibellesEn.ResultatLecture(e.Resultat, L)[0]) + LibellesEn.ResultatLecture(e.Resultat, L)[1..])</td>
                     <td data-label="@L.T("vote-des-elus")">
                         @if (e.ScrutinId is not null)
                         {
@@ -145,16 +145,16 @@ else
 {
     <div class="table-wrap">
         <table class="liste-textes">
-            <thead><tr><th>Date</th><th>@L.T("chambre-accd")</th><th>@L.T("scrutin")</th><th>@L.T("resultat")</th><th class="num">@L.T("pour-2ecc")</th><th class="num">@L.T("contre-b885")</th><th class="num">@L.T("abst-29c5")</th></tr></thead>
+            <thead><tr><th>@L.T("date")</th><th>@L.T("chambre-accd")</th><th>@L.T("scrutin")</th><th>@L.T("resultat")</th><th class="num">@L.T("pour-2ecc")</th><th class="num">@L.T("contre-b885")</th><th class="num">@L.T("abst-29c5")</th></tr></thead>
             <tbody>
             @foreach (var s in Model.Scrutins)
             {
                 <tr>
-                    <td class="nowrap" data-label="Date">@s.DateScrutin.ToString("d MMM yyyy", fr)</td>
+                    <td class="nowrap" data-label="@L.T("date")">@s.DateScrutin.ToString("d MMM yyyy", fr)</td>
                     <td data-label="@L.T("chambre-accd")"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@L.ChambreCourt(s.Chambre)</span></td>
-                    <td><a href="@L.Lien("/scrutin/" + s.Id)" title="@Titres.Info(s.TitreLangue(L.Anglais), s.InfobulleTitre(L.Anglais))">@Titres.Court(s.TitreLangue(L.Anglais))</a></td>
+                    <td><a href="@L.Lien("/scrutin/" + s.Id)" title="@Titres.Info(s.TitreLangue(L.Anglais), s.InfobulleTitre(L))">@Titres.Court(s.TitreLangue(L.Anglais))</a></td>
                     <td data-label="@L.T("resultat")"><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("adopte") : L.T("rejete"))</span></td>
-                    <td class="num" data-label="@L.T("pour-2ecc")">@s.NbPour</td><td class="num" data-label="@L.T("contre-b885")">@s.NbContre</td><td class="num" data-label="Abstentions">@s.NbAbstentions</td>
+                    <td class="num" data-label="@L.T("pour-2ecc")">@s.NbPour</td><td class="num" data-label="@L.T("contre-b885")">@s.NbContre</td><td class="num" data-label="@L.T("abstentions")">@s.NbAbstentions</td>
                 </tr>
             }
             </tbody>
@@ -168,14 +168,14 @@ else
     <p class="note-source">@L.Tf("loi-autres-scrutins-citent", Model.NbLies)</p>
     <div class="table-wrap">
         <table class="liste-textes">
-            <thead><tr><th>Date</th><th>@L.T("chambre-accd")</th><th>@L.T("scrutin")</th><th>@L.T("resultat")</th></tr></thead>
+            <thead><tr><th>@L.T("date")</th><th>@L.T("chambre-accd")</th><th>@L.T("scrutin")</th><th>@L.T("resultat")</th></tr></thead>
             <tbody>
             @foreach (var s in Model.Lies)
             {
                 <tr>
-                    <td class="nowrap" data-label="Date">@s.DateScrutin.ToString("d MMM yyyy", fr)</td>
+                    <td class="nowrap" data-label="@L.T("date")">@s.DateScrutin.ToString("d MMM yyyy", fr)</td>
                     <td data-label="@L.T("chambre-accd")"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@L.ChambreCourt(s.Chambre)</span></td>
-                    <td><a href="@L.Lien("/scrutin/" + s.Id)" title="@Titres.Info(s.TitreLangue(L.Anglais), s.InfobulleTitre(L.Anglais))">@Titres.Court(s.TitreLangue(L.Anglais))</a></td>
+                    <td><a href="@L.Lien("/scrutin/" + s.Id)" title="@Titres.Info(s.TitreLangue(L.Anglais), s.InfobulleTitre(L))">@Titres.Court(s.TitreLangue(L.Anglais))</a></td>
                     <td data-label="@L.T("resultat")"><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("adopte") : L.T("rejete"))</span></td>
                 </tr>
             }

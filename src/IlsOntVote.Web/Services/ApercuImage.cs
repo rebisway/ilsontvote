@@ -44,19 +44,19 @@ public sealed class ApercuImage
     /// (constaté : « They voted » et « Who voted what? » coupés sur les côtés avec une mise en page à gauche). Tout ce qui compte tient donc dans la bande centrale de 630 px
     /// (x de 285 à 915) ; les côtés de l'image 1200 × 630 ne portent rien d'essentiel.
     /// </summary>
-    public byte[] Scrutin(Scrutin s, HemicycleVue vue, bool en = false, string? pays = null)
+    public byte[] Scrutin(Scrutin s, HemicycleVue vue, Langue langue, string? pays = null)
     {
         using var surface = SKSurface.Create(new SKImageInfo(L, H));
         var c = surface.Canvas;
         c.Clear(Fond);
         MarqueCentree(c, 40, 60, pays is not null);
 
-        var fr = CultureInfo.GetCultureInfo(en ? "en-GB" : "fr-FR");
-        TexteCentre(c, $"{Chambres.Nom(s.Chambre, en)} · {s.DateScrutin.ToString("d MMMM yyyy", fr)}", 104, 24, EncreDouce, _normal);
+        var fr = langue.Culture;
+        TexteCentre(c, $"{langue.Chambre(s.Chambre)} · {s.DateScrutin.ToString("d MMMM yyyy", fr)}", 104, 24, EncreDouce, _normal);
 
         // Titre : 3 lignes au plus (2 pour les croissants, plus hauts), centré, dans la bande centrale.
         var y = 156f;
-        foreach (var ligne in Couper(s.TitreLangue(en), 38, Bande, vue.FaceAFace ? 2 : 3, _gras))
+        foreach (var ligne in Couper(s.TitreLangue(langue.Anglais), 38, Bande, vue.FaceAFace ? 2 : 3, _gras))
         {
             TexteCentre(c, ligne, y, 38, Encre, _gras);
             y += 46;
@@ -67,13 +67,13 @@ public sealed class ApercuImage
         var adopte = s.Adopte;
         var segments = new List<(string Texte, SKColor Couleur, SKTypeface Police)>
         {
-            (adopte ? (en ? "ADOPTED" : "ADOPTÉ") : (en ? "REJECTED" : "REJETÉ"), adopte ? Adopte : Contre, _gras),
+            (adopte ? langue.T("apercu-adopte") : langue.T("apercu-rejete"), adopte ? Adopte : Contre, _gras),
             ("   ", Encre, _normal),
-            ($"{s.NbPour?.ToString("N0", fr) ?? "—"} {(en ? "for" : "pour")}", Pour, _gras),
+            ($"{s.NbPour?.ToString("N0", fr) ?? "—"} {langue.T("apercu-pour")}", Pour, _gras),
             ("  ", Encre, _normal),
-            ($"{s.NbContre?.ToString("N0", fr) ?? "—"} {(en ? "against" : "contre")}", Contre, _gras),
+            ($"{s.NbContre?.ToString("N0", fr) ?? "—"} {langue.T("apercu-contre")}", Contre, _gras),
             ("  ", Encre, _normal),
-            ($"{s.NbAbstentions?.ToString("N0", fr) ?? "—"} abst.", Abstention, _gras),
+            ($"{s.NbAbstentions?.ToString("N0", fr) ?? "—"} {langue.T("apercu-abstentions")}", Abstention, _gras),
         };
         var total = segments.Sum(g => { using var f = new SKFont(g.Police, 28); return Mesure(f, g.Texte); });
         var x = (L - total) / 2;
@@ -109,25 +109,14 @@ public sealed class ApercuImage
     /// Image générale du site (pages sans aperçu propre) : marque, question et un petit hémicycle de points, centrés (voir <see cref="Scrutin"/> : rognage carré des messageries).
     /// Le dessin est un exemple fixe (pas un vrai vote) : il montre à quoi ressemble le site.
     /// </summary>
-    public byte[] Defaut(bool en = false, string? pays = null)
+    public byte[] Defaut(Langue langue, string? pays = null)
     {
         using var surface = SKSurface.Create(new SKImageInfo(L, H));
         var c = surface.Canvas;
         c.Clear(Fond);
         MarqueCentree(c, 76, 112, pays is not null);
-        TexteCentre(c, en ? "Who voted what?" : "Qui a voté quoi ?", 196, 60, Encre, _gras);
-        var phrase = pays == "GB"
-            ? "How every MP and peer voted in Parliament, division by division. Official data, free software."
-            : pays == "US"
-            ? "How every Representative and Senator voted in Congress, roll call by roll call. Official data, free software."
-            : pays == "IT"
-            ? "How every Italian deputy voted, final vote by final vote. Official data, free software."
-            : pays == "CH"
-            ? "How every Swiss councillor voted in the National Council and the Council of States. Official data, free software."
-            : pays == "IE"
-            ? "How every TD and senator voted in the Oireachtas, division by division. Official data, free software."
-            : en ? "How every French deputy, senator and MEP voted, law by law. Official data, free software."
-                 : "Le vote de chaque député, sénateur et eurodéputé, texte par texte. Données officielles, code libre.";
+        TexteCentre(c, langue.T("qui-a-vote-quoi"), 196, 60, Encre, _gras);
+        var phrase = langue.T("apercu-phrase-" + (pays ?? "fr").ToLowerInvariant());
         var y = 250f;
         foreach (var ligne in Couper(phrase, 28, Bande, 3, _normal)) { TexteCentre(c, ligne, y, 28, EncreDouce, _normal); y += 36; }
 

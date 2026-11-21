@@ -243,11 +243,11 @@
             {
                 @* Menu de pays avec drapeau (image : les émojis de drapeau s'affichent en lettres sous Windows). Fichier /img/flags/{iso}.svg ; absent : image retirée, le nom reste. *@
                 var paysCode = (L.Pays ?? "FR").ToLowerInvariant();
-                var paysNom = L.Pays is null ? "France" : L.NomPays(L.Pays, SitePays.Actifs.FirstOrDefault(x => x.Code == L.Pays)?.NomFr ?? L.Pays, SitePays.Actifs.FirstOrDefault(x => x.Code == L.Pays)?.NomEn ?? L.Pays);
+                var paysNom = L.Pays is null ? L.T("pays-france") : L.NomPays(L.Pays, SitePays.Actifs.FirstOrDefault(x => x.Code == L.Pays)?.NomFr ?? L.Pays, SitePays.Actifs.FirstOrDefault(x => x.Code == L.Pays)?.NomEn ?? L.Pays);
                 <details class="pays-choix">
                     <summary aria-label="@L.T("pays")"><span class="combo-etiq">@L.T("pays")</span> <img src="/img/flags/@(paysCode).svg" alt="" width="20" height="14" onerror="this.remove()" /> <span>@paysNom</span></summary>
                     <div class="pays-liste">
-                        <a href="/?pays=fr" @Html.Raw(L.Pays is null ? "aria-current=\"true\"" : "")><img src="/img/flags/fr.svg" alt="" width="20" height="14" onerror="this.remove()" /> France</a>
+                        <a href="/?pays=fr" @Html.Raw(L.Pays is null ? "aria-current=\"true\"" : "")><img src="/img/flags/fr.svg" alt="" width="20" height="14" onerror="this.remove()" /> @L.T("pays-france")</a>
                         @foreach (var p in SitePays.Actifs)
                         {
                             <a href="/?pays=@p.Prefixe" @Html.Raw(L.Pays == p.Code ? "aria-current=\"true\"" : "")><img src="/img/flags/@(p.Code.ToLowerInvariant()).svg" alt="" width="20" height="14" onerror="this.remove()" /> @L.NomPays(p.Code, p.NomFr, p.NomEn)</a>
@@ -258,16 +258,18 @@
             @* Choix de la langue : liste déroulante comme le pays (les langues proposées dépendent du pays : PaysSite.LanguesDuPays). hl= mémorise le choix explicite (cookie) : sinon la langue du navigateur reprendrait la main. *@
             @{
                 string NomLangue(string c) => c switch { "fr" => "Français", "en" => "English", "it" => "Italiano", "de" => "Deutsch", _ => c };
+                // Drapeau de la langue (image, comme pour les pays) : l'anglais est représenté par le drapeau britannique.
+                string DrapeauLangue(string c) => c switch { "en" => "gb", _ => c };
                 var langues = PaysSite.LanguesDuPays(L.Pays);
                 var base_ = L.Variante(false);
                 var sep_ = base_.Contains('?') ? "&" : "?";
             }
             <details class="pays-choix langue-choix">
-                <summary aria-label="@L.T("langue")"><span class="combo-etiq">@L.T("langue")</span> <span lang="@L.Code">@NomLangue(L.Code)</span></summary>
+                <summary aria-label="@L.T("langue")"><span class="combo-etiq">@L.T("langue")</span> <img src="/img/flags/@(DrapeauLangue(L.Code)).svg" alt="" width="20" height="14" onerror="this.remove()" /> <span lang="@L.Code">@NomLangue(L.Code)</span></summary>
                 <div class="pays-liste">
                     @foreach (var lg in langues)
                     {
-                        <a href="@base_@(sep_)hl=@lg" rel="nofollow" lang="@lg" hreflang="@lg" @Html.Raw(L.Code == lg ? "aria-current=\"true\"" : "")>@NomLangue(lg)</a>
+                        <a href="@base_@(sep_)hl=@lg" rel="nofollow" lang="@lg" hreflang="@lg" @Html.Raw(L.Code == lg ? "aria-current=\"true\"" : "")><img src="/img/flags/@(DrapeauLangue(lg)).svg" alt="" width="20" height="14" onerror="this.remove()" /> @NomLangue(lg)</a>
                     }
                 </div>
             </details>

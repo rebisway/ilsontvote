@@ -1,3 +1,4 @@
+using IlsOntVote.Web.Services;
 namespace IlsOntVote.Web.Models;
 
 /// <summary>Famille de statut : sert à choisir la couleur de l'étiquette (cf. site.css, `.statut-*`).</summary>
@@ -25,23 +26,13 @@ public sealed record EtatChambre(string Etiquette, string Symbole, string Classe
 /// <summary>Traduction anglaise du statut d'un texte (la clé est le libellé court français produit par <see cref="Texte.Statut"/>).</summary>
 public static class StatutTraduction
 {
-    private static readonly Dictionary<string, (string Court, string Libelle)> En = new()
+    /// <summary>Le statut dans la langue courante (textes en base : « statut-court-… », « statut-libelle-… ») ; un statut inconnu garde son libellé français (jamais de texte inventé).</summary>
+    public static Statut Traduit(this Statut st, Langue l)
     {
-        ["Censuré"] = ("Struck down", "Struck down by the Constitutional Council"),
-        ["Censure partielle"] = ("Partly struck down", "Promulgated after partial censure by the Constitutional Council"),
-        ["Promulgué"] = ("Promulgated", "Promulgated"),
-        ["Rejeté"] = ("Rejected", "Rejected"),
-        ["Caduc"] = ("Lapsed", "Lapsed"),
-        ["Retiré"] = ("Withdrawn", "Withdrawn"),
-        ["Fusionné"] = ("Merged", "Merged with another text"),
-        ["Non promulgué"] = ("Not promulgated", "Adopted by both chambers — not promulgated"),
-        ["En discussion"] = ("In progress", "In progress"),
-        ["Adopté"] = ("Adopted", "Adopted"),
-    };
-
-    /// <summary>Le statut dans la langue demandée ; un statut inconnu garde son libellé français (jamais de texte inventé).</summary>
-    public static Statut Traduit(this Statut st, bool en) =>
-        en && En.TryGetValue(st.Court, out var t) ? st with { Court = t.Court, Libelle = t.Libelle } : st;
+        if (l.Code == "fr") return st;
+        var k = Cles.Slug(st.Court);
+        return l.TexteOuNull("statut-court-" + k) is { } court ? st with { Court = court, Libelle = l.TexteOuNull("statut-libelle-" + k) ?? st.Libelle } : st;
+    }
 }
 
 public class Texte
@@ -109,7 +100,7 @@ public class Texte
     /// <summary>Vrai quand le titre affiché est une traduction automatique (à signaler au lecteur).</summary>
     public bool TitreTraduitAuto(bool en) => !string.IsNullOrWhiteSpace(TitreEn) && (en ? TitreEnAuto : TitreFrAuto);
     /// <summary>Infobulle d'un titre traduit automatiquement : le titre officiel français ; null sinon (attribut omis).</summary>
-    public string? InfobulleTitre(bool en) => !TitreTraduitAuto(en) ? null : en ? "Official title (French): " + TitreAffiche : "Titre original (anglais) : " + TitreEn;
+    public string? InfobulleTitre(Langue l) => !TitreTraduitAuto(l.Anglais) ? null : l.Anglais ? l.T("infobulle-titre-officiel") + TitreAffiche : l.T("infobulle-titre-original") + TitreEn;
     private static string Majuscule(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
 
 
@@ -142,60 +133,33 @@ public class Texte
         }
     }
 
-    public EtatChambre EtatAn => EtatAnEn(false);
-    public EtatChambre EtatSenat => EtatSenatEn(false);
+    /// <summary>Étiquette « AN » (adopté, pas adopté, ou vote sans scrutin public) dans la langue courante (tous les textes en base).</summary>
+    public EtatChambre EtatAnEn(Langue l) => EtatDe(l, "an", NbScrutinsAn, NbEtapesAn, AdopteAn, DateAdoptionAn, Adopte493);
 
-    /// <summary>Étiquette « AN » (adopté, pas adopté, ou vote sans scrutin public) dans la langue demandée.</summary>
-    public EtatChambre EtatAnEn(bool en)
+    /// <summary>Étiquette « Sénat » (adopté, pas adopté, ou vote sans scrutin public) dans la langue courante.</summary>
+    public EtatChambre EtatSenatEn(Langue l) => EtatDe(l, "senat", NbScrutinsSenat, NbEtapesSenat, AdopteSenat, DateAdoptionSenat, false);
+
+    private static EtatChambre EtatDe(Langue l, string chambre, int nbScrutins, int nbEtapes, bool adopte, DateTime? dateAdoption, bool adopte493)
     {
+        var etiquette = l.T("etiquette-" + chambre);
+        var devant = l.T("devant-" + chambre);
+        // Date d'adoption (« le 12 mars 2026 ») précédée du mot de la langue ; vide si inconnue.
+        var date = dateAdoption is null ? "" : l.Tf("etat-date", dateAdoption.Value.ToString("d MMMM yyyy", l.Culture));
+
         // Aucun scrutin public sur l'ensemble, mais une ou plusieurs lectures décidées sans scrutin public : on le dit au lieu d'un « ? ».
-        if (NbScrutinsAn == 0 && NbEtapesAn > 0)
+        if (nbScrutins == 0 && nbEtapes > 0)
         {
-            var culture = new System.Globalization.CultureInfo(en ? "en-GB" : "fr-FR");
-            var date = DateAdoptionAn is null ? "" : (en ? " on " : " le ") + DateAdoptionAn.Value.ToString("d MMMM yyyy", culture);
-            if (Adopte493 && AdopteAn)
-                return new(en ? "NA" : "AN", "✓", "ch-ok ch-sans-scrutin", en
-                    ? $"Adopted by the National Assembly{date} WITHOUT A VOTE (article 49, paragraph 3 of the Constitution): the text is deemed adopted unless a censure motion passes. There is no vote on the text itself."
-                    : $"Adopté par l'Assemblée nationale{date} SANS VOTE (article 49, alinéa 3 de la Constitution) : le texte est considéré comme adopté sauf si une motion de censure est votée. Il n'y a aucun vote sur le texte lui-même.");
-            var infobulle = en
-                ? $"{(AdopteAn ? "Adopted" : "Not adopted")} by the National Assembly{date} in a vote without roll call (show of hands): the detail of who voted what is not available."
-                : $"{(AdopteAn ? "Adopté" : "Pas adopté")} par l'Assemblée nationale{date} lors d'un vote sans scrutin public (main levée) : le détail « qui a voté quoi » n'est pas disponible.";
-            return new(en ? "NA" : "AN", AdopteAn ? "✓" : "✗", (AdopteAn ? "ch-ok" : "ch-ko") + " ch-sans-scrutin", infobulle);
+            if (adopte493 && adopte)
+                return new(etiquette, "✓", "ch-ok ch-sans-scrutin", l.Tf("etat-an-article-49-3", date));
+            return new(etiquette, adopte ? "✓" : "✗", (adopte ? "ch-ok" : "ch-ko") + " ch-sans-scrutin",
+                l.Tf("etat-main-levee", adopte ? l.T("etat-adopte") : l.T("etat-pas-adopte"), devant, date));
         }
-        return Etat(en ? "NA" : "AN", en ? "the National Assembly" : "l'Assemblée nationale", NbScrutinsAn, AdopteAn, DateAdoptionAn, en);
-    }
 
-    public EtatChambre EtatSenatEn(bool en)
-    {
-        // Aucun scrutin public sur l'ensemble, mais des décisions du Sénat sans scrutin public (main levée) : on le dit au lieu d'un « ? ».
-        if (NbScrutinsSenat == 0 && NbEtapesSenat > 0)
-        {
-            var culture = new System.Globalization.CultureInfo(en ? "en-GB" : "fr-FR");
-            var date = DateAdoptionSenat is null ? "" : (en ? " on " : " le ") + DateAdoptionSenat.Value.ToString("d MMMM yyyy", culture);
-            var infobulle = en
-                ? $"{(AdopteSenat ? "Adopted" : "Not adopted")} by the Senate{date} in a vote without roll call (show of hands): the detail of who voted what is not available."
-                : $"{(AdopteSenat ? "Adopté" : "Pas adopté")} par le Sénat{date} lors d'un vote sans scrutin public (main levée) : le détail « qui a voté quoi » n'est pas disponible.";
-            return new(en ? "Senate" : "Sénat", AdopteSenat ? "✓" : "✗", (AdopteSenat ? "ch-ok" : "ch-ko") + " ch-sans-scrutin", infobulle);
-        }
-        return Etat(en ? "Senate" : "Sénat", en ? "the Senate" : "le Sénat", NbScrutinsSenat, AdopteSenat, DateAdoptionSenat, en);
-    }
-
-    private static EtatChambre Etat(string etiquette, string devant, int nb, bool adopte, DateTime? dateAdoption, bool en)
-    {
-        var culture = new System.Globalization.CultureInfo(en ? "en-GB" : "fr-FR");
-        var votes = en
-            ? (nb > 1 ? $"{nb} votes on the whole text" : "1 vote on the whole text")
-            : (nb > 1 ? $"{nb} scrutins sur l'ensemble" : "1 scrutin sur l'ensemble");
-
-        if (nb == 0)
-            return new(etiquette, "?", "ch-inconnu", en
-                ? $"No roll-call vote on the whole text in {devant} in our data: show-of-hands vote, or text not yet examined. The detail of who voted what is not available."
-                : $"Aucun scrutin public sur l'ensemble devant {devant} dans nos données : vote à main levée, ou texte pas encore examiné. Le détail « qui a voté quoi » n'est pas disponible.");
-
-        var date = dateAdoption is null ? "" : (en ? " on " : " le ") + dateAdoption.Value.ToString("d MMMM yyyy", culture);
+        var votes = nbScrutins > 1 ? l.Tf("etat-votes-pl", nbScrutins) : l.T("etat-votes-sg");
+        if (nbScrutins == 0) return new(etiquette, "?", "ch-inconnu", l.Tf("etat-aucun-scrutin", devant));
         return adopte
-            ? new(etiquette, "✓", "ch-ok", en ? $"Adopted by {devant}{date} ({votes})" : $"Adopté par {devant}{date} ({votes})")
-            : new(etiquette, "✗", "ch-ko", en ? $"Not adopted by {devant} in the votes on the whole text ({votes})" : $"Pas adopté par {devant} lors des votes sur l'ensemble ({votes})");
+            ? new(etiquette, "✓", "ch-ok", l.Tf("etat-adopte-par", devant, date, votes))
+            : new(etiquette, "✗", "ch-ko", l.Tf("etat-pas-adopte-par", devant, votes));
     }
 }
 
@@ -220,44 +184,33 @@ public sealed class EtapeTexte
     /// <summary>Motion de censure liée au texte (toujours votée par scrutin public).</summary>
     public bool EstMotion => CodeActe.Contains("-MOTION-VOTE", StringComparison.Ordinal);
 
-    /// <summary>Nom de la lecture d'après le code de l'acte (AN1 = première lecture, AN2 = deuxième, etc.).</summary>
-    public string Lecture => LectureEn(false);
-
-    /// <summary>Nom de la lecture dans la langue demandée.</summary>
-    public string LectureEn(bool en) => Chambre == "SENAT" ? LectureSenat(en) : LectureAn(en);
+    /// <summary>Nom de la lecture dans la langue courante (textes en base : « lecture-… »).</summary>
+    public string LectureEn(Langue l) => Chambre == "SENAT" ? LectureSenat(l) : LectureAn(l);
 
     /// <summary>Lecture au Sénat d'après le code SEN&lt;type&gt;-DEC (type de lecture de DOSLEG : 1 première, 2 deuxième… 4 CMP, 5 nouvelle, 6 définitive).</summary>
-    private string LectureSenat(bool en) => CodeActe.Split('-')[0] switch
+    private string LectureSenat(Langue l) => l.T(CodeActe.Split('-')[0] switch
     {
-        "SEN1" => en ? "1st reading" : "1re lecture",
-        "SEN2" => en ? "2nd reading" : "2e lecture",
-        "SEN3" => en ? "3rd reading" : "3e lecture",
-        "SEN4" => en ? "Joint committee text" : "Texte de la CMP",
-        "SEN5" => en ? "New reading" : "Nouvelle lecture",
-        "SEN6" => en ? "Final reading" : "Lecture définitive",
-        "SEN7" => en ? "4th reading" : "4e lecture",
-        _ => en ? "Reading" : "Lecture",
-    };
+        "SEN1" => "lecture-1",
+        "SEN2" => "lecture-2",
+        "SEN3" => "lecture-3",
+        "SEN4" => "lecture-cmp",
+        "SEN5" => "lecture-nouvelle",
+        "SEN6" => "lecture-definitive",
+        "SEN7" => "lecture-4",
+        _ => "lecture",
+    });
 
-    private string LectureAn(bool en) => EstMotion ? (en ? "Censure motion" : "Motion de censure") : en ? CodeActe.Split('-')[0] switch
+    /// <summary>Lecture à l'Assemblée d'après le code de l'acte (AN1 = première lecture, AN2 = deuxième, etc.) ; une motion de censure a son propre libellé.</summary>
+    private string LectureAn(Langue l) => l.T(EstMotion ? "lecture-motion-censure" : CodeActe.Split('-')[0] switch
     {
-        "AN1" => "1st reading",
-        "AN2" => "2nd reading",
-        "ANLUNI" => "Single reading",
-        "ANNLEC" => "New reading",
-        "ANLDEF" => "Final reading",
-        "CMP" => "Joint committee text",
-        _ => "Reading",
-    } : CodeActe.Split('-')[0] switch
-    {
-        "AN1" => "1re lecture",
-        "AN2" => "2e lecture",
-        "ANLUNI" => "Lecture unique",
-        "ANNLEC" => "Nouvelle lecture",
-        "ANLDEF" => "Lecture définitive",
-        "CMP" => "Texte de la CMP",
-        _ => "Lecture",
-    };
+        "AN1" => "lecture-1",
+        "AN2" => "lecture-2",
+        "ANLUNI" => "lecture-unique",
+        "ANNLEC" => "lecture-nouvelle",
+        "ANLDEF" => "lecture-definitive",
+        "CMP" => "lecture-cmp",
+        _ => "lecture",
+    });
 }
 
 public sealed class ScrutinDuTexte
@@ -283,7 +236,7 @@ public sealed class ScrutinDuTexte
     /// <summary>Vrai quand le titre affiché est une traduction automatique (à signaler au lecteur).</summary>
     public bool TitreTraduitAuto(bool en) => !string.IsNullOrWhiteSpace(TitreEn) && (en ? TitreEnAuto : TitreFrAuto);
     /// <summary>Infobulle d'un titre traduit automatiquement : le titre officiel français ; null sinon (attribut omis).</summary>
-    public string? InfobulleTitre(bool en) => !TitreTraduitAuto(en) ? null : en ? "Official title (French): " + TitreAffiche : "Titre original (anglais) : " + TitreEn;
+    public string? InfobulleTitre(Langue l) => !TitreTraduitAuto(l.Anglais) ? null : l.Anglais ? l.T("infobulle-titre-officiel") + TitreAffiche : l.T("infobulle-titre-original") + TitreEn;
     private static string Majuscule(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
 
 }

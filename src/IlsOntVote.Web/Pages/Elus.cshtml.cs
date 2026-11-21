@@ -51,18 +51,18 @@ public class ElusModel(IStatistiquesRepository stats, Langue langue, PaysSite si
         var en = langue.Anglais;
         return new List<Colonne<StatEluDetail>>
         {
-            new(en ? "Last name" : "Nom", e => e.Nom),
-            new(en ? "First name" : "Prénom", e => e.Prenom),
-            new(en ? "Group" : "Groupe", e => e.GroupeSigle ?? ""),
-            new(en ? "Votes counted" : "Scrutins", e => e.Scrutins),
-            new(en ? "Votes cast" : "Votes exprimés", e => e.Votants),
-            new(en ? "Participation (%)" : "Participation (%)", e => e.ParticipationPct),
-            new(en ? "Presence (%)" : "Présence (%)", e => e.PresencePct),
-            new(en ? "Proxy votes (%)" : "Délégation (%)", e => e.DelegationPct),
-            new(en ? "Vote corrections (%)" : "Mise au point (%)", e => e.MiseAuPointPct),
-            new(en ? "Absence (%)" : "Absence (%)", e => e.AbsencePct),
-            new(en ? "Proxy votes" : "Délégations", e => e.Delegations),
-            new(en ? "Vote corrections" : "Mises au point", e => e.MisesAuPoint),
+            new(langue.T("nom"), e => e.Nom),
+            new(langue.T("prenom"), e => e.Prenom),
+            new(langue.T("groupe"), e => e.GroupeSigle ?? ""),
+            new(langue.T("scrutins"), e => e.Scrutins),
+            new(langue.T("votes-exprimes"), e => e.Votants),
+            new(langue.T("participation-2"), e => e.ParticipationPct),
+            new(langue.T("presence-2"), e => e.PresencePct),
+            new(langue.T("delegation-2"), e => e.DelegationPct),
+            new(langue.T("mise-au-point-2"), e => e.MiseAuPointPct),
+            new(langue.T("absence-2"), e => e.AbsencePct),
+            new(langue.T("delegations"), e => e.Delegations),
+            new(langue.T("mises-au-point"), e => e.MisesAuPoint),
         };
     }
 
@@ -77,19 +77,17 @@ public class ElusModel(IStatistiquesRepository stats, Langue langue, PaysSite si
         {
             case "perso":
                 (du, au) = Services.Periode.Lire(Du, Au);
-                PeriodeLibelle = langue.Anglais
-                    ? $"from {du?.ToString("d MMMM yyyy", fr) ?? "the start"} to {au?.ToString("d MMMM yyyy", fr) ?? "today"}"
-                    : $"du {du?.ToString("d MMMM yyyy", fr) ?? "début"} au {au?.ToString("d MMMM yyyy", fr) ?? "aujourd'hui"}";
+                PeriodeLibelle = langue.Tf("periode-du-au", du?.ToString("d MMMM yyyy", fr) ?? langue.T("periode-debut"), au?.ToString("d MMMM yyyy", fr) ?? langue.T("periode-aujourdhui"));
                 break;
-            case "annee": du = new DateTime(aujourdhui.Year, 1, 1); au = null; PeriodeLibelle = langue.Anglais ? $"year {aujourdhui.Year}" : $"année {aujourdhui.Year}"; break;
-            case "tout": du = null; au = null; PeriodeLibelle = langue.Anglais ? "since the start of the data" : "depuis le début des données"; break;
-            default: du = aujourdhui.AddMonths(-12); au = null; PeriodeLibelle = langue.Anglais ? "last 12 months" : "12 derniers mois"; break;
+            case "annee": du = new DateTime(aujourdhui.Year, 1, 1); au = null; PeriodeLibelle = langue.Tf("periode-annee", aujourdhui.Year); break;
+            case "tout": du = null; au = null; PeriodeLibelle = langue.T("depuis-le-debut-des-donnees-2"); break;
+            default: du = aujourdhui.AddMonths(-12); au = null; PeriodeLibelle = langue.T("12-derniers-mois"); break;
         }
 
         if (ExportDemande)
         {
             var tout = await stats.ListerElusAsync(ChambreCode, du, au, EnsembleSeul, AvecVotes, Recherche, TriEffectif, Decroissant, 1, 0);
-            return Exporteur.Ecrire(Format!, langue.Anglais ? "officials-rates" : "taux-des-elus", ColonnesExport(), tout.Lignes);
+            return Exporteur.Ecrire(Format!, langue.T("taux-des-elus"), ColonnesExport(), tout.Lignes);
         }
         Resultats = await stats.ListerElusAsync(ChambreCode, du, au, EnsembleSeul, AvecVotes, Recherche, TriEffectif, Decroissant, NumeroPage, ParPage);
         return Page();

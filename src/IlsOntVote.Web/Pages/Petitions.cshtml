@@ -29,8 +29,8 @@ else
         <dl>
             @foreach (var g in Model.ParStatut.GroupBy(x => x.Chambre))
             {
-                <div><dt>@PetitionsModel.PlateformeLibelle(g.Key, en)</dt>
-                    <dd>@g.Sum(x => x.Nombre).ToString("N0", fr) @L.T("petitions-f7ee") — @string.Join(" · ", g.Select(x => PetitionsModel.StatutLibelle(x.Libelle, en) + " " + x.Nombre.ToString("N0", fr)))</dd></div>
+                <div><dt>@PetitionsModel.PlateformeLibelle(g.Key, L)</dt>
+                    <dd>@g.Sum(x => x.Nombre).ToString("N0", fr) @L.T("petitions-f7ee") — @string.Join(" · ", g.Select(x => PetitionsModel.StatutLibelle(x.Libelle, L) + " " + x.Nombre.ToString("N0", fr)))</dd></div>
             }
         </dl>
     </section>
@@ -45,7 +45,7 @@ else
         {
             // Les deux plateformes ont chacune un statut « Ouverte » : en vue combinée, les statuts sont groupés pour ne pas prêter à confusion.
             if (Model.ChambreCode is null) { @Html.Raw("<optgroup label=\"" + (g.Key == "AN" ? L.T("assemblee-nationale") : L.T("senat")) + "\">") }
-            @foreach (var x in g) { <option value="@x.Libelle" selected="@(Model.Statut == x.Libelle)">@PetitionsModel.StatutLibelle(x.Libelle, en) (@x.Nombre.ToString("N0", fr))</option> }
+            @foreach (var x in g) { <option value="@x.Libelle" selected="@(Model.Statut == x.Libelle)">@PetitionsModel.StatutLibelle(x.Libelle, L) (@x.Nombre.ToString("N0", fr))</option> }
             if (Model.ChambreCode is null) { @Html.Raw("</optgroup>") }
         }
     </select>
@@ -75,9 +75,9 @@ else
         <label class="champ-date">@L.T("au") <input type="date" name="au" value="@Model.Au" aria-label="@L.T("au-date-de-fin")" /></label></span>
     @if (Model.ChambreCode == "SENAT")
     {
-        <select name="type" aria-label="Type">
+        <select name="type" aria-label="@L.T("petition-champ-type")">
             <option value="">@L.T("tous-les-types")</option>
-            @foreach (var t in Model.ParType.Where(x => x.Chambre == "SENAT")) { <option value="@t.Libelle" selected="@(Model.Type == t.Libelle)">@PetitionsModel.TypeLibelle(t.Libelle, en) (@t.Nombre.ToString("N0", fr))</option> }
+            @foreach (var t in Model.ParType.Where(x => x.Chambre == "SENAT")) { <option value="@t.Libelle" selected="@(Model.Type == t.Libelle)">@PetitionsModel.TypeLibelle(t.Libelle, L) (@t.Nombre.ToString("N0", fr))</option> }
         </select>
     }
     @if (Model.ChambreCode == "AN")
@@ -127,9 +127,9 @@ else
                     @Model.Th("date", L.T("publiee"), "nowrap")
                     @if (Model.ChambreCode is null) { @Model.Th("chambre", L.T("plateforme")) }
                     @Model.Th("titre", L.T("titre"))
-                    @if (Model.ChambreCode == "SENAT") { @Model.Th("type", "Type") }
+                    @if (Model.ChambreCode == "SENAT") { @Model.Th("type", L.T("petition-champ-type")) }
                     @if (Model.ChambreCode == "AN") { @Model.Th("commission", L.T("commission")) }
-                    @if (Model.ChambreCode == "UK") { <th scope="col">Stage</th> }
+                    @if (Model.ChambreCode == "UK") { <th scope="col">@L.T("petition-etape-colonne")</th> }
                     @Model.Th("statut", L.T("statut"))
                     @Model.Th("fin", L.T("fin-du-recueil"), "nowrap")
                     @Model.Th("soutiens", L.T("soutiens"), "num")
@@ -143,18 +143,18 @@ else
                     <td class="nowrap" data-label="@L.T("publiee")">@(p.DatePublication?.ToString("d MMM yyyy", fr) ?? "—")</td>
                     @if (Model.ChambreCode is null) { <td data-label="@L.T("plateforme")">@(p.Chambre == "AN" ? L.T("assemblee") : L.T("senat"))</td> }
                     <td data-label="@L.T("titre")"><a href="@L.Lien("/petition/" + p.Id)">@p.Titre</a> <a class="note-source" href="@p.Url" rel="noopener" title="@L.T("page-de-la-petition-sur-la")">↗</a></td>
-                    @if (Model.ChambreCode == "SENAT") { <td data-label="Type">@PetitionsModel.TypeLibelle(p.Type, en)</td> }
+                    @if (Model.ChambreCode == "SENAT") { <td data-label="@L.T("petition-champ-type")">@PetitionsModel.TypeLibelle(p.Type, L)</td> }
                     @if (Model.ChambreCode == "UK")
                     {
-                        <td data-label="Stage">
-                            @if (p.DebatLe is { } dl) { <span class="puce-statut st-seuil" title="Debated in Parliament on @dl.ToString("d MMMM yyyy", fr)">Debated · @dl.ToString("d MMM yyyy", fr)</span> }
-                            else if (p.DebatPrevuLe is { } dp) { <span class="puce-statut st-seuil" title="Debate scheduled">Debate scheduled · @dp.ToString("d MMM yyyy", fr)</span> }
-                            else if (p.ReponseLe is { } rl) { <span class="puce-statut st-neutre" title="Government response published on @rl.ToString("d MMMM yyyy", fr)">Response · @rl.ToString("d MMM yyyy", fr)</span> }
+                        <td data-label="@L.T("petition-etape-colonne")">
+                            @if (p.DebatLe is { } dl) { <span class="puce-statut st-seuil" title="@L.Tf("petition-debattue-le", dl.ToString("d MMMM yyyy", fr))">@L.Tf("petition-puce-debattue", dl.ToString("d MMM yyyy", fr))</span> }
+                            else if (p.DebatPrevuLe is { } dp) { <span class="puce-statut st-seuil" title="@L.T("petition-debat-prevu")">@L.Tf("petition-puce-debat-prevu", dp.ToString("d MMM yyyy", fr))</span> }
+                            else if (p.ReponseLe is { } rl) { <span class="puce-statut st-neutre" title="@L.Tf("petition-reponse-publiee-le", rl.ToString("d MMMM yyyy", fr))">@L.Tf("petition-puce-reponse", rl.ToString("d MMM yyyy", fr))</span> }
                             else { <span class="note-source">—</span> }
                         </td>
                     }
                     @if (Model.ChambreCode == "AN") { <td data-label="@L.T("commission")">@(p.Commission ?? "—")@if (p.DecisionCommission is null && p.Statut is "classee" or "archivee") { <br /><span class="doute doute-manquant" title="@L.T("la-source-ne-publie-aucune-decision")">? @L.T("decision-non-publiee")</span> }@if (p.DecisionCommission is not null) { <br /><span class="note-source" title="@p.DecisionCommission">@L.T("decision")@(p.DecisionCommission.Length > 70 ? p.DecisionCommission[..70] + "…" : p.DecisionCommission)</span> }</td> }
-                    <td data-label="@L.T("statut")" title="@(p.DateLimiteVote is { } d ? L.T("date-limite") + d.ToString("d MMM yyyy", fr) : "")"><span class="puce-statut @PetitionsModel.StatutClasse(p.Statut)">@PetitionsModel.StatutLibelle(p.Statut, en)</span></td>
+                    <td data-label="@L.T("statut")" title="@(p.DateLimiteVote is { } d ? L.T("date-limite") + d.ToString("d MMM yyyy", fr) : "")"><span class="puce-statut @PetitionsModel.StatutClasse(p.Statut)">@PetitionsModel.StatutLibelle(p.Statut, L)</span></td>
                     <td class="nowrap" data-label="@L.T("fin-du-recueil")">@(p.DateLimiteVote?.ToString("d MMM yyyy", fr) ?? "—")</td>
                     <td class="num" data-label="@L.T("soutiens")">@if (p.NbVotes is { } nv) { @nv.ToString("N0", fr) } else { <span class="doute doute-manquant" title="@L.T("nombre-de-soutiens-non-renseigne-par")">?</span> }</td>
                     <td data-label="@L.T("historique")">
@@ -170,7 +170,7 @@ else
 
     @if (Model.Resultats.NbPages > 1)
     {
-        <nav class="pagination" aria-label="Pagination">
+        <nav class="pagination" aria-label="@L.T("pagination")">
             @if (Model.Resultats.Page > 1) { <a href="@Model.Lien(page: Model.Resultats.Page - 1)" rel="prev">@L.T("precedent")</a> }
             <span>@L.T("page") @Model.Resultats.Page / @Model.Resultats.NbPages</span>
             @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">@L.T("suivant")</a> }

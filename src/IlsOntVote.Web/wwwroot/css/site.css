@@ -738,3 +738,6 @@ a.raccourci:hover { background: var(--tag-delegation); color: var(--surface); }
 .intro p.pays-ligne { margin: 0 0 8px; font-size: .95rem; color: var(--ink-soft); display: flex; justify-content: center; align-items: center; gap: 6px; flex-wrap: wrap; }
 .pays-ligne img { width: 20px; height: 14px; border-radius: 2px; box-shadow: 0 0 0 1px rgba(128,128,128,.35); }
 .pays-ligne strong { color: var(--ink); }
+
+/* Quelques lignes de présentation sous l'accroche de l'accueil. */
+.intro p.intro-decouvrez { margin-top: 10px; font-size: 1rem; color: var(--ink-soft); opacity: .9; }

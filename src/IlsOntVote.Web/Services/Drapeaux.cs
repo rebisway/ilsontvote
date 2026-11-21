@@ -16,20 +16,11 @@ public static class Drapeaux
         ["Slovénie"] = "SI", ["Espagne"] = "ES", ["Suède"] = "SE",
     };
 
-    private static readonly Dictionary<string, string> PaysEn = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["Autriche"] = "Austria", ["Belgique"] = "Belgium", ["Bulgarie"] = "Bulgaria", ["Croatie"] = "Croatia", ["Chypre"] = "Cyprus", ["Tchéquie"] = "Czechia",
-        ["Danemark"] = "Denmark", ["Estonie"] = "Estonia", ["Finlande"] = "Finland", ["France"] = "France", ["Allemagne"] = "Germany", ["Grèce"] = "Greece",
-        ["Hongrie"] = "Hungary", ["Irlande"] = "Ireland", ["Italie"] = "Italy", ["Lettonie"] = "Latvia", ["Lituanie"] = "Lithuania", ["Luxembourg"] = "Luxembourg",
-        ["Malte"] = "Malta", ["Pays-Bas"] = "Netherlands", ["Pologne"] = "Poland", ["Portugal"] = "Portugal", ["Roumanie"] = "Romania", ["Slovaquie"] = "Slovakia",
-        ["Slovénie"] = "Slovenia", ["Espagne"] = "Spain", ["Suède"] = "Sweden",
-    };
-
     /// <summary>« Finlande » -> « 🇫🇮 Finlande » pour un eurodéputé ; le texte inchangé pour un député ou un sénateur (département).</summary>
-    public static string Avec(string chambre, string? lieu, bool en = false)
+    public static string Avec(string chambre, string? lieu, Langue l)
     {
         if (string.IsNullOrEmpty(lieu)) return "";
         if (chambre != Models.Chambres.UE || !Iso.TryGetValue(lieu, out var code)) return lieu;
-        return char.ConvertFromUtf32(0x1F1E6 + (code[0] - 'A')) + char.ConvertFromUtf32(0x1F1E6 + (code[1] - 'A')) + " " + (en && PaysEn.TryGetValue(lieu, out var anglais) ? anglais : lieu);
+        return char.ConvertFromUtf32(0x1F1E6 + (code[0] - 'A')) + char.ConvertFromUtf32(0x1F1E6 + (code[1] - 'A')) + " " + (l.Code != "fr" ? l.TexteOuNull("pays-ue-" + Cles.Slug(lieu)) ?? lieu : lieu);
     }
 }
