@@ -1,0 +1,55 @@
+@page "/votation/{anr:int}"
+@model VotationModel
+@using IlsOntVote.Web.Services
+@{
+    var v = Model.V;
+    var fr = L.Culture;
+    var titre = v.Titre(L.Code);
+    ViewData["Title"] = titre.Length > 60 ? titre[..60] + "…" : titre;
+    ViewData["Description"] = L.Tf("votation-description", v.DateVotation.ToString("d MMMM yyyy", fr), VotationsModel.FormeLibelle(v.Rechtsform, L), VotationsModel.ResultatLibelle(v, L));
+    ViewData["Fil"] = new List<(string, string)> { (L.T("accueil"), L.Lien("/")), (L.T("votations-titre"), L.Lien("/votations")), (Titres.Court(titre, 110), L.Lien("/votation/" + v.Anr)) };
+    string Oui(bool? b, bool sansObjet = false) => b is true ? L.T("votation-majorite-oui") : b is false ? L.T("votation-majorite-non") : sansObjet ? L.T("votation-sans-objet") : "—";
+}
+
+<div class="retour"><a href="@L.Lien("/votations")">@L.T("votations-retour")</a></div>
+
+<header class="scrutin-tete">
+    <p class="meta">@v.DateVotation.ToString("d MMMM yyyy", fr) · @VotationsModel.FormeLibelle(v.Rechtsform, L)
+        · <span class="sort @(v.Accepte is true ? "adopte" : "rejete")">@VotationsModel.ResultatLibelle(v, L)</span></p>
+    <h1>@titre</h1>
+</header>
+
+<section class="definitions" aria-label="@L.T("votation-resultat")">
+    <dl>
+        <div><dt>@L.T("votation-oui-pct")</dt><dd>@(v.OuiPct?.ToString("0.0", fr) ?? "—")</dd></div>
+        <div><dt>@L.T("votation-participation-pct")</dt><dd>@(v.Participation?.ToString("0.0", fr) ?? "—")</dd></div>
+        <div><dt>@L.T("votation-oui")</dt><dd>@(v.Oui?.ToString("N0", fr) ?? "—")</dd></div>
+        <div><dt>@L.T("votation-non")</dt><dd>@(v.Non?.ToString("N0", fr) ?? "—")</dd></div>
+        <div><dt>@L.T("votation-majorite-peuple")</dt><dd>@Oui(v.PeupleAccepte)</dd></div>
+        <div><dt>@L.T("votation-majorite-cantons")</dt><dd>@Oui(v.CantonsAccepte, true)@if (v.CantonsOui is not null) { <text> (@v.CantonsOui?.ToString("0.#", fr) – @v.CantonsNon?.ToString("0.#", fr))</text> }</dd></div>
+    </dl>
+</section>
+
+@{ var cantons = v.Cantons(); }
+@if (cantons.Count > 0)
+{
+    <h2>@L.T("votation-par-canton")</h2>
+    <div class="table-wrap">
+        <table class="liste-textes">
+            <thead><tr><th scope="col">@L.T("votation-canton")</th><th scope="col" class="num">@L.T("votation-oui-pct")</th></tr></thead>
+            <tbody>
+            @foreach (var (canton, pct) in cantons)
+            {
+                <tr><td data-label="@L.T("votation-canton")">@canton</td><td class="num" data-label="@L.T("votation-oui-pct")">@pct.ToString("0.0", fr)</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="note-source">@L.T("votation-canton-manquant")</p>
+}
+
+@if (!string.IsNullOrEmpty(v.Url)) { <p><a href="@v.Url" rel="noopener">@L.T("votation-voir-swissvotes")</a></p> }
+<p class="note-source">@L.TH("votations-source")</p>

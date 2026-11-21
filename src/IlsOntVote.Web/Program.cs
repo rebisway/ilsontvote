@@ -67,6 +67,7 @@ builder.Services.AddScoped<IScrutinRepository, ScrutinRepository>();
 builder.Services.AddScoped<IParlementaireRepository, ParlementaireRepository>();
 builder.Services.AddScoped<ITexteRepository, TexteRepository>();
 builder.Services.AddScoped<IBillRepository, BillRepository>();
+builder.Services.AddScoped<IVotationRepository, VotationRepository>();
 builder.Services.AddScoped<IPageViewRepository, PageViewRepository>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 // Données ouvertes : dossier de l'export nocturne (Export:Dir, ou ILSONVOTE_EXPORT_DIR, ou /var/lib/ilsontvote-export en production).

@@ -22,7 +22,7 @@ int[] LegislaturesCompletes = [15, 16, 17];
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var argv = args.ToList();
-if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements" or "communes" or "lords" or "us" or "italie" or "irlande" or "suisse" or "themes" or "bills"))
+if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements" or "communes" or "lords" or "us" or "italie" or "irlande" or "suisse" or "votations" or "themes" or "bills"))
 {
     Console.Error.WriteLine("Usage : IlsOntVote.Importer an [--legislature 17|15,16,17|all] [--scrutins-dir D --amo-dir D]");
     Console.Error.WriteLine("        IlsOntVote.Importer senat [--senateurs-dir D --dosleg-sql F]");
@@ -75,6 +75,7 @@ return argv[0] switch
     "us" => await ImporterEtatsUnisAsync(),
     "irlande" => await ImporterIrlandeAsync(),
     "suisse" => await ImporterSuisseAsync(),
+    "votations" => await ImporterVotationsAsync(),
     "italie" => Option("--chambre") == "senat" ? await ImporterItalieSenatAsync() : await ImporterItalieAsync(),
     "bills" => await ImporterBillsRoyaumeUniAsync(),
     _ => await ImporterTextesAsync(),
@@ -737,6 +738,26 @@ async Task<int> ImporterItalieSenatAsync()
         }
         Console.WriteLine($"  {nbScrutins} votations, {nbVotes:N0} votes individuels.");
         await repo.TerminerAsync(runId, true, nbScrutins, nbVotes, null);
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex);
+        await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
+        return 1;
+    }
+}
+
+/// <summary>Votations populaires fédérales suisses depuis 2000 (jeu Swissvotes, CC BY 4.0) : voir <see cref="VotationsSource"/>.</summary>
+async Task<int> ImporterVotationsAsync()
+{
+    Console.WriteLine("=== Suisse : votations populaires fédérales (Swissvotes) ===");
+    var runId = await repo.DemarrerAsync("CH");
+    try
+    {
+        var n = await VotationsSource.ExecuterAsync(connectionString);
+        Console.WriteLine($"  {n} votations écrites (depuis 2000).");
+        await repo.TerminerAsync(runId, true, n, 0, null);
         return 0;
     }
     catch (Exception ex)

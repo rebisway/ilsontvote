@@ -1,0 +1,96 @@
+@page "/votations"
+@model VotationsModel
+@using IlsOntVote.Web.Services
+@{
+    ViewData["Title"] = L.T("votations-titre");
+    ViewData["Description"] = L.T("votations-description");
+    var fr = L.Culture;
+    var tri = Model.TriEffectif;
+}
+
+<h1 class="titre-page">@L.T("votations-titre")</h1>
+<p class="chapo">@L.TH("votations-chapo")</p>
+
+<form class="filtres filtres-auto filtres-liste" method="get" action="@L.Lien("/votations")">
+    <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("votations-chercher")" aria-label="@L.T("votations-chercher")" />
+    <select name="resultat" aria-label="@L.T("votation-resultat")">
+        <option value="">@L.T("votations-tous-resultats")</option>
+        <option value="acceptee" selected="@(Model.Resultat == "acceptee")">@L.T("votation-acceptee")</option>
+        <option value="rejetee" selected="@(Model.Resultat == "rejetee")">@L.T("votation-rejetee")</option>
+        <option value="avenir" selected="@(Model.Resultat == "avenir")">@L.T("votation-avenir")</option>
+    </select>
+    <select name="forme" aria-label="@L.T("votation-forme")">
+        <option value="">@L.T("votations-toutes-formes")</option>
+        @for (var i = 1; i <= 5; i++)
+        {
+            <option value="@i" selected="@(Model.Forme == i.ToString())">@VotationsModel.FormeLibelle(i, L)</option>
+        }
+    </select>
+    <select name="tri" class="tri-mobile" aria-label="@L.T("trier-par")">
+        <option value="date" selected="@(tri == "date")">@L.T("trier-date")</option>
+        <option value="titre" selected="@(tri == "titre")">@L.T("trier-titre")</option>
+        <option value="forme" selected="@(tri == "forme")">@L.T("votation-trier-forme")</option>
+        <option value="oui" selected="@(tri == "oui")">@L.T("votation-trier-oui")</option>
+        <option value="participation" selected="@(tri == "participation")">@L.T("votation-trier-participation")</option>
+    </select>
+    <select name="sens" class="tri-mobile" aria-label="@L.T("ordre-du-tri")">
+        <option value="desc" selected="@Model.Decroissant">@L.T("decroissant")</option>
+        <option value="asc" selected="@(!Model.Decroissant)">@L.T("croissant")</option>
+    </select>
+    <button type="submit" class="sans-js">@L.T("filtrer")</button>
+    @if (Model.FiltreActif) { <a class="effacer" href="@Model.LienSansFiltre" title="@L.T("effacer-le-filtre")" aria-label="@L.T("effacer-le-filtre")">✕</a> }
+</form>
+
+<div class="barre-liste">
+    <p class="compte">@Model.Resultats.Total.ToString("N0", fr) @(Model.Resultats.Total > 1 ? L.T("votations-pl") : L.T("votations-sg"))</p>
+    <p class="export">@L.T("exporter-ce-tableau")
+        @foreach (var f in Exporteur.Formats) { <a href="@Model.Lien(format: f)" download>@f.ToUpperInvariant()</a> }
+    </p>
+</div>
+
+@if (Model.Resultats.Lignes.Count == 0)
+{
+    <p class="vide">@L.T("votations-aucune")</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table class="liste-textes">
+            <thead>
+                <tr>
+                    @Model.Th("date", L.T("date"), "col-date")
+                    @Model.Th("titre", L.T("votation-objet"), "col-titre")
+                    @Model.Th("forme", L.T("votation-forme"))
+                    <th scope="col">@L.T("votation-resultat")</th>
+                    @Model.Th("oui", L.T("votation-oui-pct"), "num")
+                    @Model.Th("participation", L.T("votation-participation-pct"), "num")
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var v in Model.Resultats.Lignes)
+            {
+                <tr>
+                    <td class="nowrap col-date" data-label="@L.T("date")">@v.DateVotation.ToString("d MMM yyyy", fr)</td>
+                    <td class="col-titre"><a href="@L.Lien("/votation/" + v.Anr)">@v.Titre(L.Code)</a></td>
+                    <td data-label="@L.T("votation-forme")">@VotationsModel.FormeLibelle(v.Rechtsform, L)</td>
+                    <td data-label="@L.T("votation-resultat")"><span class="puce-statut @(v.Accepte is true ? "st-ouverte" : v.Accepte is false ? "st-archivee" : "st-neutre")">@VotationsModel.ResultatLibelle(v, L)</span></td>
+                    <td class="num" data-label="@L.T("votation-oui-pct")">@(v.OuiPct?.ToString("0.0", fr) ?? "—")</td>
+                    <td class="num" data-label="@L.T("votation-participation-pct")">@(v.Participation?.ToString("0.0", fr) ?? "—")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.Resultats.NbPages > 1)
+    {
+        <nav class="pagination" aria-label="@L.T("pagination")">
+            @if (Model.Resultats.Page > 1) { <a href="@Model.Lien(page: Model.Resultats.Page - 1)" rel="prev">@L.T("precedent")</a> }
+            <span>@L.T("page") @Model.Resultats.Page / @Model.Resultats.NbPages</span>
+            @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">@L.T("suivant")</a> }
+        </nav>
+    }
+    <partial name="_LignesParPage" model="Model" />
+}
+
+<p class="note-source">@L.TH("votations-source")</p>

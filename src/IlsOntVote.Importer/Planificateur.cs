@@ -52,6 +52,7 @@ public sealed class Planificateur(string connectionString)
         ["italie"] = ["italie"],
         ["themes"] = ["themes"],
         ["suisse"] = ["suisse"],
+        ["votations"] = ["votations"],
         ["suisse_historique"] = ["suisse", "--legislature", "49-51"],
         ["irlande"] = ["irlande"],
         ["irlande_seanad"] = ["irlande", "--chambre", "seanad"],

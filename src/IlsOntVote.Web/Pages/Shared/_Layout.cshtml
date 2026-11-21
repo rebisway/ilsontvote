@@ -162,7 +162,14 @@
                 else if (L.Pays == "CH")
                 {
                     @* Suisse : votes des deux conseils, conseillers, participation, statistiques, données. *@
-                    <a href="@L.Lien("/textes")" @Html.Raw(Actif("/textes") + Actif("/scrutin"))>@L.T("votes-nominaux")</a>
+                    @* Textes : votes nominaux du Parlement et votations populaires (résultats agrégés) regroupés. *@
+                    <details class="plus" @Html.Raw(Actif("/textes") + Actif("/scrutin") + Actif("/votation") != "" ? "data-actif" : "")>
+                        <summary>@L.T("textes")</summary>
+                        <div class="plus-liste">
+                            <a href="@L.Lien("/textes")" @Html.Raw(Actif("/textes") + Actif("/scrutin"))>@L.T("votes-nominaux")</a>
+                            <a href="@L.Lien("/votations")" @Html.Raw(Actif("/votation"))>@L.T("votations-titre")</a>
+                        </div>
+                    </details>
                     <details class="plus" @Html.Raw(Actif("/conseiller") + Actif("/elus") != "" ? "data-actif" : "")>
                         <summary>@L.T("parlementaires")</summary>
                         <div class="plus-liste">
