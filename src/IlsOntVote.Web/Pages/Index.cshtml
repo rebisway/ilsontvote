@@ -1,6 +1,7 @@
 @page
 @using IlsOntVote.Web.Models
 @model IndexModel
+@inject IlsOntVote.Web.Services.PaysSite SitePays
 @{
     ViewData["Title"] = "";
     var fr = L.Culture;
@@ -8,9 +9,15 @@
 
 <div class="hero">
 <section class="intro">
-    <h1>@L.T("qui-a-vote-quoi", "Qui a voté quoi ?", "Who voted what?")</h1>
-    <p>@L.TH("voyez-en-un-coup-d-il", "Voyez en un coup d'œil qui a voté <strong class=\"c-pour\">pour</strong>, <strong class=\"c-contre\">contre</strong>, s'est <strong class=\"c-abstention\">abstenu</strong>, ou n'a pas pris part au vote (<strong class=\"c-absent\">absent</strong>).",
-        "See at a glance who voted <strong class=\"c-pour\">for</strong>, <strong class=\"c-contre\">against</strong>, <strong class=\"c-abstention\">abstained</strong>, or did not take part in the vote (<strong class=\"c-absent\">absent</strong>).")</p>
+    <h1>@L.T("qui-a-vote-quoi")</h1>
+    @{
+        // Pays concerné, dit en clair sous le titre : les données de la page ne portent que sur lui (étanchéité entre pays, PaysSite.ChambresVisibles).
+        var infoPays = SitePays.Actifs.FirstOrDefault(x => x.Code == L.Pays);
+        var nomPays = L.Pays is null ? "France" : L.NomPays(L.Pays, infoPays?.NomFr ?? L.Pays, infoPays?.NomEn ?? L.Pays);
+        var drapeau = (L.Pays ?? "FR").ToLowerInvariant();
+    }
+    <p class="pays-ligne"><img src="/img/flags/@(drapeau).svg" alt="" width="20" height="14" onerror="this.remove()" /> <strong>@nomPays</strong> · @string.Join(", ", Model.Sections.Select(x => L.Chambre(x.Chambre)))</p>
+    <p>@L.TH("voyez-en-un-coup-d-il")</p>
 </section>
 </div>
 
@@ -21,16 +28,16 @@
         <div class="chambre-tete">
             <h2>@L.Chambre(section.Chambre)</h2>
             <p class="actions-chambre">
-                <a class="bouton-lien" href="@L.Lien("/textes")?chambre=@Chambres.Filtre(section.Chambre)">@(section.Chambre is Chambres.Commons or Chambres.Lords or Chambres.IeDail or Chambres.IeSeanad ? L.T("toutes-les-divisions", "Toutes les divisions", "All divisions") : Chambres.EstNominal(section.Chambre) ? L.T("tous-les-votes-nominaux", "Tous les votes nominaux", "All roll call votes") : L.T("tous-les-textes", "Tous les textes", "All votes"))</a>
+                <a class="bouton-lien" href="@L.Lien("/textes")?chambre=@Chambres.Filtre(section.Chambre)">@(section.Chambre is Chambres.Commons or Chambres.Lords or Chambres.IeDail or Chambres.IeSeanad ? L.T("toutes-les-divisions") : Chambres.EstNominal(section.Chambre) ? L.T("tous-les-votes-nominaux") : L.T("tous-les-textes"))</a>
                 @if (Chambres.AUneFiche(section.Chambre)) {
-                    <a class="bouton-lien" href="@L.Lien("/" + Chambres.Liste(section.Chambre))">@L.T("tous-les", "Tous les ", "All ")@L.Membres(section.Chambre)</a>
+                    <a class="bouton-lien" href="@L.Lien("/" + Chambres.Liste(section.Chambre))">@L.T("tous-les")@L.Membres(section.Chambre)</a>
                 }
             </p>
         </div>
 
         @if (section.Cartes.Count == 0)
         {
-            <p class="vide">@L.T("aucun-scrutin-importe-pour-le-moment", "Aucun scrutin importé pour le moment.", "No votes imported yet.")</p>
+            <p class="vide">@L.T("aucun-scrutin-importe-pour-le-moment")</p>
         }
 
         <div class="cartes">
@@ -39,7 +46,7 @@
                 <article class="carte">
                     <header>
                         <time datetime="@c.Scrutin.DateScrutin.ToString("yyyy-MM-dd")">@c.Scrutin.DateScrutin.ToString("d MMMM yyyy", fr)</time>
-                        <span class="sort @(c.Scrutin.Adopte ? "adopte" : "rejete")">@(c.Scrutin.Adopte ? L.T("adopte", "✓ Adopté", "✓ Adopted") : L.T("rejete", "✗ Rejeté", "✗ Rejected"))</span>
+                        <span class="sort @(c.Scrutin.Adopte ? "adopte" : "rejete")">@(c.Scrutin.Adopte ? L.T("adopte") : L.T("rejete"))</span>
                     </header>
                     <h3><a href="@L.Lien("/scrutin/" + c.Scrutin.Id)" title="@Titres.Info(c.Scrutin.TitreLangue(L.Anglais), c.Scrutin.InfobulleTitre(L.Anglais))">@Titres.Court(c.Scrutin.TitreLangue(L.Anglais))</a></h3>
 
@@ -48,10 +55,10 @@
                     </a>
 
                     <ul class="decompte">
-                        <li class="d-pour"><b>@c.Pour</b> @L.T("pour-081c", "pour", "for")</li>
-                        <li class="d-contre"><b>@c.Contre</b> @L.T("contre-6505", "contre", "against")</li>
-                        <li class="d-abstention"><b>@c.Abstention</b> @L.T("abst", "abst.", "abst.")</li>
-                        <li class="d-absent"><b>@c.Absent</b> @L.T("absents-67c7", "absents", "absent")</li>
+                        <li class="d-pour"><b>@c.Pour</b> @L.T("pour-081c")</li>
+                        <li class="d-contre"><b>@c.Contre</b> @L.T("contre-6505")</li>
+                        <li class="d-abstention"><b>@c.Abstention</b> @L.T("abst")</li>
+                        <li class="d-absent"><b>@c.Absent</b> @L.T("absents-67c7")</li>
                     </ul>
                 </article>
             }
@@ -63,18 +70,32 @@
 @* Bas de page : séparation nette, puis l'encart de soutien (mêmes liens que /soutenir). *@
 <hr class="separateur" />
 <section class="seo-texte" aria-labelledby="t-apropos">
-    <h2 id="t-apropos">@L.T("accueil-apropos-titre", "Comment lire les votes du Parlement", "How to read parliamentary votes")</h2>
-    <p>@L.T("accueil-apropos-texte", "Ce site rassemble les votes nominatifs des assemblées parlementaires à partir de leurs données ouvertes officielles : pour chaque scrutin public, le vote de chaque député ou sénateur (pour, contre, abstention, n'a pas pris part au vote), les résultats par groupe politique, et, pour les lois, le parcours complet du texte : vote dans chaque chambre, décision du Conseil constitutionnel, promulgation et parution au Journal officiel. Le site ne juge personne : un absent est un absent, et toute donnée calculée, douteuse ou manquante est signalée comme telle.", "This site brings together the roll-call votes of parliamentary assemblies from their official open data: for each recorded vote, how each member voted (for, against, abstained, did not take part), results by political group, and, for laws, the full path of the text. The site judges no one: an absent member is simply absent, and any calculated, doubtful or missing data is flagged as such.")</p>
+    @{
+        // Texte descriptif de la page d'accueil (visible, donc indexable) : ce que couvre le site pour CE pays, puis comment lire les données. Chaque pays décrit ses chambres et ses sources.
+        string aproposPays = L.Pays switch
+        {
+            null => L.T("accueil-apropos-fr"),
+            "GB" => L.T("accueil-apropos-gb"),
+            "US" => L.T("accueil-apropos-us"),
+            "IT" => L.T("accueil-apropos-it"),
+            "IE" => L.T("accueil-apropos-ie"),
+            "CH" => L.T("accueil-apropos-ch"),
+            _ => "",
+        };
+    }
+    <h2 id="t-apropos">@L.T("accueil-apropos-titre")</h2>
+    @if (aproposPays.Length > 0) { <p>@aproposPays</p> }
+    <p>@L.T("accueil-apropos-lecture")</p>
 </section>
 
 <aside class="encart-don" aria-labelledby="t-don">
     <div>
-        <h2 id="t-don">@L.T("ce-site-est-gratuit-sans-publicite", "Ce site est gratuit, sans publicité ni pistage", "This site is free, with no ads and no tracking")</h2>
-        <p>@L.T("il-vit-de-vos-dons-ils", "Il vit de vos dons : ils financent l'hébergement, la maintenance et la suite du développement (nouvelles sources, meilleure qualité des données, historique plus ancien).", "It runs on your donations: they pay for hosting, maintenance and further development (new sources, better data quality, older history).")</p>
+        <h2 id="t-don">@L.T("ce-site-est-gratuit-sans-publicite")</h2>
+        <p>@L.T("il-vit-de-vos-dons-ils")</p>
     </div>
     <div class="dons">
-        <a class="bouton-don bouton-don-principal" href="https://liberapay.com/Rebisway" rel="noopener">@L.T("don-regulier", "Don régulier", "Monthly donation")</a>
-        <a class="bouton-don" href="https://buy.stripe.com/28E28r5NraZv6dH3rvg3602" rel="noopener">@L.T("don-unique", "Don unique", "One-time donation")</a>
-        <a class="lien-don" href="@L.Lien("/soutenir")">@L.T("en-savoir-plus", "En savoir plus", "Learn more")</a>
+        <a class="bouton-don bouton-don-principal" href="https://liberapay.com/Rebisway" rel="noopener">@L.T("don-regulier")</a>
+        <a class="bouton-don" href="https://buy.stripe.com/28E28r5NraZv6dH3rvg3602" rel="noopener">@L.T("don-unique")</a>
+        <a class="lien-don" href="@L.Lien("/soutenir")">@L.T("en-savoir-plus")</a>
     </div>
 </aside>

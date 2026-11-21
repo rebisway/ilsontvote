@@ -1,8 +1,8 @@
 @page "/donnees"
 @inject IlsOntVote.Web.Services.DonneesOuvertes Donnees
 @{
-    ViewData["Title"] = L.T("donnees-ouvertes", "Données ouvertes", "Open data");
-    ViewData["Description"] = L.T("telechargez-toutes-les-donnees-du-site", "Téléchargez toutes les données du site : scrutins, vote de chaque élu, élus, textes de loi (CSV compressés, mis à jour chaque nuit).", "Download all the site's data: votes, each official's vote, officials, laws (compressed CSV, updated every night).");
+    ViewData["Title"] = L.T("donnees-ouvertes");
+    ViewData["Description"] = L.T("telechargez-toutes-les-donnees-du-site");
     var fr = L.Culture;
     // Chaque site ne propose que les fichiers de SON pays (manifeste : « FR » = France et Union européenne, « GB » = fichiers gb_…).
     var paysSite = L.Pays ?? "FR";
@@ -18,48 +18,48 @@
     string Taille(long o) => o >= 1_048_576 ? (o / 1_048_576.0).ToString("0.#", fr) + " Mo" : Math.Max(1, o / 1024).ToString("N0", fr) + " Ko";
 }
 
-<h1 class="titre-page">@L.T("donnees-ouvertes", "Données ouvertes", "Open data")</h1>
-<p class="chapo">@L.TH("toutes-les-donnees-affichees-sur-le", "Toutes les données affichées sur le site, en fichiers <strong>CSV compressés (gzip)</strong>, régénérés chaque nuit. Séparateur virgule, encodage UTF-8, une ligne d'en-tête ; les dates sont au format AAAA-MM-JJ et les booléens valent <code>t</code> ou <code>f</code>.", "All the data shown on the site, as <strong>compressed CSV files (gzip)</strong>, regenerated every night. Comma-separated, UTF-8, one header row; dates are YYYY-MM-DD and booleans are <code>t</code> or <code>f</code>.")</p>
+<h1 class="titre-page">@L.T("donnees-ouvertes")</h1>
+<p class="chapo">@L.TH("toutes-les-donnees-affichees-sur-le")</p>
 
 @if (L.Pays == "US")
 {
-    <p class="note-source">@L.TH("ces-fichiers-ne-contiennent-que-les", "Ces fichiers ne contiennent que les données des États-Unis (Chambre des représentants et Sénat) : leur nom commence par <code>us_</code>. Les votes nominaux sont dans <code>us_scrutins</code>, les votes individuels dans <code>us_votes</code> ; les absents ne sont pas stockés (ils se déduisent des mandats).", "These files only contain data for the United States (House of Representatives and Senate): their name starts with <code>us_</code>. Roll call votes are in <code>us_scrutins</code>, individual votes in <code>us_votes</code>; absent members are not stored (they are deduced from the mandates).")</p>
+    <p class="note-source">@L.TH("ces-fichiers-ne-contiennent-que-les")</p>
 }
 else if (L.Pays == "CH")
 {
-    <p class="note-source">@L.TH("ces-fichiers-ne-contiennent-que-les-4", "Ces fichiers ne contiennent que les données de la Suisse (Conseil national et Conseil des États) : leur nom commence par <code>ch_</code>. Les votes sont dans <code>ch_scrutins</code>, les bulletins dans <code>ch_votes</code> ; les conseillers absents ne sont pas stockés (ils se déduisent des mandats).", "These files only contain data for Switzerland (National Council and Council of States): their name starts with <code>ch_</code>. Votes are in <code>ch_scrutins</code>, ballots in <code>ch_votes</code>; absent councillors are not stored (they are deduced from the mandates).")</p>
+    <p class="note-source">@L.TH("ces-fichiers-ne-contiennent-que-les-4")</p>
 }
 else if (L.Pays == "IE")
 {
-    <p class="note-source">@L.TH("ces-fichiers-ne-contiennent-que-les-c717", "Ces fichiers ne contiennent que les données de l'Irlande (Dáil et Seanad) : leur nom commence par <code>ie_</code>. Les votes sont dans <code>ie_scrutins</code>, les votes individuels dans <code>ie_votes</code> ; les députés absents ne sont pas stockés (ils se déduisent des mandats).", "These files only contain data for Ireland (Dáil and Seanad): their name starts with <code>ie_</code>. Votes are in <code>ie_scrutins</code>, individual votes in <code>ie_votes</code>; absent members are not stored (they are deduced from the mandates).")</p>
+    <p class="note-source">@L.TH("ces-fichiers-ne-contiennent-que-les-c717")</p>
 }
 else if (L.Pays == "IT")
 {
-    <p class="note-source">@L.TH("ces-fichiers-ne-contiennent-que-les-6b92", "Ces fichiers ne contiennent que les données de l'Italie (Chambre des députés et Sénat) : leur nom commence par <code>it_</code>. Les votes sont dans <code>it_scrutins</code>, les votes individuels dans <code>it_votes</code> ; les absents ne sont pas stockés (ils se déduisent des mandats).", "These files only contain data for Italy (Chamber of Deputies and Senate): their name starts with <code>it_</code>. Votes are in <code>it_scrutins</code>, individual votes in <code>it_votes</code>; absent deputies are not stored (they are deduced from the mandates).")</p>
+    <p class="note-source">@L.TH("ces-fichiers-ne-contiennent-que-les-6b92")</p>
 }
 else if (royaumeUni)
 {
-    <p class="note-source">@L.TH("ces-fichiers-ne-contiennent-que-les-1f99", "Ces fichiers ne contiennent que les données du Royaume-Uni (Chambre des Communes, Chambre des Lords, pétitions, projets de loi) : leur nom commence par <code>gb_</code>. Les divisions sont dans <code>gb_scrutins</code>, les votes individuels dans <code>gb_votes</code> ; les absents ne sont pas stockés (ils se déduisent des mandats).", "These files only contain data for the United Kingdom (House of Commons, House of Lords, petitions, bills): their name starts with <code>gb_</code>. Divisions are in <code>gb_scrutins</code>, individual votes in <code>gb_votes</code>; absent members are not stored (they are deduced from the mandates).")</p>
+    <p class="note-source">@L.TH("ces-fichiers-ne-contiennent-que-les-1f99")</p>
 }
 
 @if (fichiers.Count == 0)
 {
-    <p class="vide">@L.T("les-fichiers-ne-sont-pas-encore", "Les fichiers ne sont pas encore générés.", "The files have not been generated yet.")</p>
+    <p class="vide">@L.T("les-fichiers-ne-sont-pas-encore")</p>
 }
 else
 {
     <div class="table-wrap">
         <table class="liste-textes">
-            <thead><tr><th>@L.T("fichier", "Fichier", "File")</th><th>@L.T("contenu", "Contenu", "Content")</th><th class="num">@L.T("lignes", "Lignes", "Rows")</th><th class="num">@L.T("taille", "Taille", "Size")</th><th>@L.T("mis-a-jour", "Mis à jour", "Updated")</th></tr></thead>
+            <thead><tr><th>@L.T("fichier")</th><th>@L.T("contenu")</th><th class="num">@L.T("lignes")</th><th class="num">@L.T("taille")</th><th>@L.T("mis-a-jour")</th></tr></thead>
             <tbody>
             @foreach (var f in fichiers)
             {
                 <tr>
-                    <td data-label="@L.T("fichier", "Fichier", "File")"><a href="@L.Lien("/donnees/fichier/" + f.Fichier)" download>@f.Fichier</a><br /><span class="note-source" title="SHA-256">@(f.Sha256[..Math.Min(16, f.Sha256.Length)])…</span></td>
-                    <td data-label="@L.T("contenu", "Contenu", "Content")">@(L.Anglais ? DescriptionsDonnees.Anglais(f.Fichier) ?? f.Description : f.Description)</td>
-                    <td class="num" data-label="@L.T("lignes", "Lignes", "Rows")">@f.Lignes.ToString("N0", fr)</td>
-                    <td class="num" data-label="@L.T("taille", "Taille", "Size")">@Taille(f.Octets)</td>
-                    <td class="nowrap" data-label="@L.T("mis-a-jour", "Mis à jour", "Updated")">@f.GenereLe.ToString("d MMM yyyy", fr)</td>
+                    <td data-label="@L.T("fichier")"><a href="@L.Lien("/donnees/fichier/" + f.Fichier)" download>@f.Fichier</a><br /><span class="note-source" title="SHA-256">@(f.Sha256[..Math.Min(16, f.Sha256.Length)])…</span></td>
+                    <td data-label="@L.T("contenu")">@(L.Anglais ? DescriptionsDonnees.Anglais(f.Fichier) ?? f.Description : f.Description)</td>
+                    <td class="num" data-label="@L.T("lignes")">@f.Lignes.ToString("N0", fr)</td>
+                    <td class="num" data-label="@L.T("taille")">@Taille(f.Octets)</td>
+                    <td class="nowrap" data-label="@L.T("mis-a-jour")">@f.GenereLe.ToString("d MMM yyyy", fr)</td>
                 </tr>
             }
             </tbody>
@@ -67,42 +67,42 @@ else
     </div>
 }
 
-<section class="definitions" aria-label="@L.T("lire-les-fichiers", "Lire les fichiers", "Reading the files")">
-    <h2>@L.T("comment-lire-les-fichiers", "Comment lire les fichiers", "How to read the files")</h2>
+<section class="definitions" aria-label="@L.T("lire-les-fichiers")">
+    <h2>@L.T("comment-lire-les-fichiers")</h2>
     @if (L.Pays == "CH")
     {
     <dl>
-        <div><dt>ch_votes</dt><dd>@L.TH("ch-votes-def", "une ligne par conseiller et par vote où il s'est exprimé : <code>position</code> = pour (oui), contre (non), abstention, ou non_votant (le président ne vote pas). Les absents (« n'a pas pris part », « excusé ») ne sont pas inclus.", "one row per councillor and vote where they voted: <code>position</code> = pour (yes), contre (no), abstention, or non_votant (the president does not vote). Absentees (“did not take part”, “excused”) are not included.")</dd></div>
-        <div><dt>@L.T("absents", "absents", "absentees")</dt><dd>@L.TH("ch-absents-def", "<strong>Les absents ne sont pas dans <code>ch_votes</code></strong> : ils se déduisent. Un conseiller est absent à un vote s'il avait un mandat en cours à sa date (fichier <code>ch_mandats</code>, dates de la source) et aucune ligne dans <code>ch_votes</code>.", "<strong>Absentees are not in <code>ch_votes</code></strong>: they are deduced. A councillor is absent from a vote if they held a mandate on its date (file <code>ch_mandats</code>, dates from the source) and have no row in <code>ch_votes</code>.")</dd></div>
-        <div><dt>ch_scrutins</dt><dd>@L.TH("ch-scrutins-def", "<code>nb_pour</code>, <code>nb_contre</code>, <code>nb_abstentions</code> : <strong>calculés</strong> par le site d'après les bulletins au Conseil national (la source n'y publie pas de totaux) ; décompte officiel de la source au Conseil des États. <code>sort</code> : calculé (plus de oui que de non). <code>sur_ensemble</code> : « vote final » ou « vote sur l'ensemble » (calculé d'après l'objet du vote). <code>url_officielle</code> : fiche officielle de l'affaire (Curia Vista).", "<code>nb_pour</code>, <code>nb_contre</code>, <code>nb_abstentions</code>: <strong>calculated</strong> by the site from the ballots in the National Council (the source publishes no totals there); official count from the source in the Council of States. <code>sort</code>: calculated (more yes than no). <code>sur_ensemble</code>: “final vote” or “overall vote” (calculated from the subject of the vote). <code>url_officielle</code>: official page of the business (Curia Vista).")</dd></div>
+        <div><dt>ch_votes</dt><dd>@L.TH("ch-votes-def")</dd></div>
+        <div><dt>@L.T("absents")</dt><dd>@L.TH("ch-absents-def")</dd></div>
+        <div><dt>ch_scrutins</dt><dd>@L.TH("ch-scrutins-def")</dd></div>
         <div><dt>chambre</dt><dd>CHNR (Conseil national), CHSR (Conseil des États).</dd></div>
     </dl>
     }
     else if (L.Pays == "IE")
     {
     <dl>
-        <div><dt>@Fichier("ie_votes")</dt><dd>@L.TH("une-ligne-par-membre-et-par", "une ligne par membre et par division où il a voté : <code>position</code> = pour (Tá), contre (Níl) ou abstention (Staon). Les membres qui n'ont pas voté ne sont pas inclus.", "one row per member and division where they voted: <code>position</code> = pour (Tá), contre (Níl) or abstention (Staon). Members who did not vote are not included.")</dd></div>
-        <div><dt>@L.T("absents", "absents", "absentees")</dt><dd>@L.TH("les-absents-ne-sont-pas-dans", "<strong>Les absents ne sont pas dans <code>ie_votes</code></strong> : ils se déduisent. Un membre est absent à une division s'il avait un mandat en cours à sa date (fichier <code>ie_mandats</code>, dates fournies par la source) et aucune ligne dans <code>ie_votes</code>.", "<strong>Absentees are not in <code>ie_votes</code></strong>: they are deduced. A member is absent from a division if they held a mandate on its date (file <code>ie_mandats</code>, dates from the source) and have no row in <code>ie_votes</code>.")</dd></div>
-        <div><dt>@Fichier("ie_scrutins")</dt><dd>@L.TH("nb-pour-nb-contre-nb-abstentions", "<code>nb_pour</code>, <code>nb_contre</code>, <code>nb_abstentions</code> : décompte OFFICIEL. <code>sort</code> : résultat officiel (« Carried » / « Lost »). <code>sur_ensemble</code> : question « That the Bill do now pass » (<strong>calculé</strong>).", "<code>nb_pour</code>, <code>nb_contre</code>, <code>nb_abstentions</code>: OFFICIAL count. <code>sort</code>: official result (“Carried” / “Lost”). <code>sur_ensemble</code>: the question “That the Bill do now pass” (<strong>calculated</strong>).")</dd></div>
+        <div><dt>@Fichier("ie_votes")</dt><dd>@L.TH("une-ligne-par-membre-et-par")</dd></div>
+        <div><dt>@L.T("absents")</dt><dd>@L.TH("les-absents-ne-sont-pas-dans")</dd></div>
+        <div><dt>@Fichier("ie_scrutins")</dt><dd>@L.TH("nb-pour-nb-contre-nb-abstentions")</dd></div>
         <div><dt>@Fichier("chambre")</dt><dd>IEDAIL (Dáil Éireann), IESEANAD (Seanad Éireann).</dd></div>
     </dl>
     }
     else if (L.Pays == "IT")
     {
     <dl>
-        <div><dt>@Fichier("it_votes")</dt><dd>@L.TH("une-ligne-par-depute-et-par", "une ligne par député et par vote où il s'est exprimé : <code>position</code> = pour (favorable), contre (contraire) ou abstention. Les députés qui n'ont pas voté (y compris « en mission ») n'y figurent pas.", "one row per deputy and vote where they voted: <code>position</code> = pour (in favour), contre (against) or abstention. Deputies who did not vote (including “on mission”) are not included.")</dd></div>
-        <div><dt>@L.T("absents", "absents", "absentees")</dt><dd>@L.TH("les-absents-ne-sont-pas-dans-d4c9", "<strong>Les absents ne sont pas dans <code>it_votes</code></strong> : ils se déduisent. Un député est absent à un vote s'il avait un mandat en cours à sa date (fichier <code>it_mandats</code>, calculé d'après les seuls votes importés) et n'a pas de ligne dans <code>it_votes</code>. Les votes où <code>nominatif_incomplet</code> vaut <code>t</code> (scrutins secrets : totaux seuls) : n'en déduisez pas d'absents.", "<strong>Absentees are not in <code>it_votes</code></strong>: they are deduced. A deputy is absent from a vote if they held a mandate on its date (file <code>it_mandats</code>, calculated from the imported votes only) and have no row in <code>it_votes</code>. For votes where <code>nominatif_incomplet</code> is <code>t</code> (secret ballots: totals only), do not deduce absentees.")</dd></div>
-        <div><dt>@Fichier("it_scrutins")</dt><dd>@L.TH("nb-pour-nb-contre-nb-abstentions-2069", "<code>nb_pour</code>, <code>nb_contre</code>, <code>nb_abstentions</code> : décompte OFFICIEL ; <code>nb_votants</code> = présents (votants + abstentions). <code>sort</code> : résultat officiel. <code>sur_ensemble</code> : vote final signalé par la Chambre. <code>url_officielle</code> : fiche officielle. <strong>Par défaut, seuls les votes finaux et les questions de confiance sont importés.</strong>", "<code>nb_pour</code>, <code>nb_contre</code>, <code>nb_abstentions</code>: OFFICIAL count; <code>nb_votants</code> = those present (voters + abstentions). <code>sort</code>: official result. <code>sur_ensemble</code>: final vote as flagged by the Chamber. <code>url_officielle</code>: official page. <strong>By default only final votes and confidence votes are imported.</strong>")</dd></div>
-        <div><dt>@Fichier("chambre")</dt><dd>ITCAMERA (@L.T("chambre-des-deputes", "Chambre des députés", "Chamber of Deputies")), ITSENATE (@L.T("senat-de-la-republique", "Sénat de la République", "Senate of the Republic")).</dd></div>
+        <div><dt>@Fichier("it_votes")</dt><dd>@L.TH("une-ligne-par-depute-et-par")</dd></div>
+        <div><dt>@L.T("absents")</dt><dd>@L.TH("les-absents-ne-sont-pas-dans-d4c9")</dd></div>
+        <div><dt>@Fichier("it_scrutins")</dt><dd>@L.TH("nb-pour-nb-contre-nb-abstentions-2069")</dd></div>
+        <div><dt>@Fichier("chambre")</dt><dd>ITCAMERA (@L.T("chambre-des-deputes")), ITSENATE (@L.T("senat-de-la-republique")).</dd></div>
     </dl>
     }
     else if (L.Pays == "US")
     {
     <dl>
-        <div><dt>@Fichier("us_votes")</dt><dd>@L.TH("une-ligne-par-elu-et-par", "une ligne par élu et par vote nominal où il s'est exprimé : <code>position</code> = pour (yea), contre (nay) ou abstention (« present »). Les non-votants et les positions seulement annoncées ou appariées n'y figurent pas.", "one row per member and roll call where they voted: <code>position</code> = pour (yea), contre (nay) or abstention (“present”). Not voting members and merely announced or paired positions are not included.")</dd></div>
-        <div><dt>@L.T("absents", "absents", "absentees")</dt><dd>@L.TH("les-absents-ne-sont-pas-dans-1754", "<strong>Les absents ne sont pas dans <code>us_votes</code></strong> : ils se déduisent. Un élu est absent à un vote s'il avait un mandat en cours à sa date (fichier <code>us_mandats</code>, dont <code>legislature</code> est le numéro du Congrès) et n'a pas de ligne dans <code>us_votes</code>.", "<strong>Absentees are not in <code>us_votes</code></strong>: they are deduced. A member is absent from a roll call if they held a mandate on its date (file <code>us_mandats</code>, whose <code>legislature</code> is the Congress number) and have no row in <code>us_votes</code>.")</dd></div>
-        <div><dt>@Fichier("us_scrutins")</dt><dd>@L.TH("nb-pour-nb-contre-decompte-officiel", "<code>nb_pour</code>, <code>nb_contre</code> : décompte OFFICIEL ; il peut différer d'une voix de la liste des élus (le champ <code>note</code> le dit). <code>sur_ensemble</code> : adoption finale, nomination ou « suspend the rules and pass » (<strong>calculé</strong> d'après la question). <code>type_vote_libelle</code> : la question posée ; <code>suffrages_requis</code> : calculé d'après la règle de majorité ; <code>url_officielle</code> : enregistrement officiel du vote.", "<code>nb_pour</code>, <code>nb_contre</code>: OFFICIAL count; it can differ by one from the member list (the <code>note</code> field says so). <code>sur_ensemble</code>: final passage, nomination or “suspend the rules and pass” (<strong>calculated</strong> from the question). <code>type_vote_libelle</code>: the question put; <code>suffrages_requis</code>: calculated from the majority rule; <code>url_officielle</code>: official record of the vote.")</dd></div>
-        <div><dt>@Fichier("chambre")</dt><dd>USHOUSE (@L.T("chambre-des-representants", "Chambre des représentants", "House of Representatives")), USSENATE (@L.T("senat-des-etats-unis", "Sénat des États-Unis", "United States Senate")).</dd></div>
+        <div><dt>@Fichier("us_votes")</dt><dd>@L.TH("une-ligne-par-elu-et-par")</dd></div>
+        <div><dt>@L.T("absents")</dt><dd>@L.TH("les-absents-ne-sont-pas-dans-1754")</dd></div>
+        <div><dt>@Fichier("us_scrutins")</dt><dd>@L.TH("nb-pour-nb-contre-decompte-officiel")</dd></div>
+        <div><dt>@Fichier("chambre")</dt><dd>USHOUSE (@L.T("chambre-des-representants")), USSENATE (@L.T("senat-des-etats-unis")).</dd></div>
     </dl>
     }
     else
@@ -110,54 +110,54 @@ else
     @if (royaumeUni)
     {
     <dl>
-        <div><dt>@Fichier("gb_votes")</dt><dd>@L.TH("une-ligne-par-membre-et-par-791a", "une ligne par membre et par division où il a voté : <code>position</code> = pour (aye ou content), contre (no ou not content) ou abstention (membre présent dans les deux couloirs aux Communes). <code>par_delegation</code> : vote par procuration (Communes).", "one row per member and division where they voted: <code>position</code> = pour (aye or content), contre (no or not content) or abstention (member listed in both lobbies in the Commons). <code>par_delegation</code>: proxy vote (Commons).")</dd></div>
-        <div><dt>@L.T("absents", "absents", "absentees")</dt><dd>@L.TH("les-absents-ne-sont-pas-dans-bc90", "<strong>Les absents ne sont pas dans <code>gb_votes</code></strong> : ils se déduisent. Un membre est absent à une division s'il avait un mandat en cours à sa date (fichier <code>gb_mandats</code>) et n'a pas de ligne dans <code>gb_votes</code>. Aux Lords, un pair en congé ou suspendu ne se distingue pas d'un absent. Les divisions où <code>nominatif_incomplet</code> vaut <code>t</code> ont une liste plus courte que le décompte officiel : n'en déduisez pas d'absents.", "<strong>Absentees are not in <code>gb_votes</code></strong>: they are deduced. A member is absent from a division if they held a mandate on its date (file <code>gb_mandats</code>) and have no row in <code>gb_votes</code>. In the Lords, a peer on leave of absence or suspended cannot be told apart from an absent one. Divisions where <code>nominatif_incomplet</code> is <code>t</code> have a list shorter than the official count: do not deduce absentees from them.")</dd></div>
-        <div><dt>@Fichier("gb_scrutins")</dt><dd>@L.TH("sur-ensemble-division-de-troisieme-lecture", "<code>sur_ensemble</code> : division de troisième lecture aux Communes (vote sur l'ensemble du projet, <strong>calculé</strong> d'après le titre ; jamais vrai aux Lords). <code>bill_id</code>, <code>bill_etape</code> : projet de loi et étape rattachés d'après le titre (<strong>calculé</strong>, vide si non rattaché). <code>sort</code> est calculé d'après les décomptes officiels.", "<code>sur_ensemble</code>: third-reading division in the Commons (vote on the whole bill, <strong>calculated</strong> from the title; never true in the Lords). <code>bill_id</code>, <code>bill_etape</code>: bill and stage linked from the title (<strong>calculated</strong>, empty when not linked). <code>sort</code> is computed from the official counts.")</dd></div>
-        <div><dt>gb_bills, gb_bill_etapes</dt><dd>@L.TH("projets-de-loi-du-parlement-britannique-704e", "projets de loi du Parlement britannique (sessions 35 à 40) et leurs étapes dans chaque chambre, tels que publiés par bills-api.parliament.uk.", "bills of the UK Parliament (sessions 35 to 40) and their stages in each house, as published by bills-api.parliament.uk.")</dd></div>
-        <div><dt>@Fichier("gb_petitions")</dt><dd>@L.TH("petitions-de-petition-parliament-uk-platefor", "pétitions de petition.parliament.uk (plateforme <code>UK</code>) telles que publiées : statut, soutiens, réponse du gouvernement et débat. <code>gb_petitions_historique</code> : un relevé quotidien ; <code>gb_petitions_anomalies</code> : baisses de soutiens, disparitions.", "petitions from petition.parliament.uk (platform <code>UK</code>) as published: status, supporters, government response and debate. <code>gb_petitions_historique</code>: one daily reading; <code>gb_petitions_anomalies</code>: drops in supporters, disappearances.")</dd></div>
-        <div><dt>@Fichier("chambre")</dt><dd>COMMONS (@L.T("chambre-des-communes", "Chambre des Communes", "House of Commons")), LORDS (@L.T("chambre-des-lords", "Chambre des Lords", "House of Lords")).</dd></div>
+        <div><dt>@Fichier("gb_votes")</dt><dd>@L.TH("une-ligne-par-membre-et-par-791a")</dd></div>
+        <div><dt>@L.T("absents")</dt><dd>@L.TH("les-absents-ne-sont-pas-dans-bc90")</dd></div>
+        <div><dt>@Fichier("gb_scrutins")</dt><dd>@L.TH("sur-ensemble-division-de-troisieme-lecture")</dd></div>
+        <div><dt>gb_bills, gb_bill_etapes</dt><dd>@L.TH("projets-de-loi-du-parlement-britannique-704e")</dd></div>
+        <div><dt>@Fichier("gb_petitions")</dt><dd>@L.TH("petitions-de-petition-parliament-uk-platefor")</dd></div>
+        <div><dt>@Fichier("chambre")</dt><dd>COMMONS (@L.T("chambre-des-communes")), LORDS (@L.T("chambre-des-lords")).</dd></div>
     </dl>
     }
     else
     {
     <dl>
-        <div><dt>@Fichier("votes")</dt><dd>@L.TH("une-ligne-par-elu-et-par-60aa", "une ligne par élu et par scrutin public où il a une position : <code>position</code> = pour, contre, abstention ou non_votant. <code>par_delegation</code> : un collègue a voté pour lui. <code>rectifie</code> : position corrigée après le scrutin (<code>position_origine</code> = position publiée au scrutin, vide si absent à l'origine ; <code>origine_inconnue</code> au Sénat).", "one row per official and public vote where they have a position: <code>position</code> = pour, contre, abstention or non_votant. <code>par_delegation</code>: a colleague voted for them. <code>rectifie</code>: position corrected after the vote (<code>position_origine</code> = position published at the vote, empty if absent originally; <code>origine_inconnue</code> in the Senate).")</dd></div>
-        <div><dt>@L.T("absents", "absents", "absentees")</dt><dd>@L.TH("les-absents-ne-sont-pas-dans-15eb", "<strong>Les absents ne sont pas dans <code>votes</code></strong> : ils se déduisent. Un élu est absent à un scrutin s'il avait un mandat en cours à sa date (fichier <code>mandats</code> ; pour l'Assemblée et le Parlement européen, la législature du scrutin doit être celle du mandat) et n'a pas de ligne dans <code>votes</code>. Les scrutins où <code>nominatif_incomplet</code> vaut <code>t</code> ont un décompte nominatif plus court que le total officiel : n'en déduisez pas d'absents.", "<strong>Absentees are not in <code>votes</code></strong>: they are deduced. An official is absent from a vote if they held a mandate on its date (file <code>mandats</code>; for the Assembly and the European Parliament the vote's legislature must match the mandate's) and have no row in <code>votes</code>. Votes where <code>nominatif_incomplet</code> is <code>t</code> have a shorter individual count than the official total: do not deduce absentees from them.")</dd></div>
-        <div><dt>@Fichier("scrutins")</dt><dd>@L.TH("sur-ensemble-vote-sur-l-ensemble", "<code>sur_ensemble</code> : vote sur l'ensemble d'un texte (sinon amendement, article…). <code>texte_id</code> : texte de loi dont c'est le vote sur l'ensemble ; <code>texte_lie_id</code> : texte cité par un amendement ou un article. <strong>Ces rattachements sont calculés par le site</strong> d'après les titres et les dates : ils peuvent manquer ou se tromper. <code>titre_fr_auto</code> / <code>titre_en_auto</code> : le titre est une traduction automatique.", "<code>sur_ensemble</code>: vote on the whole text (otherwise amendment, article…). <code>texte_id</code>: law whose vote on the whole text this is; <code>texte_lie_id</code>: law cited by an amendment or an article. <strong>These links are computed by the site</strong> from titles and dates: they may be missing or wrong. <code>titre_fr_auto</code> / <code>titre_en_auto</code>: the title is a machine translation.")</dd></div>
-        <div><dt>@Fichier("texte_etapes")</dt><dd>@L.TH("decisions-de-seance-publique-sur-un", "décisions de séance publique sur un texte, à l'Assemblée et au Sénat, <strong>avec ou sans scrutin public</strong> (<code>sans_scrutin_public</code> = vote à main levée : le détail nominatif n'existe pas). <code>article_49_3</code> : adopté sans vote par l'article 49, alinéa 3.", "public-session decisions on a text, in the Assembly and the Senate, <strong>with or without a roll-call vote</strong> (<code>sans_scrutin_public</code> = show of hands: no individual detail exists). <code>article_49_3</code>: adopted without a vote under article 49, paragraph 3.")</dd></div>
-        <div><dt>@Fichier("amendements_dossiers")</dt><dd>@L.TH("amendements-deposes-a-l-assemblee-par", "amendements déposés à l'Assemblée par dossier législatif (<code>dossier_an</code>, lié à <code>texte_etapes</code>) : <code>deposes</code> et sort publié par la source (<code>adoptes</code>, <code>rejetes</code>, <code>tombes</code>, <code>non_soutenus</code>, <code>retires</code>, <code>irrecevables</code>) ; le reste est sans sort publié. 16e et 17e législatures.", "amendments tabled in the National Assembly per legislative file (<code>dossier_an</code>, linked to <code>texte_etapes</code>): <code>deposes</code> and the outcome published by the source (<code>adoptes</code>, <code>rejetes</code>, <code>tombes</code>, <code>non_soutenus</code>, <code>retires</code>, <code>irrecevables</code>); the rest has no published outcome. 16th and 17th legislatures.")</dd></div>
-        <div><dt>@Fichier("petitions")</dt><dd>@L.TH("petitions-deposees-sur-petitions-senat-fr", "pétitions déposées sur petitions.senat.fr et petitions.assemblee-nationale.fr (colonne <code>chambre</code>, identifiants de l'Assemblée préfixés « AN- »), telles que publiées (statut et nombre de soutiens de citoyens). <code>petitions_historique</code> : un relevé (date, soutiens, statut) par import, jamais effacé. <code>petitions_anomalies</code> : constats entre deux relevés (<code>baisse</code>, <code>disparition</code>, <code>reapparition</code>), sans cause connue.", "petitions filed on petitions.senat.fr and petitions.assemblee-nationale.fr (<code>chambre</code> column, Assembly ids prefixed “AN-”), as published (status and number of citizen supporters). <code>petitions_historique</code>: one snapshot (date, supporters, status) per import, never deleted. <code>petitions_anomalies</code>: findings between two snapshots (<code>baisse</code> = drop, <code>disparition</code> = missing, <code>reapparition</code> = back), no known cause.")</dd></div>
-        <div><dt>@Fichier("chambre")</dt><dd>AN (@L.T("assemblee-nationale", "Assemblée nationale", "National Assembly")), SENAT (@L.T("senat", "Sénat", "Senate")), UE (@L.T("parlement-europeen", "Parlement européen", "European Parliament")).</dd></div>
+        <div><dt>@Fichier("votes")</dt><dd>@L.TH("une-ligne-par-elu-et-par-60aa")</dd></div>
+        <div><dt>@L.T("absents")</dt><dd>@L.TH("les-absents-ne-sont-pas-dans-15eb")</dd></div>
+        <div><dt>@Fichier("scrutins")</dt><dd>@L.TH("sur-ensemble-vote-sur-l-ensemble")</dd></div>
+        <div><dt>@Fichier("texte_etapes")</dt><dd>@L.TH("decisions-de-seance-publique-sur-un")</dd></div>
+        <div><dt>@Fichier("amendements_dossiers")</dt><dd>@L.TH("amendements-deposes-a-l-assemblee-par")</dd></div>
+        <div><dt>@Fichier("petitions")</dt><dd>@L.TH("petitions-deposees-sur-petitions-senat-fr")</dd></div>
+        <div><dt>@Fichier("chambre")</dt><dd>AN (@L.T("assemblee-nationale")), SENAT (@L.T("senat")), UE (@L.T("parlement-europeen")).</dd></div>
     </dl>
     }
     }
-    <p class="note-source">@L.TH("un-fichier-se-lit-avec-n", "Un fichier se lit avec n'importe quel tableur après décompression, ou directement par exemple avec Python : <code>pandas.read_csv(\"votes.csv.gz\")</code>. Les empreintes SHA-256 permettent de vérifier un téléchargement.", "A file can be opened in any spreadsheet after decompression, or directly for example with Python: <code>pandas.read_csv(\"votes.csv.gz\")</code>. The SHA-256 fingerprints let you check a download.")</p>
+    <p class="note-source">@L.TH("un-fichier-se-lit-avec-n")</p>
 </section>
 
-<section class="definitions" aria-label="@L.T("sources-et-licences", "Sources et licences", "Sources and licences")">
-    <h2>@L.T("sources-et-conditions-de-reutilisation", "Sources et conditions de réutilisation", "Sources and terms of reuse")</h2>
+<section class="definitions" aria-label="@L.T("sources-et-licences")">
+    <h2>@L.T("sources-et-conditions-de-reutilisation")</h2>
     @if (L.Pays == "CH")
     {
-    <p>@L.THf("donnees-sources-suisse", "Les votes viennent des données ouvertes des <strong>Services du Parlement</strong> (« Parlamentsdienste der Bundesversammlung, Bern »), reprises sans modification ; les totaux, résultats et groupes calculés par le site sont signalés comme tels. La date de dernière mise à jour est affichée avec chaque fichier. Voir la page <a href=\"{0}\">Méthodologie et limites</a>. Aucune photo n'est incluse.", "The votes come from the open data of the <strong>Parliamentary Services</strong> (“Parlamentsdienste der Bundesversammlung, Bern”), reproduced without modification; totals, results and groups calculated by the site are flagged as such. The date of the last update is shown with each file. See the <a href=\"{0}\">Methodology and limits</a> page. No photo is included.", L.Lien("/methodologie"))</p>
+    <p>@L.THf("donnees-sources-suisse", L.Lien("/methodologie"))</p>
     }
     else if (L.Pays == "IE")
     {
-    <p>@L.THf("donnees-sources-irlande", "Les votes viennent de l'open data des <strong>Chambres de l'Oireachtas</strong> (api.oireachtas.ie), sous la <a href='https://www.oireachtas.ie/en/open-data/license/'>Oireachtas (Open Data) PSI Licence</a>, qui reprend la licence <strong>CC BY 4.0</strong> (attribution). Les mandats, la casse des noms et les taux calculés par le site sont fournis sans garantie ; voir la page <a href=\"{0}\">Méthodologie et limites</a>. Aucune photo n'est incluse.", "The votes come from the open data of the <strong>Houses of the Oireachtas</strong> (api.oireachtas.ie), under the <a href='https://www.oireachtas.ie/en/open-data/license/'>Oireachtas (Open Data) PSI Licence</a>, which incorporates the <strong>CC BY 4.0</strong> licence (attribution). Mandates, name capitalisation and rates calculated by the site are provided without warranty; see the Methodology and limits page. No photo is included.", L.Lien("/methodologie"))</p>
+    <p>@L.THf("donnees-sources-irlande", L.Lien("/methodologie"))</p>
     }
     else if (L.Pays == "IT")
     {
-    <p>@L.THf("donnees-sources-italie", "Les votes viennent de l'open data de la <strong>Chambre des députés d'Italie</strong> (dati.camera.it), sous licence <a href=\"https://creativecommons.org/licenses/by-sa/4.0/deed.fr\">CC BY-SA 4.0</a> : attribution et <strong>partage à l'identique</strong> pour les données dérivées, y compris ces fichiers ; et de celui du <strong>Sénat</strong> (dati.senato.it), publié sous licence <a href='https://creativecommons.org/licenses/by/3.0/'>CC BY 3.0</a> (attribution). La fiche officielle de chaque vote est liée dans <code>it_scrutins</code> (<code>url_officielle</code>). Les mandats, la casse des noms et les taux calculés par le site sont fournis sans garantie ; voir la page <a href=\"{0}\">Méthodologie et limites</a>. Aucune photo n'est incluse.", "The votes come from the open data of the <strong>Italian Chamber of Deputies</strong> (dati.camera.it), under the <a href=\"https://creativecommons.org/licenses/by-sa/4.0/\">CC BY-SA 4.0</a> licence: attribution and <strong>share-alike</strong> for derived data, including these files; and from that of the <strong>Senate</strong> (dati.senato.it), published under the <a href='https://creativecommons.org/licenses/by/3.0/'>CC BY 3.0</a> licence (attribution). The official page of each vote is linked in <code>it_scrutins</code> (<code>url_officielle</code>). Mandates, name capitalisation and rates calculated by the site are provided without warranty; see the <a href=\"{0}\">Methodology and limits</a> page. No photo is included.", L.Lien("/methodologie"))</p>
+    <p>@L.THf("donnees-sources-italie", L.Lien("/methodologie"))</p>
     }
     else if (L.Pays == "US")
     {
-    <p>@L.THf("donnees-sources-etats-unis", "Les votes de la <strong>Chambre des représentants</strong> viennent du greffe de la Chambre (fichiers officiels) ; ceux du <strong>Sénat</strong> de <strong>Voteview</strong> (UCLA et Université de Géorgie : voteview.com), projet universitaire tiers à citer, car senate.gov refuse les accès automatiques. Les noms des élus viennent de Voteview ; les mandats sont déduits des votes. La source officielle de chaque vote est liée dans <code>us_scrutins</code> (<code>url_officielle</code>). Citation demandée par Voteview : Lewis, Jeffrey B., Keith Poole, Howard Rosenthal, Adam Boche, Aaron Rudkin, and Luke Sonnet (2026). <em>Voteview: Congressional Roll-Call Votes Database</em>. https://voteview.com/. Les rattachements, majorités et mandats calculés par le site sont fournis sans garantie ; voir la page <a href=\"{0}\">Méthodologie et limites</a>. Aucune photo n'est incluse.", "The <strong>House of Representatives</strong> votes come from the Clerk of the House (official files); the <strong>Senate</strong> votes from <strong>Voteview</strong> (UCLA and the University of Georgia: voteview.com), a third-party academic project to cite, because senate.gov refuses automated access. Members' names come from Voteview; mandates are deduced from the votes. The official source of each vote is linked in <code>us_scrutins</code> (<code>url_officielle</code>). Citation requested by Voteview: Lewis, Jeffrey B., Keith Poole, Howard Rosenthal, Adam Boche, Aaron Rudkin, and Luke Sonnet (2026). <em>Voteview: Congressional Roll-Call Votes Database</em>. https://voteview.com/. Links, majorities and mandates calculated by the site are provided without warranty; see the <a href=\"{0}\">Methodology and limits</a> page. No photo is included.", L.Lien("/methodologie"))</p>
+    <p>@L.THf("donnees-sources-etats-unis", L.Lien("/methodologie"))</p>
     }
     else if (royaumeUni)
     {
-    <p>@L.THf("donnees-sources-royaume-uni", "Les données viennent des services publics du <strong>Parlement britannique</strong> : Commons Votes API, Lords Votes API, Members API, Bills API et petition.parliament.uk, sous <a href=\"https://www.parliament.uk/site-information/copyright-parliament/open-parliament-licence/\">Open Parliament Licence v3.0</a> (réutilisation libre avec mention de la source). Les rattachements (projet de loi, troisième lecture), taux et mandats des Communes calculés par le site sont fournis sans garantie ; voir la page <a href=\"{0}\">Méthodologie et limites</a>. Aucune photo n'est incluse.", "The data comes from the public services of the <strong>UK Parliament</strong>: Commons Votes API, Lords Votes API, Members API, Bills API and petition.parliament.uk, under the <a href=\"https://www.parliament.uk/site-information/copyright-parliament/open-parliament-licence/\">Open Parliament Licence v3.0</a> (free reuse with attribution). Links (bill, third reading), rates and Commons mandates calculated by the site are provided without warranty; see the <a href=\"{0}\">Methodology and limits</a> page. No photo is included.", L.Lien("/methodologie"))</p>
+    <p>@L.THf("donnees-sources-royaume-uni", L.Lien("/methodologie"))</p>
     }
     else
     {
-    <p>@L.TH("les-donnees-viennent-des-sources-officielles", "Les données viennent des sources officielles : <strong>Assemblée nationale</strong> (data.assemblee-nationale.fr), <strong>Sénat</strong> (data.senat.fr), et, pour le <strong>Parlement européen</strong>, du projet indépendant HowTheyVote.eu, sous Open Database License (attribution et partage à l'identique). La réutilisation de chaque ligne est soumise aux conditions publiées par sa source : citez la source d'origine. Les rattachements, taux et traductions calculés par le site sont fournis sans garantie ; voir la page <a href=\"/methodologie\">Méthodologie et limites</a>. Aucune photo n'est incluse.", "The data comes from official sources: the <strong>National Assembly</strong> (data.assemblee-nationale.fr), the <strong>Senate</strong> (data.senat.fr), and, for the <strong>European Parliament</strong>, from the independent HowTheyVote.eu project, under the Open Database License (attribution and share-alike). Reuse of each row is subject to the terms published by its source: cite the original source. Links, rates and translations computed by the site are provided without warranty; see the <a href=\"/methodologie\">Methodology and limits</a> page. No photo is included.")</p>
+    <p>@L.TH("les-donnees-viennent-des-sources-officielles")</p>
     }
 </section>

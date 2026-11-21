@@ -17,7 +17,7 @@
     var q = Uri.EscapeDataString(Model);
 }
 <details class="resume-ia" data-prompt="@Model">
-    <summary>@L.T("resumer-avec-une-ia", "Résumer avec une IA", "Summarize with an AI")</summary>
+    <summary>@L.T("resumer-avec-une-ia")</summary>
     <div class="resume-ia-panneau">
     <div class="resume-ia-liste">
         @foreach (var a in assistants)
@@ -31,12 +31,12 @@
                 <a class="raccourci" href="@a.Url" target="_blank" rel="noopener noreferrer" data-copie>@a.Nom ↗</a>
             }
         }
-        <button type="button" class="raccourci" data-copier>@L.T("copier-le-prompt", "Copier le prompt", "Copy prompt")</button>
+        <button type="button" class="raccourci" data-copier>@L.T("copier-le-prompt")</button>
         @* Téléphone : la feuille de partage du système propose les applications d'IA installées (ouvre l'app plutôt que le site). Cachée si le navigateur ne sait pas partager. *@
-        <button type="button" class="raccourci" data-partager hidden>@L.T("envoyer-a-une-app", "Envoyer à une app…", "Send to an app…")</button>
+        <button type="button" class="raccourci" data-partager hidden>@L.T("envoyer-a-une-app")</button>
         <span class="note-source" role="status" data-etat></span>
     </div>
-    <p class="note-source">@L.T("outil-externe-non-officiel-le-site", "Outil externe, non officiel : le site n'envoie rien tant que vous ne cliquez pas, et une IA peut se tromper. Le prompt ne contient que des données publiques de cette page. Pour les outils sans pré-remplissage, le prompt est copié : collez-le.", "External tool, not official: nothing is sent until you click, and an AI can make mistakes. The prompt only contains public data from this page. For tools that cannot be pre-filled, the prompt is copied: paste it.")</p>
+    <p class="note-source">@L.T("outil-externe-non-officiel-le-site")</p>
     </div>
 </details>
 <script>
@@ -45,7 +45,7 @@
     var etat = d.querySelector('[data-etat]');
     function copier() {
         var p = d.getAttribute('data-prompt');
-        var ok = function () { etat.textContent = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(L.T("prompt-copie-collez-le-dans-l", "Prompt copié : collez-le dans l'assistant.", "Prompt copied: paste it into the assistant."))); };
+        var ok = function () { etat.textContent = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(L.T("prompt-copie-collez-le-dans-l"))); };
         try { return navigator.clipboard.writeText(p).then(ok); } catch (e) { }
         var t = document.createElement('textarea'); t.value = p; document.body.appendChild(t); t.select();
         try { document.execCommand('copy'); ok(); } catch (e) { }

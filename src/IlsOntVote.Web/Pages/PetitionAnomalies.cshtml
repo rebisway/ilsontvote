@@ -2,66 +2,66 @@
 @model PetitionAnomaliesModel
 @using IlsOntVote.Web.Services
 @{
-    ViewData["Title"] = L.T("anomalies-des-petitions", "Anomalies des pétitions", "Petition anomalies");
-    ViewData["Description"] = L.T("baisses-du-nombre-de-soutiens-et", "Baisses du nombre de soutiens et disparitions relevées sur les pétitions du Sénat entre deux relevés du fichier officiel : recherche par critères, tri, export.", "Drops in supporters and disappearances recorded on Senate petitions between two snapshots of the official file: search by criteria, sort, export.");
+    ViewData["Title"] = L.T("anomalies-des-petitions");
+    ViewData["Description"] = L.T("baisses-du-nombre-de-soutiens-et");
     var fr = L.Culture;
     var en = L.Anglais;
     var tri = Model.TriEffectif;
     string Nb(int? n) => n is null ? "—" : n.Value.ToString("N0", fr);
 }
 
-<h1 class="titre-page">@L.T("anomalies-des-petitions", "Anomalies des pétitions", "Petition anomalies")</h1>
-<p class="chapo">@L.TH("le-site-enregistre-a-chaque-import", "Le site enregistre, à chaque import, le nombre de soutiens et le statut de chaque pétition des fichiers officiels (Sénat et Assemblée nationale), sans jamais effacer les relevés précédents. Un <strong>constat</strong> est une différence entre deux relevés consécutifs : <strong>baisse</strong> du nombre de soutiens, <strong>disparition</strong> de la pétition du fichier, ou <strong>réapparition</strong>. <a href=\"/petitions\">Toutes les pétitions</a>.", "At each import the site records the number of supporters and the status of every petition in the official files (Senate and National Assembly), never deleting earlier snapshots. A <strong>finding</strong> is a difference between two consecutive snapshots: a <strong>drop</strong> in supporters, the petition <strong>missing</strong> from the file, or its <strong>reappearance</strong>. <a href=\"/en/petitions\">All petitions</a>.")</p>
-<p class="note-source">@L.T("historique-tenu-depuis-le-12-mars", "Historique tenu depuis le 12 mars 2026 pour le Sénat et le 30 juillet 2025 pour l'Assemblée (archives hebdomadaires de data.gouv.fr), puis à chaque changement du fichier source. Avant ces dates, rien n'est connu.", "History kept since 12 March 2026 for the Senate and 30 July 2025 for the Assembly (weekly data.gouv.fr archives), then at each change of the source file. Nothing is known before those dates.")</p>
+<h1 class="titre-page">@L.T("anomalies-des-petitions")</h1>
+<p class="chapo">@L.TH("le-site-enregistre-a-chaque-import")</p>
+<p class="note-source">@L.T("historique-tenu-depuis-le-12-mars")</p>
 
 <form class="filtres filtres-auto filtres-liste" method="get" action="@L.Lien("/petitions/anomalies")">
-    <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("mots-du-titre", "Mots du titre…", "Title words…")" aria-label="@L.T("mots-du-titre-a150", "Mots du titre", "Title words")" />
+    <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("mots-du-titre")" aria-label="@L.T("mots-du-titre-a150")" />
     @if (L.Pays is null)
     {
-    <select name="chambre" aria-label="@L.T("plateforme", "Plateforme", "Platform")">
-        <option value="">@L.T("senat-et-assemblee", "Sénat et Assemblée", "Senate and Assembly")</option>
-        <option value="senat" selected="@(Model.Chambre == "senat")">@L.T("senat", "Sénat", "Senate")</option>
-        <option value="an" selected="@(Model.Chambre == "an")">@L.T("assemblee-nationale", "Assemblée nationale", "National Assembly")</option>
+    <select name="chambre" aria-label="@L.T("plateforme")">
+        <option value="">@L.T("senat-et-assemblee")</option>
+        <option value="senat" selected="@(Model.Chambre == "senat")">@L.T("senat")</option>
+        <option value="an" selected="@(Model.Chambre == "an")">@L.T("assemblee-nationale")</option>
     </select>
     }
     <select name="type" aria-label="Type">
-        <option value="">@L.T("tous-les-types", "Tous les types", "All types")</option>
+        <option value="">@L.T("tous-les-types")</option>
         @foreach (var t in PetitionAnomaliesModel.Types) { <option value="@t" selected="@(Model.Type == t)">@PetitionAnomaliesModel.TypeLibelle(t, en)</option> }
     </select>
-    <span class="periode" title="@L.T("date-du-releve-ou-le-constat", "Date du relevé où le constat est fait", "Date of the snapshot where the finding is made")">
-        <label class="champ-date">@L.T("du", "Du", "From") <input type="date" name="du" value="@Model.Du" aria-label="@L.T("du-date-de-debut", "Du (date de début)", "From (start date)")" /></label>
-        <label class="champ-date">@L.T("au", "au", "to") <input type="date" name="au" value="@Model.Au" aria-label="@L.T("au-date-de-fin", "Au (date de fin)", "To (end date)")" /></label>
+    <span class="periode" title="@L.T("date-du-releve-ou-le-constat")">
+        <label class="champ-date">@L.T("du") <input type="date" name="du" value="@Model.Du" aria-label="@L.T("du-date-de-debut")" /></label>
+        <label class="champ-date">@L.T("au") <input type="date" name="au" value="@Model.Au" aria-label="@L.T("au-date-de-fin")" /></label>
     </span>
-    <label class="champ-date" title="@L.T("baisse-minimale-en-nombre-de-soutiens", "Baisse minimale, en nombre de soutiens", "Minimum drop, in number of supporters")">@L.T("baisse-344a", "Baisse ≥", "Drop ≥") <input type="number" min="0" step="1" name="baisse" value="@Model.BaisseTexte" style="width:6.5rem" /></label>
-    <label class="champ-date" title="@L.T("baisse-minimale-en-du-nombre-precedent", "Baisse minimale, en % du nombre précédent", "Minimum drop, as % of the previous number")">@L.T("baisse-fa8a", "Baisse ≥ (%)", "Drop ≥ (%)") <input type="number" min="0" step="0.1" name="pct" value="@Model.PctTexte" style="width:5.5rem" /></label>
-    <label class="champ-date" title="@L.T("soutiens-au-releve-precedent-au-moins", "Soutiens au relevé précédent : au moins", "Supporters at the previous snapshot: at least")">@L.T("soutiens-avant", "Soutiens avant ≥", "Supporters before ≥") <input type="number" min="0" step="1" name="avant" value="@Model.AvantTexte" style="width:6.5rem" /></label>
-    <select name="tri" class="tri-mobile" aria-label="@L.T("trier-par", "Trier par", "Sort by")">
-        <option value="date" selected="@(tri == "date")">@L.T("trier-date", "Trier : date", "Sort: date")</option>
-        <option value="titre" selected="@(tri == "titre")">@L.T("trier-titre", "Trier : titre", "Sort: title")</option>
-        <option value="type" selected="@(tri == "type")">@L.T("trier-type", "Trier : type", "Sort: type")</option>
-        <option value="avant" selected="@(tri == "avant")">@L.T("trier-soutiens-avant", "Trier : soutiens avant", "Sort: supporters before")</option>
-        <option value="apres" selected="@(tri == "apres")">@L.T("trier-soutiens-apres", "Trier : soutiens après", "Sort: supporters after")</option>
-        <option value="baisse" selected="@(tri == "baisse")">@L.T("trier-baisse", "Trier : baisse", "Sort: drop")</option>
-        <option value="pct" selected="@(tri == "pct")">@L.T("trier-baisse-29a4", "Trier : baisse (%)", "Sort: drop (%)")</option>
+    <label class="champ-date" title="@L.T("baisse-minimale-en-nombre-de-soutiens")">@L.T("baisse-344a") <input type="number" min="0" step="1" name="baisse" value="@Model.BaisseTexte" style="width:6.5rem" /></label>
+    <label class="champ-date" title="@L.T("baisse-minimale-en-du-nombre-precedent")">@L.T("baisse-fa8a") <input type="number" min="0" step="0.1" name="pct" value="@Model.PctTexte" style="width:5.5rem" /></label>
+    <label class="champ-date" title="@L.T("soutiens-au-releve-precedent-au-moins")">@L.T("soutiens-avant") <input type="number" min="0" step="1" name="avant" value="@Model.AvantTexte" style="width:6.5rem" /></label>
+    <select name="tri" class="tri-mobile" aria-label="@L.T("trier-par")">
+        <option value="date" selected="@(tri == "date")">@L.T("trier-date")</option>
+        <option value="titre" selected="@(tri == "titre")">@L.T("trier-titre")</option>
+        <option value="type" selected="@(tri == "type")">@L.T("trier-type")</option>
+        <option value="avant" selected="@(tri == "avant")">@L.T("trier-soutiens-avant")</option>
+        <option value="apres" selected="@(tri == "apres")">@L.T("trier-soutiens-apres")</option>
+        <option value="baisse" selected="@(tri == "baisse")">@L.T("trier-baisse")</option>
+        <option value="pct" selected="@(tri == "pct")">@L.T("trier-baisse-29a4")</option>
     </select>
-    <select name="sens" class="tri-mobile" aria-label="@L.T("sens-du-tri", "Sens du tri", "Sort order")">
-        <option value="desc" selected="@Model.Decroissant">@L.T("decroissant", "Décroissant", "Descending")</option>
-        <option value="asc" selected="@(!Model.Decroissant)">@L.T("croissant", "Croissant", "Ascending")</option>
+    <select name="sens" class="tri-mobile" aria-label="@L.T("sens-du-tri")">
+        <option value="desc" selected="@Model.Decroissant">@L.T("decroissant")</option>
+        <option value="asc" selected="@(!Model.Decroissant)">@L.T("croissant")</option>
     </select>
-    <button type="submit" class="sans-js">@L.T("filtrer", "Filtrer", "Filter")</button>
-    @if (Model.FiltreActif) { <a class="effacer" href="@L.Lien("/petitions/anomalies")" title="@L.T("effacer-le-filtre", "Effacer le filtre", "Clear filter")" aria-label="@L.T("effacer-le-filtre", "Effacer le filtre", "Clear filter")"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></a> }
+    <button type="submit" class="sans-js">@L.T("filtrer")</button>
+    @if (Model.FiltreActif) { <a class="effacer" href="@L.Lien("/petitions/anomalies")" title="@L.T("effacer-le-filtre")" aria-label="@L.T("effacer-le-filtre")"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></a> }
 </form>
 
 <div class="barre-liste">
-    <p class="compte">@Model.Resultats.Total.ToString("N0", fr) @(Model.Resultats.Total > 1 ? L.T("plur-constat-pl", "constats", "findings") : L.T("plur-constat-sg", "constat", "finding"))@(Model.ParType.Count > 0 && !Model.FiltreActif ? " (" + string.Join(", ", Model.ParType.Select(t => t.Nombre.ToString("N0", fr) + " " + PetitionAnomaliesModel.TypeLibelle(t.Libelle, en).ToLowerInvariant())) + ")" : "")</p>
-    <p class="export">@L.T("exporter-ce-tableau", "Exporter ce tableau :", "Export this table:")
+    <p class="compte">@Model.Resultats.Total.ToString("N0", fr) @(Model.Resultats.Total > 1 ? L.T("plur-constat-pl") : L.T("plur-constat-sg"))@(Model.ParType.Count > 0 && !Model.FiltreActif ? " (" + string.Join(", ", Model.ParType.Select(t => t.Nombre.ToString("N0", fr) + " " + PetitionAnomaliesModel.TypeLibelle(t.Libelle, en).ToLowerInvariant())) + ")" : "")</p>
+    <p class="export">@L.T("exporter-ce-tableau")
         @foreach (var f in Exporteur.Formats) { <a href="@Model.Lien(format: f)" download>@f.ToUpperInvariant()</a> }
     </p>
 </div>
 
 @if (Model.Resultats.Lignes.Count == 0)
 {
-    <p class="vide">@(Model.FiltreActif ? L.T("aucun-constat-ne-correspond-a-ces", "Aucun constat ne correspond à ces critères.", "No finding matches these criteria.") : L.T("aucun-constat-pour-le-moment-aucune", "Aucun constat pour le moment : aucune baisse ni disparition n'a été relevée depuis le début de l'historique.", "No finding so far: no drop or disappearance has been recorded since the history began."))</p>
+    <p class="vide">@(Model.FiltreActif ? L.T("aucun-constat-ne-correspond-a-ces") : L.T("aucun-constat-pour-le-moment-aucune"))</p>
 }
 else
 {
@@ -69,12 +69,12 @@ else
         <table class="liste-textes">
             <thead>
                 <tr>
-                    @Model.Th("date", L.T("detectee-le", "Détectée le", "Detected on"), "nowrap")
-                    @Model.Th("titre", L.T("petition", "Pétition", "Petition"))
+                    @Model.Th("date", L.T("detectee-le"), "nowrap")
+                    @Model.Th("titre", L.T("petition"))
                     @Model.Th("type", "Type")
-                    @Model.Th("avant", L.T("avant", "Avant", "Before"), "num")
-                    @Model.Th("apres", L.T("apres", "Après", "After"), "num")
-                    @Model.Th("baisse", L.T("baisse", "Baisse", "Drop"), "num")
+                    @Model.Th("avant", L.T("avant"), "num")
+                    @Model.Th("apres", L.T("apres"), "num")
+                    @Model.Th("baisse", L.T("baisse"), "num")
                     @Model.Th("pct", "%", "num")
                 </tr>
             </thead>
@@ -82,12 +82,12 @@ else
             @foreach (var a in Model.Resultats.Lignes)
             {
                 <tr>
-                    <td class="nowrap" data-label="@L.T("detectee-le", "Détectée le", "Detected on")" title="@L.T("releve-precedent", "Relevé précédent : ", "Previous snapshot: ")@a.ReleveAvant.ToString("d MMM yyyy", fr)">@a.DetecteLe.ToString("d MMM yyyy", fr)</td>
-                    <td data-label="@L.T("petition", "Pétition", "Petition")"><a href="@L.Lien("/petition/" + a.PetitionId)">@a.Titre</a> <span class="note-source">@(a.Chambre == "AN" ? L.T("assemblee", "Assemblée", "Assembly") : a.Chambre == "UK" ? "UK Parliament" : L.T("senat", "Sénat", "Senate"))</span></td>
+                    <td class="nowrap" data-label="@L.T("detectee-le")" title="@L.T("releve-precedent")@a.ReleveAvant.ToString("d MMM yyyy", fr)">@a.DetecteLe.ToString("d MMM yyyy", fr)</td>
+                    <td data-label="@L.T("petition")"><a href="@L.Lien("/petition/" + a.PetitionId)">@a.Titre</a> <span class="note-source">@(a.Chambre == "AN" ? L.T("assemblee") : a.Chambre == "UK" ? "UK Parliament" : L.T("senat"))</span></td>
                     <td data-label="Type">@PetitionAnomaliesModel.TypeLibelle(a.Type, en)</td>
-                    <td class="num" data-label="@L.T("avant", "Avant", "Before")">@Nb(a.ValeurAvant)</td>
-                    <td class="num" data-label="@L.T("apres", "Après", "After")">@(a.ValeurApres is null ? "—" : Nb(a.ValeurApres))</td>
-                    <td class="num" data-label="@L.T("baisse", "Baisse", "Drop")">@Nb(a.Baisse)</td>
+                    <td class="num" data-label="@L.T("avant")">@Nb(a.ValeurAvant)</td>
+                    <td class="num" data-label="@L.T("apres")">@(a.ValeurApres is null ? "—" : Nb(a.ValeurApres))</td>
+                    <td class="num" data-label="@L.T("baisse")">@Nb(a.Baisse)</td>
                     <td class="num" data-label="%">@(a.BaissePct is { } p ? p.ToString("0.0", fr) + (en ? "%" : " %") : "—")</td>
                 </tr>
             }
@@ -98,9 +98,9 @@ else
     @if (Model.Resultats.NbPages > 1)
     {
         <nav class="pagination" aria-label="Pagination">
-            @if (Model.Resultats.Page > 1) { <a href="@Model.Lien(page: Model.Resultats.Page - 1)" rel="prev">@L.T("precedent", "← Précédent", "← Previous")</a> }
-            <span>@L.T("page", "Page", "Page") @Model.Resultats.Page / @Model.Resultats.NbPages</span>
-            @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">@L.T("suivant", "Suivant →", "Next →")</a> }
+            @if (Model.Resultats.Page > 1) { <a href="@Model.Lien(page: Model.Resultats.Page - 1)" rel="prev">@L.T("precedent")</a> }
+            <span>@L.T("page") @Model.Resultats.Page / @Model.Resultats.NbPages</span>
+            @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">@L.T("suivant")</a> }
         </nav>
     }
     <partial name="_LignesParPage" model="Model" />

@@ -25,18 +25,8 @@ public class LoisModel(ITexteRepository textes, Langue langue, Themes themes) : 
     /// <c>TexteRepository.FiltreStatut</c>. « Adoptés par les deux assemblées, non promulgués » est la
     /// formulation neutre de « voté mais pas (encore) promulgué » : on ne présume pas de la cause.
     /// </summary>
-    public static readonly (string Cle, string Libelle, string Anglais)[] Statuts =
-    [
-        ("", "Tous les statuts", "All statuses"),
-        ("promulgue", "Promulgués", "Promulgated"),
-        ("deux-assemblees", "Adoptés par les deux assemblées, non promulgués", "Adopted by both chambers, not promulgated"),
-        ("non-promulgue", "Adoptés par une assemblée, non promulgués", "Adopted by one chamber, not promulgated"),
-        ("discussion", "En discussion", "In progress"),
-        ("rejete", "Rejetés, caducs ou retirés", "Rejected, lapsed or withdrawn"),
-        ("cc", "Passés devant le Conseil constitutionnel", "Referred to the Constitutional Council"),
-        ("censure", "Censurés (en tout ou partie)", "Struck down (in whole or in part)"),
-        ("49-3", "Adoptés par 49.3 (sans vote)", "Adopted under 49.3 (without a vote)"),
-    ];
+    // Les libellés (clés « statut-{cle} », « statut-tous » pour la valeur vide) sont en base, avec tous les textes de l'interface.
+    public static readonly string[] Statuts = ["", "promulgue", "deux-assemblees", "non-promulgue", "discussion", "rejete", "cc", "censure", "49-3"];
 
     public Resultats<Texte> Resultats { get; private set; } = new([], 0, 1, 30);
 

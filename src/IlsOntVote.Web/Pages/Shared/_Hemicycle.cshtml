@@ -51,7 +51,7 @@
     }
 }
 <svg id="@id" class="hemicycle@(vue.FaceAFace ? " faceaface" : "")@(!vue.FaceAFace && vue.Sieges.Count < 200 ? " petit" : "")@(!vue.FaceAFace && vue.Sieges.Count < 100 ? " mini" : "")" viewBox="@((-margeLaterale).ToString(inv)) 0 @((vue.LargeurVue + 2 * margeLaterale).ToString(inv)) @((vue.HauteurVue + margeBasse).ToString(inv))"
-     role="img" aria-label="@L.T("hemicycle-un-point-par-elu-colore", "Hémicycle : un point par élu, coloré selon son vote, entouré de la couleur de son groupe", "Hemicycle: one dot per elected official, coloured by vote, ringed with the colour of their group")">
+     role="img" aria-label="@L.T("hemicycle-un-point-par-elu-colore")">
 
     @* Couleurs des groupes, propres à ce dessin. <style> est valide dans un SVG en ligne. *@
     @Html.Raw("<style>" + css + "</style>")
@@ -61,7 +61,7 @@
     {
         @* Croissants face à face : fauteuil du président en haut de l'allée, arc coloré à l'extérieur de chaque groupe (équivalent des arcs de l'hémicycle). *@
         <g class="bancs">
-            <rect class="fauteuil" x="@F(vue.LargeurVue / 2 - 12)" y="6" width="24" height="20" rx="4"><title>@L.T("president-de-seance-speaker", "Président de séance (Speaker)", "Speaker's chair")</title></rect>
+            <rect class="fauteuil" x="@F(vue.LargeurVue / 2 - 12)" y="6" width="24" height="20" rx="4"><title>@L.T("president-de-seance-speaker")</title></rect>
             @foreach (var b in vue.Bandes!)
             {
                 <path class="arc" d="@b.Chemin" style="stroke:@CouleurSure(b.Couleur)"><title>@b.Sigle — @b.Effectif</title></path>
@@ -115,7 +115,7 @@
         if (Model.Detaille)
         {
             <circle class="p-@s.Position@(s.Rectifie ? " rectifie" : "")@g" cx="@s.X.ToString(inv)" cy="@s.Y.ToString(inv)" r="@vue.Rayon.ToString(inv)">
-                <title>@s.NomComplet (@s.GroupeSigle) — @L.Position(s.Position)@(s.Rectifie ? L.T("mise-au-point-277f", " (mise au point)", " (vote correction)") : "")@(s.ParDelegation ? L.T("par-delegation-0d70", " — par délégation", " — by proxy") : "")</title>
+                <title>@s.NomComplet (@s.GroupeSigle) — @L.Position(s.Position)@(s.Rectifie ? L.T("mise-au-point-277f") : "")@(s.ParDelegation ? L.T("par-delegation-0d70") : "")</title>
             </circle>
         }
         else

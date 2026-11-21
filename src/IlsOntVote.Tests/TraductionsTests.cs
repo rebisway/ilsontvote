@@ -4,87 +4,105 @@ using IlsOntVote.Web.Models;
 namespace IlsOntVote.Tests;
 
 /// <summary>
-/// Garde-fous de l'interface multilingue. Chaque texte s'écrit <c>L.T("cle-stable", "français", "anglais")</c> : la clé est un identifiant qui ne dépend JAMAIS de la phrase (l'ancien
-/// système prenait le français comme clé : retoucher une phrase cassait ses traductions sans erreur ni alerte). Les tests veillent à : (1) une clé bien formée, (2) un français et un anglais
-/// non vides et, hors mots courts ou noms propres, différents, (3) UNE clé = UN couple (français, anglais) dans tout le code (sinon la même traduction s'appliquerait à deux phrases
-/// différentes), (4) aucun appel à l'ancienne forme à deux arguments.
+/// Garde-fous de l'interface multilingue. TOUS les textes vivent en base (table <c>traductions</c>, une ligne par langue et par clé, français et anglais compris) ; le code ne contient que
+/// des clés : <c>L.T("cle-stable")</c>. La clé est un identifiant qui ne dépend JAMAIS de la phrase. Les tests veillent à : (1) une clé bien formée, (2) AUCUN texte dans le code (l'ancienne
+/// forme à trois arguments « clé, français, anglais » est interdite), (3) chaque clé du code a sa ligne française ET sa ligne anglaise dans une migration <c>db/*.sql</c> (sans quoi la page
+/// afficherait la clé), (4) les libellés issus de données (chambres, positions) ont aussi leurs lignes.
 /// </summary>
 public class TraductionsTests
 {
-    // Appel à trois arguments littéraux : clé, français, anglais (L.T, L.TH, L.Tf, L.THf ; récepteurs L, langue, l).
-    private static readonly Regex Appel = new(
-        @"\b(?:L|langue|l)\.(?:TH?f?)\(\s*""([^""\\]*)""\s*,\s*""((?:[^""\\]|\\.)*)""\s*,\s*""((?:[^""\\]|\\.)*)""", RegexOptions.Compiled);
+    // Appel avec un premier argument littéral : la clé (L.T, L.TH, L.Tf, L.THf ; récepteurs L, langue, l). Les clés construites (« statut-" + … ») ne sont pas vues ici.
+    private static readonly Regex Appel = new(@"\b(?:L|langue|l)\.(?:TH?f?)\(\s*""([^""\\]*)""(?!\s*\+)", RegexOptions.Compiled);
 
-    // Ancienne forme : deux littéraux seulement (le français puis l'anglais), sans clé.
-    private static readonly Regex AncienneForme = new(
-        @"\b(?:L|langue|l)\.(?:TH?)\(\s*""(?:[^""\\]|\\.)*""\s*,\s*""(?:[^""\\]|\\.)*""\s*\)", RegexOptions.Compiled);
+    // Ancienne forme : la clé suivie d'un texte littéral (le français) : un texte est revenu dans le code.
+    private static readonly Regex TexteDansLeCode = new(@"\b(?:L|langue|l)\.(?:TH?f?)\(\s*""[^""\\]*""\s*,\s*""", RegexOptions.Compiled);
+
+    // Ligne de migration : ('fr', $t$cle$t$, …) ou ('en', $t$cle$t$, …).
+    private static readonly Regex LigneBase = new(@"\(\s*(?:'|\$t\$)(fr|en)(?:'|\$t\$)\s*,\s*\$t\$(.+?)\$t\$\s*,", RegexOptions.Compiled | RegexOptions.Singleline);
 
     private static readonly Regex CleValide = new(@"^[a-z0-9][a-z0-9.-]*$", RegexOptions.Compiled);
 
-    private static string DossierPages()
+    private static string Racine()
     {
         var d = new DirectoryInfo(AppContext.BaseDirectory);
         while (d is not null && !Directory.Exists(Path.Combine(d.FullName, "src", "IlsOntVote.Web", "Pages"))) d = d.Parent;
         Assert.NotNull(d);
-        return Path.Combine(d!.FullName, "src", "IlsOntVote.Web", "Pages");
+        return d!.FullName;
     }
 
-    private static IEnumerable<(string Fichier, int Ligne, string Cle, string Fr, string En)> Appels()
+    private static IEnumerable<string> FichiersWeb() =>
+        Directory.EnumerateFiles(Path.Combine(Racine(), "src", "IlsOntVote.Web"), "*.*", SearchOption.AllDirectories)
+            .Where(f => (f.EndsWith(".cs") || f.EndsWith(".cshtml")) && !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}") && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}"));
+
+    private static IEnumerable<(string Fichier, int Ligne, string Cle)> Appels()
     {
-        foreach (var fichier in Directory.EnumerateFiles(DossierPages(), "*.cshtml*", SearchOption.AllDirectories))
+        foreach (var fichier in FichiersWeb())
         {
             var texte = File.ReadAllText(fichier);
             foreach (Match m in Appel.Matches(texte))
-                yield return (Path.GetFileName(fichier), texte[..m.Index].Count(c => c == '\n') + 1, m.Groups[1].Value, m.Groups[2].Value, m.Groups[3].Value);
+                yield return (Path.GetFileName(fichier), texte[..m.Index].Count(c => c == '\n') + 1, m.Groups[1].Value);
         }
     }
 
-    private static string Court(string t) => t.Length <= 60 ? t : t[..60] + "…";
+    /// <summary>Clés ayant une ligne pour la langue donnée dans l'ensemble des migrations.</summary>
+    private static HashSet<string> ClesEnBase(string langue)
+    {
+        var cles = new HashSet<string>();
+        foreach (var f in Directory.EnumerateFiles(Path.Combine(Racine(), "db"), "*.sql"))
+            foreach (Match m in LigneBase.Matches(File.ReadAllText(f)))
+                if (m.Groups[1].Value == langue) cles.Add(m.Groups[2].Value);
+        return cles;
+    }
 
     [Fact]
-    public void Chaque_appel_a_une_cle_valide_un_francais_et_un_anglais_non_vides_et_differents()
+    public void Chaque_cle_est_bien_formee()
     {
         var erreurs = new List<string>(); var total = 0;
-        foreach (var (fichier, ligne, cle, frBrut, enBrut) in Appels())
+        foreach (var (fichier, ligne, cle) in Appels())
         {
             total++;
-            var fr = frBrut.Trim(); var en = enBrut.Trim();
             if (!CleValide.IsMatch(cle)) erreurs.Add($"{fichier}:{ligne} clé invalide « {cle} » (minuscules, chiffres, points et tirets)");
-            if (fr.Length == 0 || en.Length == 0) erreurs.Add($"{fichier}:{ligne} [{cle}] version vide : « {fr} » / « {en} »");
-            else if (fr == en && fr.Length > 25) erreurs.Add($"{fichier}:{ligne} [{cle}] même texte dans les deux langues (traduction oubliée ?) : « {Court(fr)} »");
         }
-        Assert.True(total > 600, $"Le garde-fou ne trouve que {total} textes : l'expression régulière ne suit plus le code.");
+        Assert.True(total > 600, $"Le garde-fou ne trouve que {total} appels : l'expression régulière ne suit plus le code.");
         Assert.True(erreurs.Count == 0, string.Join("\n", erreurs));
     }
 
     [Fact]
-    public void Une_cle_designe_toujours_le_meme_francais_et_le_meme_anglais()
-    {
-        // Même clé, deux phrases : la traduction enregistrée s'appliquerait aux deux. Même phrase, deux clés : toléré (même français, contexte différent), mais pas l'inverse.
-        var vus = new Dictionary<string, (string Fr, string En, string Ou)>();
-        var erreurs = new List<string>();
-        foreach (var (fichier, ligne, cle, fr, en) in Appels())
-        {
-            if (vus.TryGetValue(cle, out var v))
-            {
-                if (v.Fr != fr || v.En != en) erreurs.Add($"clé « {cle} » : {v.Ou} dit « {Court(v.Fr)} » / « {Court(v.En)} » mais {fichier}:{ligne} dit « {Court(fr)} » / « {Court(en)} »");
-            }
-            else vus[cle] = (fr, en, $"{fichier}:{ligne}");
-        }
-        Assert.True(erreurs.Count == 0, string.Join("\n", erreurs));
-    }
-
-    [Fact]
-    public void Aucun_appel_a_l_ancienne_forme_sans_cle()
+    public void Aucun_texte_dans_le_code()
     {
         var erreurs = new List<string>();
-        foreach (var fichier in Directory.EnumerateFiles(DossierPages(), "*.cshtml*", SearchOption.AllDirectories))
+        foreach (var fichier in FichiersWeb())
         {
             var texte = File.ReadAllText(fichier);
-            foreach (Match m in AncienneForme.Matches(texte))
-                erreurs.Add($"{Path.GetFileName(fichier)}:{texte[..m.Index].Count(c => c == '\n') + 1} appel sans clé : {Court(m.Value)}");
+            foreach (Match m in TexteDansLeCode.Matches(texte))
+                erreurs.Add($"{Path.GetFileName(fichier)}:{texte[..m.Index].Count(c => c == '\n') + 1} texte écrit dans le code (il doit être en base) : {m.Value}");
         }
         Assert.True(erreurs.Count == 0, string.Join("\n", erreurs));
+    }
+
+    [Theory]
+    [InlineData("fr")]
+    [InlineData("en")]
+    public void Chaque_cle_du_code_a_son_texte_en_base(string langue)
+    {
+        var enBase = ClesEnBase(langue);
+        var manquantes = Appels().Select(a => a.Cle).Distinct().Where(c => !enBase.Contains(c)).OrderBy(c => c).ToList();
+        Assert.True(manquantes.Count == 0, $"Clés sans ligne « {langue} » dans db/*.sql (ajouter une migration) : {string.Join(", ", manquantes)}");
+    }
+
+    [Theory]
+    [InlineData("fr")]
+    [InlineData("en")]
+    public void Les_libelles_de_donnees_ont_leurs_lignes(string langue)
+    {
+        var enBase = ClesEnBase(langue);
+        var attendues = new List<string>();
+        foreach (var c in typeof(Chambres).GetFields().Where(f => f.IsLiteral && f.FieldType == typeof(string)).Select(f => (string)f.GetRawConstantValue()!))
+            foreach (var k in new[] { "nom", "membre", "membres", "court" }) attendues.Add($"chambre.{c}.{k}");
+        foreach (var p in new[] { "pour", "contre", "abstention", "non_votant", "absent" }) attendues.Add($"position.{p}");
+        foreach (var s in new[] { "tous", "promulgue", "deux-assemblees", "non-promulgue", "discussion", "rejete", "cc", "censure", "49-3" }) attendues.Add($"statut-{s}");
+        var manquantes = attendues.Where(c => !enBase.Contains(c)).ToList();
+        Assert.True(manquantes.Count == 0, $"Libellés sans ligne « {langue} » : {string.Join(", ", manquantes)}");
     }
 
     [Fact]

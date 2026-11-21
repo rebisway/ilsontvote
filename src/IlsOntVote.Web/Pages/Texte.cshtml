@@ -8,11 +8,11 @@
     var fr = L.Culture;
     var titre = t.TitreLangue(L.Anglais);
     ViewData["Title"] = titre.Length > 60 ? titre[..60] + "…" : titre;
-    ViewData["Fil"] = new List<(string, string)> { (L.T("accueil", "Accueil", "Home"), L.Lien("/")), (L.T("lois-b08d", "Lois", "Laws"), L.Lien("/lois")), (Titres.Court(titre, 110), L.Lien("/texte/" + t.Id)) };
+    ViewData["Fil"] = new List<(string, string)> { (L.T("accueil"), L.Lien("/")), (L.T("lois-b08d"), L.Lien("/lois")), (Titres.Court(titre, 110), L.Lien("/texte/" + t.Id)) };
     // Phrase visible (texte indexable) : statut + dates publiées ; une date absente n'est pas écrite.
-    var phrase = L.Tf("texte-phrase", "Statut : {0}.", "Status: {0}.", st.Libelle)
-        + (t.DatePromulgation is { } dp ? " " + L.Tf("texte-phrase-promulgue", "Promulgué le {0}.", "Promulgated on {0}.", dp.ToString("d MMMM yyyy", L.Culture)) : "")
-        + (t.DateJo is { } dj ? " " + L.Tf("texte-phrase-jo", "Publié au Journal officiel le {0}.", "Published in the Journal officiel on {0}.", dj.ToString("d MMMM yyyy", L.Culture)) : "");
+    var phrase = L.Tf("texte-phrase", st.Libelle)
+        + (t.DatePromulgation is { } dp ? " " + L.Tf("texte-phrase-promulgue", dp.ToString("d MMMM yyyy", L.Culture)) : "")
+        + (t.DateJo is { } dj ? " " + L.Tf("texte-phrase-jo", dj.ToString("d MMMM yyyy", L.Culture)) : "");
     ViewData["JsonLd"] = new Dictionary<string, object?>
     {
         ["@context"] = "https://schema.org",
@@ -25,18 +25,18 @@
         ["legislationDate"] = t.DatePromulgation?.ToString("yyyy-MM-dd"),
         ["datePublished"] = t.DateJo?.ToString("yyyy-MM-dd"),
     }.Where(kv => kv.Value is not null).ToDictionary(kv => kv.Key, kv => kv.Value!);
-    ViewData["Description"] = L.Tf("loi-description", "{0} : {1}. Votes, décision du Conseil constitutionnel, promulgation et parution au Journal officiel.", "{0}: {1}. Votes, Constitutional Council decision, promulgation and publication in the Official Journal.", L.Anglais ? titre : t.TitreAffiche, st.Libelle);
+    ViewData["Description"] = L.Tf("loi-description", L.Anglais ? titre : t.TitreAffiche, st.Libelle);
 }
 
 <div class="retour retour-nav">
-    <a href="@L.Lien("/lois")">@L.T("toutes-les-lois", "← Toutes les lois", "← All laws")</a>
+    <a href="@L.Lien("/lois")">@L.T("toutes-les-lois")</a>
     <partial name="_Voisins" model="Model.Voisins" />
 </div>
 
 <header class="scrutin-tete">
-    <p class="meta">@(t.TypeLibelle is null ? L.T("texte", "Texte", "Text") : char.ToUpperInvariant(LibellesEn.TypeTexte(t.TypeLibelle, L.Anglais)[0]) + LibellesEn.TypeTexte(t.TypeLibelle, L.Anglais)[1..])@(string.IsNullOrEmpty(t.NumeroLoi) ? "" : L.Tf("loi-numero", " · loi n° {0}", " · law no. {0}", t.NumeroLoi))</p>
+    <p class="meta">@(t.TypeLibelle is null ? L.T("texte") : char.ToUpperInvariant(LibellesEn.TypeTexte(t.TypeLibelle, L.Anglais)[0]) + LibellesEn.TypeTexte(t.TypeLibelle, L.Anglais)[1..])@(string.IsNullOrEmpty(t.NumeroLoi) ? "" : L.Tf("loi-numero", t.NumeroLoi))</p>
     <h1>@Titres.Court(titre, 400)</h1>
-    @if (titre.Length > 400) { <details class="titre-complet"><summary>@L.T("titre-complet", "Titre complet", "Full title")</summary><p>@titre</p></details> }
+    @if (titre.Length > 400) { <details class="titre-complet"><summary>@L.T("titre-complet")</summary><p>@titre</p></details> }
     <p><span class="statut @st.Classe">@st.Libelle</span></p>
     <p class="resume-vote">@phrase</p>
 </header>
@@ -45,21 +45,21 @@
     <p class="note-source">@Doute.Html(NiveauDoute.Calcule, "automatic translation", "Machine-translated title (not official). The official title is the French one.") Official title: <span lang="fr">@t.TitreAffiche</span></p>
 }
 
-<section class="fiche-vote" aria-label="@L.T("parcours-du-texte", "Parcours du texte", "Journey of the text")">
+<section class="fiche-vote" aria-label="@L.T("parcours-du-texte")">
     <dl>
-        <div><dt>Promulgation</dt><dd>@(t.DatePromulgation?.ToString("d MMMM yyyy", fr) ?? L.T("pas-de-promulgation", "Pas de promulgation", "Not promulgated"))</dd></div>
+        <div><dt>Promulgation</dt><dd>@(t.DatePromulgation?.ToString("d MMMM yyyy", fr) ?? L.T("pas-de-promulgation"))</dd></div>
         <div>
-            <dt>@L.T("parution-au-journal-officiel", "Parution au Journal officiel", "Publication in the Official Journal")</dt>
+            <dt>@L.T("parution-au-journal-officiel")</dt>
             <dd>@(t.DateJo?.ToString("d MMMM yyyy", fr) ?? "—")</dd>
-            @if (!string.IsNullOrEmpty(t.NumeroJo)) { <dd class="detail">@L.T("jo-n", "JO n°", "OJ no.") @t.NumeroJo</dd> }
+            @if (!string.IsNullOrEmpty(t.NumeroJo)) { <dd class="detail">@L.T("jo-n") @t.NumeroJo</dd> }
         </div>
-        <div><dt>@L.T("votes-sur-l-ensemble", "Votes sur l'ensemble", "Votes on the whole text")</dt><dd>@t.NbScrutins</dd><dd class="detail">@(t.AdopteAn ? L.T("adopte-a-l-assemblee", "adopté à l'Assemblée", "adopted in the National Assembly") : "")@(t.AdopteAn && t.AdopteSenat ? " · " : "")@(t.AdopteSenat ? L.T("adopte-au-senat", "adopté au Sénat", "adopted in the Senate") : "")</dd></div>
+        <div><dt>@L.T("votes-sur-l-ensemble")</dt><dd>@t.NbScrutins</dd><dd class="detail">@(t.AdopteAn ? L.T("adopte-a-l-assemblee") : "")@(t.AdopteAn && t.AdopteSenat ? " · " : "")@(t.AdopteSenat ? L.T("adopte-au-senat") : "")</dd></div>
     </dl>
     @* <div> et non <p> : <details> (bouton IA) ferme un paragraphe en HTML. *@
     <div class="liens-externes">
-        @if (!string.IsNullOrEmpty(t.UrlLegifrance)) { <a class="raccourci" href="@t.UrlLegifrance" rel="noopener" target="_blank">@L.T("texte-sur-legifrance", "Texte sur Légifrance", "Text on Légifrance") ↗</a> }
-        @if (!string.IsNullOrEmpty(t.UrlDossierSenat)) { <a class="raccourci" href="@t.UrlDossierSenat" rel="noopener" target="_blank">@L.T("dossier-legislatif-du-senat", "Dossier législatif du Sénat", "Senate legislative file") ↗</a> }
-        @if (!string.IsNullOrEmpty(t.UrlDossierAn)) { <a class="raccourci" href="@t.UrlDossierAn" rel="noopener" target="_blank">@L.T("dossier-de-l-assemblee", "Dossier de l'Assemblée", "National Assembly file") ↗</a> }
+        @if (!string.IsNullOrEmpty(t.UrlLegifrance)) { <a class="raccourci" href="@t.UrlLegifrance" rel="noopener" target="_blank">@L.T("texte-sur-legifrance") ↗</a> }
+        @if (!string.IsNullOrEmpty(t.UrlDossierSenat)) { <a class="raccourci" href="@t.UrlDossierSenat" rel="noopener" target="_blank">@L.T("dossier-legislatif-du-senat") ↗</a> }
+        @if (!string.IsNullOrEmpty(t.UrlDossierAn)) { <a class="raccourci" href="@t.UrlDossierAn" rel="noopener" target="_blank">@L.T("dossier-de-l-assemblee") ↗</a> }
         @{ var promptIA = PromptResume.Construire(L.Anglais, titre, new[] { t.UrlLegifrance ?? "", t.UrlDossierAn ?? "", t.UrlDossierSenat ?? "" }); }
         <partial name="_ResumeIA" model="promptIA" />
     </div>
@@ -69,21 +69,21 @@
 {
     var cc = t.DecisionCcCode switch { "01" => "cc-conforme", "02" => "cc-partiel", "03" => "cc-censure", _ => "" };
     <section class="bloc-cc" aria-labelledby="t-cc">
-        <h2 id="t-cc">@L.T("conseil-constitutionnel-095a", "Conseil constitutionnel", "Constitutional Council")</h2>
+        <h2 id="t-cc">@L.T("conseil-constitutionnel-095a")</h2>
         <dl class="liste-def">
             @if (t.SaisineCcDate is not null)
             {
-                <div><dt>@L.T("saisine", "Saisine", "Referral")</dt><dd>@t.SaisineCcDate.Value.ToString("d MMMM yyyy", fr)@(string.IsNullOrEmpty(t.SaisineCcPar) ? "" : L.Tf("saisine-par", " — par {0}", " — by {0}", t.SaisineCcPar))</dd></div>
+                <div><dt>@L.T("saisine")</dt><dd>@t.SaisineCcDate.Value.ToString("d MMMM yyyy", fr)@(string.IsNullOrEmpty(t.SaisineCcPar) ? "" : L.Tf("saisine-par", t.SaisineCcPar))</dd></div>
             }
             @if (t.DecisionCcCode is not null)
             {
                 <div>
-                    <dt>@L.T("decision-0c11", "Décision", "Decision")</dt>
+                    <dt>@L.T("decision-0c11")</dt>
                     <dd>
                         <span class="statut @cc">@(char.ToUpperInvariant(LibellesEn.DecisionCc(t.DecisionCcLibelle, L.Anglais)[0]) + LibellesEn.DecisionCc(t.DecisionCcLibelle, L.Anglais)[1..])</span>
-                        @if (!string.IsNullOrEmpty(t.DecisionCcNumero)) { <span class="note"> @L.T("decision-n", "décision n°", "decision no.") @t.DecisionCcNumero</span> }
-                        @if (t.DecisionCcDate is not null) { <span class="note"> @L.T("du-0f68", "du", "of") @t.DecisionCcDate.Value.ToString("d MMMM yyyy", fr)</span> }
-                        @if (!string.IsNullOrEmpty(t.DecisionCcUrl)) { <a href="@t.DecisionCcUrl" rel="noopener" target="_blank" class="note">@L.T("texte-de-la-decision", "texte de la décision", "text of the decision") ↗</a> }
+                        @if (!string.IsNullOrEmpty(t.DecisionCcNumero)) { <span class="note"> @L.T("decision-n") @t.DecisionCcNumero</span> }
+                        @if (t.DecisionCcDate is not null) { <span class="note"> @L.T("du-0f68") @t.DecisionCcDate.Value.ToString("d MMMM yyyy", fr)</span> }
+                        @if (!string.IsNullOrEmpty(t.DecisionCcUrl)) { <a href="@t.DecisionCcUrl" rel="noopener" target="_blank" class="note">@L.T("texte-de-la-decision") ↗</a> }
                     </dd>
                 </div>
             }
@@ -93,40 +93,40 @@
 
 @if (Model.Etapes.Count > 0)
 {
-    <h2>@L.T("etapes-a-l-assemblee-nationale", "Étapes à l'Assemblée nationale", "Stages in the National Assembly")</h2>
-    <p class="note-source">@L.TH("chaque-lecture-en-seance-publique-quand", "Chaque lecture en séance publique. Quand la décision a été prise <strong>sans scrutin public</strong> (à main levée), le site ne peut pas dire qui a voté quoi : cette information n'existe pas dans les données, mais l'étape n'est pas omise.", "Each reading in public session. When the decision was taken <strong>without a roll-call vote</strong> (show of hands), the site cannot say who voted what: that information does not exist in the data, but the stage is not left out.")</p>
+    <h2>@L.T("etapes-a-l-assemblee-nationale")</h2>
+    <p class="note-source">@L.TH("chaque-lecture-en-seance-publique-quand")</p>
     <div class="table-wrap">
         <table class="liste-textes">
-            <thead><tr><th scope="col">Date</th><th scope="col">@L.T("lecture", "Lecture", "Reading")</th><th scope="col">@L.T("decision-0c11", "Décision", "Decision")</th><th scope="col">@L.T("vote-des-elus", "Vote des élus", "Members' vote")</th></tr></thead>
+            <thead><tr><th scope="col">Date</th><th scope="col">@L.T("lecture")</th><th scope="col">@L.T("decision-0c11")</th><th scope="col">@L.T("vote-des-elus")</th></tr></thead>
             <tbody>
             @foreach (var e in Model.Etapes)
             {
                 <tr>
                     <td data-label="Date" class="col-date">@e.DateActe.ToString("d MMM yyyy", fr)</td>
-                    <td data-label="@L.T("lecture", "Lecture", "Reading")"><span class="chambre-tag @Chambres.ClasseTag(e.Chambre)">@L.ChambreCourt(e.Chambre)</span> @e.LectureEn(L.Anglais)</td>
-                    <td data-label="@L.T("decision-0c11", "Décision", "Decision")">@(e.EstMotion ? L.T("votee-par-scrutin-public", "Votée par scrutin public", "Voted by roll call") : string.IsNullOrWhiteSpace(e.Resultat) ? "—" : char.ToUpper(LibellesEn.ResultatLecture(e.Resultat, L.Anglais)[0]) + LibellesEn.ResultatLecture(e.Resultat, L.Anglais)[1..])</td>
-                    <td data-label="@L.T("vote-des-elus", "Vote des élus", "Members' vote")">
+                    <td data-label="@L.T("lecture")"><span class="chambre-tag @Chambres.ClasseTag(e.Chambre)">@L.ChambreCourt(e.Chambre)</span> @e.LectureEn(L.Anglais)</td>
+                    <td data-label="@L.T("decision-0c11")">@(e.EstMotion ? L.T("votee-par-scrutin-public") : string.IsNullOrWhiteSpace(e.Resultat) ? "—" : char.ToUpper(LibellesEn.ResultatLecture(e.Resultat, L.Anglais)[0]) + LibellesEn.ResultatLecture(e.Resultat, L.Anglais)[1..])</td>
+                    <td data-label="@L.T("vote-des-elus")">
                         @if (e.ScrutinId is not null)
                         {
-                            <a href="@L.Lien("/scrutin/" + e.ScrutinId)">@L.T("voir-qui-a-vote-quoi", "Voir qui a voté quoi", "See who voted what")</a>
+                            <a href="@L.Lien("/scrutin/" + e.ScrutinId)">@L.T("voir-qui-a-vote-quoi")</a>
                         }
                         else if (e.EstMotion)
                         {
                             @* La source ne cite pas toujours le scrutin d'une motion de censure : on renvoie vers les scrutins « motion de censure » de ce jour-là. *@
                             var jour = e.DateActe.ToString("yyyy-MM-dd");
-                            <a href="@L.Lien("/textes")?q=motion+de+censure&du=@jour&au=@jour&portee=tout">@L.T("voir-les-scrutins-de-ce-jour", "Voir les scrutins de ce jour", "See the votes of that day")</a>
+                            <a href="@L.Lien("/textes")?q=motion+de+censure&du=@jour&au=@jour&portee=tout">@L.T("voir-les-scrutins-de-ce-jour")</a>
                         }
                         else if (e.Article493)
                         {
-                            <span class="tag tag-493" tabindex="0" title="@L.T("le-gouvernement-a-engage-sa-responsabilite", "Le Gouvernement a engagé sa responsabilité (article 49, alinéa 3 de la Constitution) : le texte est considéré comme adopté sauf si une motion de censure est votée. Il n'y a aucun vote sur le texte lui-même.", "The Government made the text a matter of confidence (article 49, paragraph 3 of the Constitution): the text is deemed adopted unless a censure motion passes. There is no vote on the text itself.")">@L.T("sans-vote-art-49-3", "sans vote · art. 49-3", "no vote · art. 49-3")</span>
+                            <span class="tag tag-493" tabindex="0" title="@L.T("le-gouvernement-a-engage-sa-responsabilite")">@L.T("sans-vote-art-49-3")</span>
                         }
                         else if (e.SansScrutinPublic)
                         {
-                            @Doute.Html(NiveauDoute.Manquant, L.T("detail-non-disponible", "détail non disponible", "detail not available"), L.T("decision-prise-sans-scrutin-public-a", "Décision prise sans scrutin public (à main levée) : les assemblées ne publient pas qui a voté quoi.", "Decision taken without a roll-call vote (show of hands): the assemblies do not publish who voted what."))
+                            @Doute.Html(NiveauDoute.Manquant, L.T("detail-non-disponible"), L.T("decision-prise-sans-scrutin-public-a"))
                         }
                         else
                         {
-                            @Doute.Html(NiveauDoute.Incertain, L.T("scrutin-non-retrouve", "scrutin non retrouvé", "vote not found"), L.T("un-scrutin-public-est-cite-par", "Un scrutin public est cité par la source, mais il n'est pas dans nos données.", "A roll-call vote is cited by the source, but it is not in our data."))
+                            @Doute.Html(NiveauDoute.Incertain, L.T("scrutin-non-retrouve"), L.T("un-scrutin-public-est-cite-par"))
                         }
                     </td>
                 </tr>
@@ -136,25 +136,25 @@
     </div>
 }
 
-<h2>@L.T("les-votes-sur-ce-texte", "Les votes sur ce texte", "Votes on this text")</h2>
+<h2>@L.T("les-votes-sur-ce-texte")</h2>
 @if (Model.Scrutins.Count == 0)
 {
-    <p class="vide">@L.T("aucun-vote-nominatif-enregistre-pour-ce", "Aucun vote nominatif enregistré pour ce texte dans nos données.", "No roll-call vote recorded for this text in our data.")</p>
+    <p class="vide">@L.T("aucun-vote-nominatif-enregistre-pour-ce")</p>
 }
 else
 {
     <div class="table-wrap">
         <table class="liste-textes">
-            <thead><tr><th>Date</th><th>@L.T("chambre-accd", "Chambre", "Chamber")</th><th>@L.T("scrutin", "Scrutin", "Vote")</th><th>@L.T("resultat", "Résultat", "Result")</th><th class="num">@L.T("pour-2ecc", "Pour", "For")</th><th class="num">@L.T("contre-b885", "Contre", "Against")</th><th class="num">@L.T("abst-29c5", "Abst.", "Abst.")</th></tr></thead>
+            <thead><tr><th>Date</th><th>@L.T("chambre-accd")</th><th>@L.T("scrutin")</th><th>@L.T("resultat")</th><th class="num">@L.T("pour-2ecc")</th><th class="num">@L.T("contre-b885")</th><th class="num">@L.T("abst-29c5")</th></tr></thead>
             <tbody>
             @foreach (var s in Model.Scrutins)
             {
                 <tr>
                     <td class="nowrap" data-label="Date">@s.DateScrutin.ToString("d MMM yyyy", fr)</td>
-                    <td data-label="@L.T("chambre-accd", "Chambre", "Chamber")"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@L.ChambreCourt(s.Chambre)</span></td>
+                    <td data-label="@L.T("chambre-accd")"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@L.ChambreCourt(s.Chambre)</span></td>
                     <td><a href="@L.Lien("/scrutin/" + s.Id)" title="@Titres.Info(s.TitreLangue(L.Anglais), s.InfobulleTitre(L.Anglais))">@Titres.Court(s.TitreLangue(L.Anglais))</a></td>
-                    <td data-label="@L.T("resultat", "Résultat", "Result")"><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("adopte", "✓ Adopté", "✓ Adopted") : L.T("rejete", "✗ Rejeté", "✗ Rejected"))</span></td>
-                    <td class="num" data-label="@L.T("pour-2ecc", "Pour", "For")">@s.NbPour</td><td class="num" data-label="@L.T("contre-b885", "Contre", "Against")">@s.NbContre</td><td class="num" data-label="Abstentions">@s.NbAbstentions</td>
+                    <td data-label="@L.T("resultat")"><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("adopte") : L.T("rejete"))</span></td>
+                    <td class="num" data-label="@L.T("pour-2ecc")">@s.NbPour</td><td class="num" data-label="@L.T("contre-b885")">@s.NbContre</td><td class="num" data-label="Abstentions">@s.NbAbstentions</td>
                 </tr>
             }
             </tbody>
@@ -164,19 +164,19 @@ else
 
 @if (Model.NbLies > 0)
 {
-    <h2>@L.T("amendements-articles-et-autres-votes", "Amendements, articles et autres votes", "Amendments, articles and other votes")</h2>
-    <p class="note-source">@L.Tf("loi-autres-scrutins-citent", "{0:N0} autres scrutins publics citent ce texte (amendements, sous-amendements, articles). Rattachement calculé d'après le titre du texte : il peut manquer des votes quand plusieurs textes portent le même titre.", "{0:N0} other roll-call votes mention this text (amendments, sub-amendments, articles). Matching is computed from the text's title: some votes may be missing when several texts share the same title.", Model.NbLies)</p>
+    <h2>@L.T("amendements-articles-et-autres-votes")</h2>
+    <p class="note-source">@L.Tf("loi-autres-scrutins-citent", Model.NbLies)</p>
     <div class="table-wrap">
         <table class="liste-textes">
-            <thead><tr><th>Date</th><th>@L.T("chambre-accd", "Chambre", "Chamber")</th><th>@L.T("scrutin", "Scrutin", "Vote")</th><th>@L.T("resultat", "Résultat", "Result")</th></tr></thead>
+            <thead><tr><th>Date</th><th>@L.T("chambre-accd")</th><th>@L.T("scrutin")</th><th>@L.T("resultat")</th></tr></thead>
             <tbody>
             @foreach (var s in Model.Lies)
             {
                 <tr>
                     <td class="nowrap" data-label="Date">@s.DateScrutin.ToString("d MMM yyyy", fr)</td>
-                    <td data-label="@L.T("chambre-accd", "Chambre", "Chamber")"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@L.ChambreCourt(s.Chambre)</span></td>
+                    <td data-label="@L.T("chambre-accd")"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@L.ChambreCourt(s.Chambre)</span></td>
                     <td><a href="@L.Lien("/scrutin/" + s.Id)" title="@Titres.Info(s.TitreLangue(L.Anglais), s.InfobulleTitre(L.Anglais))">@Titres.Court(s.TitreLangue(L.Anglais))</a></td>
-                    <td data-label="@L.T("resultat", "Résultat", "Result")"><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("adopte", "✓ Adopté", "✓ Adopted") : L.T("rejete", "✗ Rejeté", "✗ Rejected"))</span></td>
+                    <td data-label="@L.T("resultat")"><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("adopte") : L.T("rejete"))</span></td>
                 </tr>
             }
             </tbody>
@@ -184,6 +184,6 @@ else
     </div>
     @if (Model.NbLies > Model.Lies.Count)
     {
-        <p><a class="bouton-lien" href="@L.Lien("/textes")?texte=@Model.Loi.Id&portee=tout">@L.T("voir-les", "Voir les ", "See all ")@Model.NbLies.ToString("N0", fr)@L.T("votes", " votes", " votes")</a></p>
+        <p><a class="bouton-lien" href="@L.Lien("/textes")?texte=@Model.Loi.Id&portee=tout">@L.T("voir-les")@Model.NbLies.ToString("N0", fr)@L.T("votes")</a></p>
     }
 }

@@ -1,16 +1,16 @@
 @model IlsOntVote.Web.Pages.ListePageModel
 @* Choix du nombre de lignes par page : de simples liens (fonctionnent sans JavaScript), filtres et tri conservés, retour page 1. *@
-<p class="lignes-page" aria-label="@L.T("nombre-de-lignes-par-page", "Nombre de lignes par page", "Number of rows per page")">
-    @L.T("lignes-par-page", "Lignes par page :", "Rows per page:")
+<p class="lignes-page" aria-label="@L.T("nombre-de-lignes-par-page")">
+    @L.T("lignes-par-page")
     @foreach (var n in IlsOntVote.Web.Pages.ListePageModel.ChoixLignes)
     {
         if (n == Model.ParPage) { <strong aria-current="true">@n</strong> }
         else { <a href="@Model.Lien(lignes: n)">@n</a> }
     }
-    @if (Model.ParPage == IlsOntVote.Web.Pages.ListePageModel.Toutes) { <strong aria-current="true">@L.T("tous", "Tous", "All")</strong> }
-    else { <a href="@Model.Lien(lignes: IlsOntVote.Web.Pages.ListePageModel.Toutes)">@L.T("tous", "Tous", "All")</a> }
+    @if (Model.ParPage == IlsOntVote.Web.Pages.ListePageModel.Toutes) { <strong aria-current="true">@L.T("tous")</strong> }
+    else { <a href="@Model.Lien(lignes: IlsOntVote.Web.Pages.ListePageModel.Toutes)">@L.T("tous")</a> }
 </p>
 @if (Model.ParPage == IlsOntVote.Web.Pages.ListePageModel.Toutes && Model.TotalLignes > IlsOntVote.Web.Pages.ListePageModel.Toutes)
 {
-    <p class="note-source">@L.Tf("lignes-plafond-export", "Affichage limité aux {0:N0} premières lignes sur {1:N0} : l'export (CSV, JSON) donne tout.", "Display limited to the first {0:N0} rows of {1:N0}: the export (CSV, JSON) gives everything.", IlsOntVote.Web.Pages.ListePageModel.Toutes, Model.TotalLignes)</p>
+    <p class="note-source">@L.Tf("lignes-plafond-export", IlsOntVote.Web.Pages.ListePageModel.Toutes, Model.TotalLignes)</p>
 }

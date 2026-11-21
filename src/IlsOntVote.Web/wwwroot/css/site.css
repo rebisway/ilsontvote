@@ -733,3 +733,8 @@ a.raccourci:hover { background: var(--tag-delegation); color: var(--surface); }
 /* Petite chambre (< 100 sièges : Conseil des États, Seanad) : même dessin serré, mais affiché plus petit et centré pour que l'ensemble reste harmonieux avec les cartes voisines. */
 .hemicycle.mini { width: 72%; margin-inline: auto; }
 @media (max-width: 720px) { .hemicycle.mini { width: 88%; } }
+
+/* Ligne « pays · chambres » sous le titre de l'accueil. */
+.intro p.pays-ligne { margin: 0 0 8px; font-size: .95rem; color: var(--ink-soft); display: flex; justify-content: center; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pays-ligne img { width: 20px; height: 14px; border-radius: 2px; box-shadow: 0 0 0 1px rgba(128,128,128,.35); }
+.pays-ligne strong { color: var(--ink); }

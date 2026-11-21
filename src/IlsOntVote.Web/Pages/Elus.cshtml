@@ -4,9 +4,9 @@
 @using IlsOntVote.Web.Services
 @{
     var lords = Model.ChambreCode == Chambres.Lords;
-    var titreElus = lords ? L.T("participation-aux-votes-des-pairs", "Participation aux votes des pairs", "Voting participation of peers") : L.Pays == "US" ? L.T("participation-aux-votes-des-elus-du", "Participation aux votes des élus du Congrès", "Voting participation of members of Congress") : L.Pays == "CH" ? L.T("participation-aux-votes-du-parlement-suisse", "Participation aux votes de l'Assemblée fédérale", "Voting participation in the Federal Assembly") : L.Pays == "IE" ? L.T("participation-aux-votes-des-parlementaires-i", "Participation aux votes des parlementaires irlandais", "Voting participation of Irish members of the Oireachtas") : L.Pays == "IT" ? L.T("participation-aux-votes-des-parlementaires-i-0aa4", "Participation aux votes des parlementaires italiens", "Voting participation of Italian members of Parliament") : L.T("taux-de-presence-des-elus", "Taux de présence des élus", "Attendance rates of elected officials");
+    var titreElus = lords ? L.T("participation-aux-votes-des-pairs") : L.Pays == "US" ? L.T("participation-aux-votes-des-elus-du") : L.Pays == "CH" ? L.T("participation-aux-votes-du-parlement-suisse") : L.Pays == "IE" ? L.T("participation-aux-votes-des-parlementaires-i") : L.Pays == "IT" ? L.T("participation-aux-votes-des-parlementaires-i-0aa4") : L.T("taux-de-presence-des-elus");
     ViewData["Title"] = titreElus;
-    ViewData["Description"] = L.T("tous-les-elus-avec-leur-taux", "Tous les élus avec leur taux de participation, de présence, de délégation et de mise au point sur la période choisie : triez, filtrez, exportez.", "All elected officials with their participation, presence, proxy and vote-correction rates over the chosen period: sort, filter, export.");
+    ViewData["Description"] = L.T("tous-les-elus-avec-leur-taux");
     var fr = L.Culture;
     string Pct(double? v) => v is null ? "—" : v.Value.ToString("0.0", fr) + (L.Anglais ? "%" : " %");
     var decalage = (Model.Resultats.Page - 1) * Model.Resultats.ParPage;
@@ -15,26 +15,26 @@
 
 <h1 class="titre-page">@titreElus</h1>
 
-<section class="definitions" aria-label="@L.T("definitions", "Définitions", "Definitions")">
-    <p class="def-base">@L.TH("chaque-taux-est-calcule-sur-les", "Chaque taux est calculé sur les <strong>scrutins publics tenus pendant le mandat de l'élu</strong>, sur la période choisie.", "Each rate is computed over the <strong>roll-call votes held during the official's term</strong>, over the chosen period.")</p>
-    @if (L.Pays == "IT") { <p class="note-source">@Doute.Html(NiveauDoute.Incertain, L.T("import-partiel", "import partiel", "partial import"), L.T("seuls-les-votes-finaux-et-pour", "Seuls les votes finaux (et, pour la Chambre, les questions de confiance) sont importés pour l'instant : amendements, ordres du jour et motions ne le sont pas. Ce taux ne porte que sur ces votes.", "Only final votes (and, for the Chamber, confidence votes) are imported for now: amendments, orders of the day and motions are not. This rate only covers those votes."))</p> }
+<section class="definitions" aria-label="@L.T("definitions")">
+    <p class="def-base">@L.TH("chaque-taux-est-calcule-sur-les")</p>
+    @if (L.Pays == "IT") { <p class="note-source">@Doute.Html(NiveauDoute.Incertain, L.T("import-partiel"), L.T("seuls-les-votes-finaux-et-pour"))</p> }
     <dl>
-        <div><dt>Participation</dt><dd>@L.T("un-vote-a-ete-exprime-pour", "un vote a été exprimé (pour, contre ou abstention), par l'élu ou par délégation", "a vote was cast (for, against or abstention), by the official or by proxy")</dd></div>
-        <div><dt>@L.T("presence", "Présence", "Presence")</dt><dd>@L.T("vote-exprime-par-l-elu-lui", "vote exprimé par l'élu lui-même, sans délégation", "vote cast by the official in person, without proxy")</dd></div>
-        <div><dt>@L.T("delegation", "Délégation", "Proxy")</dt><dd>@L.T("vote-exprime-par-un-collegue-a", "vote exprimé par un collègue à sa place", "vote cast by a colleague on their behalf")</dd></div>
-        <div><dt>@L.T("mise-au-point", "Mise au point", "Correction")</dt><dd>@L.T("position-rectifiee-apres-le-scrutin", "position rectifiée après le scrutin", "position corrected after the vote")</dd></div>
-        <div><dt>@L.T("absence", "Absence", "Absence")</dt><dd>@L.T("aucun-vote-exprime-le-site-n", "aucun vote exprimé (le site n'en donne aucune raison)", "no vote cast (the site gives no reason)")</dd></div>
+        <div><dt>Participation</dt><dd>@L.T("un-vote-a-ete-exprime-pour")</dd></div>
+        <div><dt>@L.T("presence")</dt><dd>@L.T("vote-exprime-par-l-elu-lui")</dd></div>
+        <div><dt>@L.T("delegation")</dt><dd>@L.T("vote-exprime-par-un-collegue-a")</dd></div>
+        <div><dt>@L.T("mise-au-point")</dt><dd>@L.T("position-rectifiee-apres-le-scrutin")</dd></div>
+        <div><dt>@L.T("absence")</dt><dd>@L.T("aucun-vote-exprime-le-site-n")</dd></div>
     </dl>
-    <p class="note-source">@L.T("les-non-votants-declares-par-l", "Les « non votants » déclarés par l'assemblée (par exemple le président de séance) sont retirés du calcul. Survolez un taux pour voir les nombres. Chiffres calculés par le site à partir des scrutins publics (les votes à main levée n'ont pas de détail nominatif).", "Officials declared “non-voting” by the assembly (for example the presiding officer) are removed from the calculation. Hover a rate to see the numbers. Figures computed by the site from roll-call votes (show-of-hands votes have no individual detail).")</p>
+    <p class="note-source">@L.T("les-non-votants-declares-par-l")</p>
 </section>
 
 <form class="filtres filtres-auto filtres-liste" method="get" action="@L.Lien("/elus")">
-    <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("chercher-un-nom-ou-un-groupe", "Chercher un nom ou un groupe…", "Search a name or a group…")" aria-label="@L.T("chercher-un-elu", "Chercher un élu", "Search an official")" />
+    <input class="filtre" type="search" name="q" value="@Model.Recherche" placeholder="@L.T("chercher-un-nom-ou-un-groupe")" aria-label="@L.T("chercher-un-elu")" />
     @if (L.Pays is not null)
     {
     @if (Model.ChambresSite.Length > 1)
     {
-    <select name="chambre" aria-label="@L.T("chambre", "Chambre", "House")">
+    <select name="chambre" aria-label="@L.T("chambre")">
         @foreach (var ch in Model.ChambresSite)
         {
             <option value="@Chambres.Filtre(ch)" selected="@(Model.ChambreCode == ch)">@L.Chambre(ch)</option>
@@ -44,63 +44,63 @@
     }
     @if (L.Pays is null)
     {
-    <select name="chambre" aria-label="@L.T("chambre-accd", "Chambre", "Chamber")">
-        <option value="an" selected="@(Model.ChambreCle == "an")">@L.T("assemblee-nationale", "Assemblée nationale", "National Assembly")</option>
-        <option value="senat" selected="@(Model.ChambreCle == "senat")">@L.T("senat", "Sénat", "Senate")</option>
-        <option value="ue" selected="@(Model.ChambreCle == "ue")">@L.T("parlement-europeen", "Parlement européen", "European Parliament")</option>
+    <select name="chambre" aria-label="@L.T("chambre-accd")">
+        <option value="an" selected="@(Model.ChambreCle == "an")">@L.T("assemblee-nationale")</option>
+        <option value="senat" selected="@(Model.ChambreCle == "senat")">@L.T("senat")</option>
+        <option value="ue" selected="@(Model.ChambreCle == "ue")">@L.T("parlement-europeen")</option>
     </select>
     }
-    <select name="periode" aria-label="@L.T("periode", "Période", "Period")">
-        <option value="12m" selected="@(Model.PeriodeCle == "12m")">@L.T("12-derniers-mois", "12 derniers mois", "Last 12 months")</option>
-        <option value="annee" selected="@(Model.PeriodeCle == "annee")">@L.T("annee-en-cours", "Année en cours", "Current year")</option>
-        <option value="tout" selected="@(Model.PeriodeCle == "tout")">@L.T("depuis-le-debut-des-donnees", "Depuis le début des données", "Since the start of the data")</option>
-        @if (Model.PeriodeCle == "perso") { <option value="12m" selected>@L.T("dates-choisies", "Dates choisies", "Chosen dates")</option> }
+    <select name="periode" aria-label="@L.T("periode")">
+        <option value="12m" selected="@(Model.PeriodeCle == "12m")">@L.T("12-derniers-mois")</option>
+        <option value="annee" selected="@(Model.PeriodeCle == "annee")">@L.T("annee-en-cours")</option>
+        <option value="tout" selected="@(Model.PeriodeCle == "tout")">@L.T("depuis-le-debut-des-donnees")</option>
+        @if (Model.PeriodeCle == "perso") { <option value="12m" selected>@L.T("dates-choisies")</option> }
     </select>
-    <span class="periode" title="@L.T("dates-precises-elles-remplacent-la-periode", "Dates précises : elles remplacent la période ci-contre", "Exact dates: they replace the period selected next to it")">
-        <label class="champ-date">@L.T("du", "Du", "From") <input type="date" name="du" value="@Model.Du" aria-label="@L.T("du-date-de-debut", "Du (date de début)", "From (start date)")" /></label>
-        <label class="champ-date">@L.T("au", "au", "to") <input type="date" name="au" value="@Model.Au" aria-label="@L.T("au-date-de-fin", "Au (date de fin)", "To (end date)")" /></label>
+    <span class="periode" title="@L.T("dates-precises-elles-remplacent-la-periode")">
+        <label class="champ-date">@L.T("du") <input type="date" name="du" value="@Model.Du" aria-label="@L.T("du-date-de-debut")" /></label>
+        <label class="champ-date">@L.T("au") <input type="date" name="au" value="@Model.Au" aria-label="@L.T("au-date-de-fin")" /></label>
     </span>
-    <label class="case"><input type="checkbox" name="votants" value="1" checked="@Model.AvecVotes" /> @L.T("masquer-ceux-qui-n-ont-vote", "masquer ceux qui n'ont voté dans aucun scrutin", "hide those who cast no vote")</label>
+    <label class="case"><input type="checkbox" name="votants" value="1" checked="@Model.AvecVotes" /> @L.T("masquer-ceux-qui-n-ont-vote")</label>
     @* Les Lords n'ont pas de vote sur l'ensemble : option sans objet. *@
     @if (!lords)
     {
-    <label class="case"><input type="checkbox" name="ensemble" value="1" checked="@Model.EnsembleSeul" /> @L.T("votes-sur-l-ensemble-d-un", "votes sur l'ensemble d'un texte seulement", "votes on the whole text only")</label>
+    <label class="case"><input type="checkbox" name="ensemble" value="1" checked="@Model.EnsembleSeul" /> @L.T("votes-sur-l-ensemble-d-un")</label>
     }
     @* Tri : en-têtes de colonne (écran large) ou ces listes (téléphone). *@
-    <select name="tri" class="tri-mobile" aria-label="@L.T("trier-par", "Trier par", "Sort by")">
-        <option value="nom" selected="@(Model.TriEffectif == "nom")">@L.T("trier-nom", "Trier : nom", "Sort: name")</option>
-        <option value="groupe" selected="@(Model.TriEffectif == "groupe")">@L.T("trier-groupe", "Trier : groupe", "Sort: group")</option>
-        <option value="scrutins" selected="@(Model.TriEffectif == "scrutins")">@L.T("trier-scrutins", "Trier : scrutins", "Sort: votes")</option>
-        <option value="participation" selected="@(Model.TriEffectif == "participation")">@L.T("trier-participation", "Trier : participation", "Sort: participation")</option>
-        <option value="presence" selected="@(Model.TriEffectif == "presence")">@L.T("trier-presence", "Trier : présence", "Sort: presence")</option>
-        <option value="delegation" selected="@(Model.TriEffectif == "delegation")">@L.T("trier-delegation", "Trier : délégation", "Sort: proxy")</option>
-        <option value="mise_au_point" selected="@(Model.TriEffectif == "mise_au_point")">@L.T("trier-mise-au-point", "Trier : mise au point", "Sort: correction")</option>
-        <option value="absence" selected="@(Model.TriEffectif == "absence")">@L.T("trier-absence", "Trier : absence", "Sort: absence")</option>
+    <select name="tri" class="tri-mobile" aria-label="@L.T("trier-par")">
+        <option value="nom" selected="@(Model.TriEffectif == "nom")">@L.T("trier-nom")</option>
+        <option value="groupe" selected="@(Model.TriEffectif == "groupe")">@L.T("trier-groupe")</option>
+        <option value="scrutins" selected="@(Model.TriEffectif == "scrutins")">@L.T("trier-scrutins")</option>
+        <option value="participation" selected="@(Model.TriEffectif == "participation")">@L.T("trier-participation")</option>
+        <option value="presence" selected="@(Model.TriEffectif == "presence")">@L.T("trier-presence")</option>
+        <option value="delegation" selected="@(Model.TriEffectif == "delegation")">@L.T("trier-delegation")</option>
+        <option value="mise_au_point" selected="@(Model.TriEffectif == "mise_au_point")">@L.T("trier-mise-au-point")</option>
+        <option value="absence" selected="@(Model.TriEffectif == "absence")">@L.T("trier-absence")</option>
     </select>
-    <select name="sens" class="tri-mobile" aria-label="@L.T("sens-du-tri", "Sens du tri", "Sort order")">
-        <option value="desc" selected="@Model.Decroissant">@L.T("decroissant", "Décroissant", "Descending")</option>
-        <option value="asc" selected="@(!Model.Decroissant)">@L.T("croissant", "Croissant", "Ascending")</option>
+    <select name="sens" class="tri-mobile" aria-label="@L.T("sens-du-tri")">
+        <option value="desc" selected="@Model.Decroissant">@L.T("decroissant")</option>
+        <option value="asc" selected="@(!Model.Decroissant)">@L.T("croissant")</option>
     </select>
-    <button type="submit" class="sans-js">@L.T("filtrer", "Filtrer", "Filter")</button>
-    @if (Model.FiltreActif) { <a class="effacer" href="@L.Lien("/elus")" title="@L.T("effacer-le-filtre", "Effacer le filtre", "Clear filter")" aria-label="@L.T("effacer-le-filtre", "Effacer le filtre", "Clear filter")"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></a> }
+    <button type="submit" class="sans-js">@L.T("filtrer")</button>
+    @if (Model.FiltreActif) { <a class="effacer" href="@L.Lien("/elus")" title="@L.T("effacer-le-filtre")" aria-label="@L.T("effacer-le-filtre")"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></a> }
 </form>
 
-<p class="periode-rappel">@L.Chambre(Model.ChambreCode) · <strong>@Model.PeriodeLibelle</strong>@(Model.EnsembleSeul ? L.T("votes-sur-l-ensemble-seulement", " · votes sur l'ensemble seulement", " · votes on the whole text only") : "")</p>
+<p class="periode-rappel">@L.Chambre(Model.ChambreCode) · <strong>@Model.PeriodeLibelle</strong>@(Model.EnsembleSeul ? L.T("votes-sur-l-ensemble-seulement") : "")</p>
 @if (Model.ChambreCode == Chambres.Lords)
 {
-    <p class="note-source">@Doute.Html(NiveauDoute.Incertain, L.T("absences-surestimees", "absences surestimées", "absences overstated"), L.T("seuls-les-pairs-ayant-vote-sont", "Seuls les pairs ayant voté sont publiés : les absents sont déduits des dates d'appartenance. Un pair en congé ou suspendu est compté absent, ce qui abaisse les taux de participation.", "Only peers who voted are published: absentees are deduced from membership dates. A peer on leave of absence or suspended is counted as absent, which lowers the participation rates.")) @L.T("les-taux-des-lords-sont-a", "Les taux des Lords sont à lire avec cette réserve.", "Read the Lords rates with this caveat.") @L.T("ces-taux-comptent-les-votes-exprimes", "Ces taux comptent les votes exprimés, pas la présence : un pair peut siéger et parler sans voter.", "These rates count votes cast, not attendance: a peer can sit and speak without voting.")</p>
+    <p class="note-source">@Doute.Html(NiveauDoute.Incertain, L.T("absences-surestimees"), L.T("seuls-les-pairs-ayant-vote-sont")) @L.T("les-taux-des-lords-sont-a") @L.T("ces-taux-comptent-les-votes-exprimes")</p>
 }
 
 <div class="barre-liste">
-    <p class="compte">@Model.Resultats.Total.ToString("N0", fr) @(Model.Resultats.Total > 1 ? L.T("plur-elu-pl", "élus", "officials") : L.T("plur-elu-sg", "élu", "official"))</p>
-    <p class="export">@L.T("exporter-ce-tableau", "Exporter ce tableau :", "Export this table:")
+    <p class="compte">@Model.Resultats.Total.ToString("N0", fr) @(Model.Resultats.Total > 1 ? L.T("plur-elu-pl") : L.T("plur-elu-sg"))</p>
+    <p class="export">@L.T("exporter-ce-tableau")
         @foreach (var f in Exporteur.Formats) { <a href="@Model.Lien(format: f)" download>@f.ToUpperInvariant()</a> }
     </p>
 </div>
 
 @if (Model.Resultats.Lignes.Count == 0)
 {
-    <p class="vide">@L.T("aucun-elu-a-afficher-aucun-scrutin", "Aucun élu à afficher (aucun scrutin sur cette période, ou les statistiques ne sont pas encore calculées).", "No official to display (no votes over this period, or statistics are not computed yet).")</p>
+    <p class="vide">@L.T("aucun-elu-a-afficher-aucun-scrutin")</p>
 }
 else
 {
@@ -108,15 +108,15 @@ else
         <table class="liste-textes table-elus">
             <thead>
                 <tr>
-                    <th scope="col" class="num" title="@L.T("rang-dans-le-tri-choisi", "Rang dans le tri choisi", "Rank in the chosen sort order")">#</th>
-                    @Model.Th("nom", L.T("elu", "Élu", "Official"))
-                    @Model.Th("groupe", L.T("groupe", "Groupe", "Group"))
-                    @Model.Th("scrutins", L.T("scrutins", "Scrutins", "Votes"), "num")
+                    <th scope="col" class="num" title="@L.T("rang-dans-le-tri-choisi")">#</th>
+                    @Model.Th("nom", L.T("elu"))
+                    @Model.Th("groupe", L.T("groupe"))
+                    @Model.Th("scrutins", L.T("scrutins"), "num")
                     @Model.Th("participation", "Participation", "num")
-                    @Model.Th("presence", L.T("presence", "Présence", "Presence"), "num")
-                    @Model.Th("delegation", L.T("delegation", "Délégation", "Proxy"), "num")
-                    @Model.Th("mise_au_point", L.T("mise-au-point", "Mise au point", "Correction"), "num")
-                    @Model.Th("absence", L.T("absence", "Absence", "Absence"), "num")
+                    @Model.Th("presence", L.T("presence"), "num")
+                    @Model.Th("delegation", L.T("delegation"), "num")
+                    @Model.Th("mise_au_point", L.T("mise-au-point"), "num")
+                    @Model.Th("absence", L.T("absence"), "num")
                 </tr>
             </thead>
             <tbody>
@@ -124,15 +124,15 @@ else
             {
                 rang++;
                 <tr>
-                    <td class="num rang" data-label="@L.T("rang", "Rang", "Rank")">@rang.ToString("N0", fr)</td>
-                    <td data-label="@L.T("elu", "Élu", "Official")"><a href="@L.Lien("/" + Chambres.Fiche(e.Chambre) + "/" + e.Slug)">@Noms.Html(e.Prenom, e.Nom)</a>@if (e.Statut is not null) { <text> </text>@Doute.Html(NiveauDoute.Incertain, StatutTexte.Libelle(e.Statut, L.Anglais)!, L.T("statut-du-jour-d-apres-l", "Statut du jour d'après l'annuaire des membres (la source ne donne pas l'historique) : un pair en congé ou suspendu ne peut pas voter.", "Status as of today in the members directory (the source gives no history): a peer on leave or suspended cannot vote.")) }</td>
-                    <td data-label="@L.T("groupe", "Groupe", "Group")"><span class="pastille" style="background:@(e.GroupeCouleur ?? "#8d949a")"></span> @(e.GroupeSigle ?? "—")</td>
-                    <td data-label="@L.T("scrutins", "Scrutins", "Votes")" class="num">@e.Scrutins.ToString("N0", fr)</td>
+                    <td class="num rang" data-label="@L.T("rang")">@rang.ToString("N0", fr)</td>
+                    <td data-label="@L.T("elu")"><a href="@L.Lien("/" + Chambres.Fiche(e.Chambre) + "/" + e.Slug)">@Noms.Html(e.Prenom, e.Nom)</a>@if (e.Statut is not null) { <text> </text>@Doute.Html(NiveauDoute.Incertain, StatutTexte.Libelle(e.Statut, L.Anglais)!, L.T("statut-du-jour-d-apres-l")) }</td>
+                    <td data-label="@L.T("groupe")"><span class="pastille" style="background:@(e.GroupeCouleur ?? "#8d949a")"></span> @(e.GroupeSigle ?? "—")</td>
+                    <td data-label="@L.T("scrutins")" class="num">@e.Scrutins.ToString("N0", fr)</td>
                     <td data-label="Participation" class="num" title="@e.Votants.ToString("N0", fr) / @e.Scrutins.ToString("N0", fr)">@Pct(e.ParticipationPct)</td>
-                    <td data-label="@L.T("presence", "Présence", "Presence")" class="num" title="@((e.Votants - e.Delegations).ToString("N0", fr)) / @e.Scrutins.ToString("N0", fr)">@Pct(e.PresencePct)</td>
-                    <td data-label="@L.T("delegation", "Délégation", "Proxy")" class="num" title="@e.Delegations.ToString("N0", fr) / @e.Scrutins.ToString("N0", fr)">@Pct(e.DelegationPct)</td>
-                    <td data-label="@L.T("mise-au-point", "Mise au point", "Correction")" class="num" title="@e.MisesAuPoint.ToString("N0", fr) / @e.Scrutins.ToString("N0", fr)">@Pct(e.MiseAuPointPct)</td>
-                    <td data-label="@L.T("absence", "Absence", "Absence")" class="num" title="@((e.Scrutins - e.Votants).ToString("N0", fr)) / @e.Scrutins.ToString("N0", fr)">@Pct(e.AbsencePct)</td>
+                    <td data-label="@L.T("presence")" class="num" title="@((e.Votants - e.Delegations).ToString("N0", fr)) / @e.Scrutins.ToString("N0", fr)">@Pct(e.PresencePct)</td>
+                    <td data-label="@L.T("delegation")" class="num" title="@e.Delegations.ToString("N0", fr) / @e.Scrutins.ToString("N0", fr)">@Pct(e.DelegationPct)</td>
+                    <td data-label="@L.T("mise-au-point")" class="num" title="@e.MisesAuPoint.ToString("N0", fr) / @e.Scrutins.ToString("N0", fr)">@Pct(e.MiseAuPointPct)</td>
+                    <td data-label="@L.T("absence")" class="num" title="@((e.Scrutins - e.Votants).ToString("N0", fr)) / @e.Scrutins.ToString("N0", fr)">@Pct(e.AbsencePct)</td>
                 </tr>
             }
             </tbody>
@@ -141,10 +141,10 @@ else
 
     @if (Model.Resultats.NbPages > 1)
     {
-        <nav class="pagination" aria-label="@L.T("pagination", "Pagination", "Pagination")">
-            @if (Model.Resultats.Page > 1) { <a href="@Model.Lien(page: Model.Resultats.Page - 1)" rel="prev">@L.T("precedent", "← Précédent", "← Previous")</a> }
-            <span>@L.T("page", "Page", "Page") @Model.Resultats.Page / @Model.Resultats.NbPages</span>
-            @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">@L.T("suivant", "Suivant →", "Next →")</a> }
+        <nav class="pagination" aria-label="@L.T("pagination")">
+            @if (Model.Resultats.Page > 1) { <a href="@Model.Lien(page: Model.Resultats.Page - 1)" rel="prev">@L.T("precedent")</a> }
+            <span>@L.T("page") @Model.Resultats.Page / @Model.Resultats.NbPages</span>
+            @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">@L.T("suivant")</a> }
         </nav>
     }
     <partial name="_LignesParPage" model="Model" />

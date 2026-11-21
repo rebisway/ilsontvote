@@ -24,7 +24,7 @@ public sealed record TraductionPerimee(string Cle, string FrActuel, string FrTra
 public sealed record TexteATraduire(string Cle, string Fr, string En);
 
 /// <summary>
-/// Traductions de l'interface (table <c>traductions</c>, migrations 042 et 055). La CLÉ est un identifiant STABLE écrit dans la page (<c>L.T("accueil-accroche", "Lois", "Laws")</c>) :
+/// Traductions de l'interface (table <c>traductions</c>, migrations 042 et 055). La CLÉ est un identifiant STABLE écrit dans la page (<c>L.T("accueil-accroche")</c>) :
 /// retoucher la phrase française ou anglaise ne casse jamais ses traductions (l'ancien système prenait le texte français comme clé : une virgule changée et toutes les traductions
 /// retombaient silencieusement sur l'anglais). Le service cherche (langue, clé) ici, puis retombe sur le texte du code. Pourquoi une table : ajouter l'espagnol ou l'italien ne doit pas
 /// obliger à rouvrir chaque page, et corriger une phrase ne doit pas demander un déploiement. Tout est gardé en mémoire (quelques milliers de lignes au plus) : <see cref="Get"/> est appelée
@@ -43,22 +43,23 @@ public sealed class Traductions(DapperContext db, ILogger<Traductions> log)
     private readonly ConcurrentDictionary<(string Langue, string Cle), (string FrActuel, string FrTraduit, string Texte)> _perimees = new();
 
     /// <summary>
-    /// Traduction enregistrée pour (langue, clé), ou null. <paramref name="francais"/> = le texte français ACTUEL de la page : s'il diffère de celui qui a été traduit, la traduction
-    /// est quand même utilisée (mieux qu'un repli anglais) mais signalée « périmée » dans l'administration.
+    /// Texte enregistré pour (langue, clé), ou null. Pour une langue autre que le français et l'anglais, on compare la source française gardée avec la ligne française ACTUELLE : si la phrase
+    /// française a changé depuis la traduction, celle-ci reste utilisée (mieux qu'un repli) mais est signalée « périmée » dans l'administration.
     /// </summary>
-    public string? Get(string langue, string cle, string francais)
+    public string? Lire(string langue, string cle)
     {
         Actualiser();
         if (!_copie.TryGetValue((langue, cle), out var e)) return null;
-        if (e.SourceFr is not null && e.SourceFr != francais) _perimees.TryAdd((langue, cle), (francais, e.SourceFr, e.Texte));
+        if (langue is not ("fr" or "en") && e.SourceFr is not null && _copie.TryGetValue(("fr", cle), out var fr) && fr.Texte != e.SourceFr)
+            _perimees.TryAdd((langue, cle), (fr.Texte, e.SourceFr, e.Texte));
         return e.Texte;
     }
 
     /// <summary>
-    /// Note qu'une page a demandé une traduction absente (langue autre que le français et l'anglais) : l'administration liste ces textes « à traduire », vus depuis le démarrage.
-    /// <paramref name="francais"/> et <paramref name="anglais"/> = les textes du code, pour que le traducteur ait la source sous les yeux.
+    /// Note qu'une page a demandé un texte sans traduction pour cette langue : l'administration liste ces textes « à traduire », vus depuis le démarrage, avec le français et l'anglais sous les yeux.
     /// </summary>
-    public void Manque(string langue, string cle, string francais, string anglais) => _manquants.TryAdd((langue, cle), (francais, anglais));
+    public void Manque(string langue, string cle) =>
+        _manquants.TryAdd((langue, cle), (_copie.TryGetValue(("fr", cle), out var f) ? f.Texte : "", _copie.TryGetValue(("en", cle), out var en) ? en.Texte : ""));
 
     /// <summary>Textes demandés sans traduction pour la langue, depuis le démarrage de l'application.</summary>
     public IReadOnlyList<TexteATraduire> Manquants(string langue) =>
@@ -69,6 +70,13 @@ public sealed class Traductions(DapperContext db, ILogger<Traductions> log)
         // Encore périmée : la ligne enregistrée garde un texte source différent du français actuel (une retraduction enregistrée depuis met la source à jour).
         _perimees.Where(p => p.Key.Langue == langue && _copie.TryGetValue(p.Key, out var e) && e.SourceFr != p.Value.FrActuel)
             .Select(p => new TraductionPerimee(p.Key.Cle, p.Value.FrActuel, p.Value.FrTraduit, p.Value.Texte)).OrderBy(p => p.Cle).ToList();
+
+    /// <summary>Remplace la copie en mémoire par ces lignes, sans lire la base (tests unitaires) ; la copie est considérée à jour pour la durée normale.</summary>
+    public void Remplacer(IEnumerable<LigneTraduction> lignes)
+    {
+        _copie = lignes.ToDictionary(l => (l.Langue, l.Cle), l => new Entree(l.Texte, l.SourceFr));
+        _charge = DateTime.UtcNow;
+    }
 
     /// <summary>Force la relecture au prochain appel (après un enregistrement de l'administration).</summary>
     public void Invalider() => _charge = DateTime.MinValue;
@@ -94,7 +102,7 @@ public sealed class Traductions(DapperContext db, ILogger<Traductions> log)
         catch (Exception ex)
         {
             // Table absente ou base indisponible : on garde la copie précédente et on réessaiera après la durée normale.
-            log.LogWarning(ex, "Traductions : lecture impossible, les textes du code sont utilisés.");
+            log.LogWarning(ex, "Traductions : lecture impossible, la copie précédente est conservée (sans copie, les pages affichent les clés).");
         }
         _charge = DateTime.UtcNow;
     }
