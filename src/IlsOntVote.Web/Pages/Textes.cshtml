@@ -3,7 +3,7 @@
 @using IlsOntVote.Web.Models
 @using IlsOntVote.Web.Services
 @{
-    ViewData["Title"] = Model.Resolutions ? L.T("resolutions") : Model.SitePays ? (L.Pays is "GB" or "IE" or "CA" ? L.T("divisions") : L.T("votes-nominaux")) : L.T("scrutins");
+    ViewData["Title"] = Model.Resolutions ? L.T("resolutions") : Model.SitePays ? (L.Pays is "GB" or "IE" ? L.T("divisions") : L.T("votes-nominaux")) : L.T("scrutins");
     ViewData["Description"] = L.T("tous-les-scrutins-publics-de-l");
     var fr = L.Culture;
 }
@@ -15,7 +15,7 @@
 }
 else
 {
-    <h1 class="titre-page">@(Model.SitePays ? (L.Pays is "GB" or "IE" or "CA" ? L.T("divisions") : L.T("votes-nominaux")) : L.T("scrutins"))</h1>
+    <h1 class="titre-page">@(Model.SitePays ? (L.Pays is "GB" or "IE" ? L.T("divisions") : L.T("votes-nominaux")) : L.T("scrutins"))</h1>
 @* chapô des scrutins : voir plus bas *@
 @if (L.Pays == "US")
 {

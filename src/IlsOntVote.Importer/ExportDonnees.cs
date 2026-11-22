@@ -94,10 +94,10 @@ public static class ExportDonnees
     {
         ["groupes"] = "Caucus (partis) de la Chambre des communes du Canada (un identifiant par législature).",
         ["parlementaires"] = "Députés de la Chambre des communes (identité, circonscription, province).",
-        ["mandats"] = "Périodes de mandat : dates de l'annuaire officiel de la Chambre. Une ligne par législature (colonne legislature).",
+        ["mandats"] = "Périodes de mandat : dates de l'annuaire officiel pour la Chambre des communes ; pour le Sénat, DÉDUITES des listes de votes (premier et dernier vote où le sénateur figure). Une ligne par législature (colonne legislature).",
         ["appartenances_groupes"] = "Appartenance d'un député à un caucus, avec dates officielles de l'annuaire.",
         ["scrutins"] = "Divisions (votes nominaux) de la Chambre des communes : décomptes officiels, résultat (« Agreed To » / « Negatived »), type de document ; sur_ensemble = « 3rd reading » d'un projet de loi (calculé d'après le sujet) ; url_officielle = page officielle de la division.",
-        ["votes"] = "Vote de chaque député à chaque division (pour = Yea, contre = Nay). Les députés qui n'ont pas voté ni ne se sont jumelés ne figurent pas dans ce fichier : ils se déduisent des mandats. Les députés jumelés (« Paired ») ne sont pas des votes : leur nombre est dans la note de la division.",
+        ["votes"] = "Vote de chaque député (ou sénateur) à chaque division ou vote (pour = Yea, contre = Nay, abstention au Sénat). Les députés qui n'ont pas voté ni ne se sont jumelés ne figurent pas dans ce fichier : ils se déduisent des mandats. Les députés jumelés (« Paired ») ne sont pas des votes : leur nombre est dans la note de la division.",
     };
 
     /// <summary>Déclinaison canadienne d'un jeu commun : chambre du Canada, fichier « ca_… », adresse officielle de la division à la place du rattachement aux textes français.</summary>
@@ -144,7 +144,7 @@ public static class ExportDonnees
     {
         "IT" => "CC BY-SA 4.0 (Camera dei deputati, dati.camera.it) ; CC BY 3.0 (Senato della Repubblica, dati.senato.it) — attribution required, share-alike for derived data",
         "CH" => "Parlamentsdienste der Bundesversammlung, Bern (ws.parlament.ch) — data reproduced without modification, source and download date to be credited; totals, results and groups are calculated by this site",
-        "CA" => "House of Commons of Canada (ourcommons.ca) — reproduction permitted if accurate, not presented as official, and not for commercial purposes (Speaker's permission); totals and results as published, sur_ensemble calculated",
+        "CA" => "House of Commons of Canada (ourcommons.ca) and Senate of Canada (sencanada.ca) — reproduction permitted if accurate, not presented as official, and not for commercial purposes (permission of the Speaker of each House); totals and results as published, sur_ensemble calculated",
         "IE" => "Oireachtas (Open Data) PSI Licence, incorporating CC BY 4.0 (Houses of the Oireachtas, api.oireachtas.ie) — attribution required",
         _ => null,
     };

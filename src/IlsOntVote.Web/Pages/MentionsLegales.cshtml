@@ -29,6 +29,7 @@
         "GB" => L.THf("mentions-propriete-gb", L.Lien("/methodologie")),
         _ => L.THf("mentions-propriete-fr", L.Lien("/methodologie")),
     })</p>
+    @if (L.Pays == "CA") { <p>@L.THf("mentions-propriete-ca-senat", L.Lien("/methodologie"))</p> }
     <p>@L.T("mentions-donnees-publiques")</p>
 </section>
 

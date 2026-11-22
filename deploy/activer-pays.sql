@@ -21,6 +21,7 @@ SELECT p.code, p.prefixe_url, p.actif, count(c.*) FILTER (WHERE c.actif) AS cham
 -- UPDATE pays SET actif = true WHERE code = 'CH';
 -- UPDATE chambres SET actif = true WHERE pays = 'CH';
 
--- Canada (Chambre des communes ; permission de la Présidence : reproduction exacte, non officielle, non commerciale). Prérequis : migration 073, tâche `canada` (+ `canada_historique`), puis `stats` et `export`.
+-- Canada (Chambre des communes + Sénat ; permission de la Présidence de chaque chambre : reproduction exacte, non officielle, non commerciale). Prérequis : migrations 073 et 074, tâches `canada` et `canada_senat`
+-- (+ `canada_historique` et `canada_senat_historique`), puis `stats` et `export`. La seconde ligne active les DEUX chambres du pays.
 -- UPDATE pays SET actif = true WHERE code = 'CA';
 -- UPDATE chambres SET actif = true WHERE pays = 'CA';

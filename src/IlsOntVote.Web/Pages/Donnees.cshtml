@@ -36,6 +36,7 @@ else if (L.Pays == "IE")
 else if (L.Pays == "CA")
 {
     <p class="note-source">@L.TH("donnees-ca-fichiers-note")</p>
+    <p class="note-source">@L.TH("donnees-ca-senat-note")</p>
 }
 else if (L.Pays == "IT")
 {
@@ -88,7 +89,7 @@ else
         <div><dt>@Fichier("ca_votes")</dt><dd>@L.TH("ca-votes-def")</dd></div>
         <div><dt>@L.T("absents")</dt><dd>@L.TH("ca-absents-def")</dd></div>
         <div><dt>@Fichier("ca_scrutins")</dt><dd>@L.TH("ca-scrutins-def")</dd></div>
-        <div><dt>@Fichier("chambre")</dt><dd>CACOMMONS (@L.Chambre("CACOMMONS")).</dd></div>
+        <div><dt>@Fichier("chambre")</dt><dd>CACOMMONS (@L.Chambre("CACOMMONS")), CASENATE (@L.Chambre("CASENATE")).</dd></div>
     </dl>
     }
     else if (L.Pays == "IE")
@@ -156,6 +157,7 @@ else
     else if (L.Pays == "CA")
     {
     <p>@L.THf("donnees-sources-canada", L.Lien("/methodologie"))</p>
+    <p>@L.THf("donnees-sources-canada-senat", L.Lien("/methodologie"))</p>
     }
     else if (L.Pays == "IE")
     {

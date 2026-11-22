@@ -75,7 +75,7 @@ return argv[0] switch
     "us" => await ImporterEtatsUnisAsync(),
     "irlande" => await ImporterIrlandeAsync(),
     "suisse" => await ImporterSuisseAsync(),
-    "canada" => await ImporterCanadaAsync(),
+    "canada" => Option("--chambre") == "senat" ? await ImporterCanadaSenatAsync() : await ImporterCanadaAsync(),
     "votations" => await ImporterVotationsAsync(),
     "italie" => Option("--chambre") == "senat" ? await ImporterItalieSenatAsync() : await ImporterItalieAsync(),
     "bills" => await ImporterBillsRoyaumeUniAsync(),
@@ -995,6 +995,98 @@ async Task<int> ImporterCanadaAsync()
             }
         }
         Console.WriteLine($"  {nbScrutins} divisions, {nbVotes:N0} votes individuels.");
+        await repo.TerminerAsync(runId, true, nbScrutins, nbVotes, null);
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex);
+        await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
+        return 1;
+    }
+}
+
+/// <summary>
+/// Sénat du Canada (site officiel <c>sencanada.ca</c>, pages HTML : aucun jeu de données ouvertes pour les votes) : <c>--chambre senat</c>, <c>--legislature N</c> ou plage <c>43-44</c> (la 45e par défaut).
+/// Pour chaque session : liste des votes puis tableau de CHAQUE vote (tous les sénateurs en fonction, une case cochée pour Yea / Nay / Abstention). Pas d'annuaire daté : les mandats et groupes se
+/// DÉDUISENT des listes (premier et dernier vote où le sénateur figure), comme pour l'Union européenne. Un sénateur listé sans case n'a pas voté : absent, non stocké. Lecture incrémentale :
+/// un vote déjà en base n'est relu que s'il a moins de 7 jours (législature en cours). Une page de vote introuvable est ignorée (un décompte sans noms ferait croire à des absents).
+/// </summary>
+async Task<int> ImporterCanadaSenatAsync()
+{
+    Console.WriteLine("=== Sénat du Canada (site officiel sencanada.ca) ===");
+    var runId = await repo.DemarrerAsync("CA-SENAT");
+    try
+    {
+        var spec = Option("--legislature") ?? CanadaSource.Courante.ToString();
+        var bornes = spec.Split('-', 2).Select(int.Parse).ToArray();
+        var legislatures = Enumerable.Range(bornes[0], (bornes.Length > 1 ? bornes[1] : bornes[0]) - bornes[0] + 1).ToList();
+        using var source = new CanadaSenatSource();
+        var existants = await repo.LireSlugsAsync();
+        var slugs = existants.Values.ToHashSet();
+        var seuil = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-7);
+        var (deja, _) = await repo.LireScrutinsAsync(Chambres.CaSenate);
+        int nbScrutins = 0; long nbVotes = 0;
+
+        foreach (var l in legislatures)
+        {
+            // Législature close : les mandats s'écrivent une fois à la fin (début = premier vote, fin = dernier) ; en cours : après chaque lot, le mandat reste ouvert tant que le sénateur figure dans le vote le plus récent.
+            var terminee = l < CanadaSource.Courante;
+            var aLire = new List<VoteSenatCa>();
+            for (var session = 1; session <= 6; session++)
+            {
+                var votes = await source.ListerVotesAsync(l, session);
+                if (votes.Count == 0) break;
+                // La source saute parfois un rang (vote jamais publié dans la liste) : dit au journal, dans la méthodologie.
+                var trous = Enumerable.Range(1, votes.Max(v => v.Ordre)).Except(votes.Select(v => v.Ordre)).ToList();
+                var nouveaux = votes.Where(v => !deja.Contains(CanadaSenatSource.IdScrutin(l, CanadaSenatSource.Numero(v))) || (!terminee && v.Date >= seuil)).ToList();
+                Console.WriteLine($"  Session {l}-{session} : {votes.Count} votes, {nouveaux.Count} à écrire" + (trous.Count > 0 ? $" (rang(s) non publié(s) : {string.Join(", ", trous)})." : "."));
+                aLire.AddRange(nouveaux);
+            }
+
+            var groupes = new Dictionary<string, GroupeRow>();
+            var parlementaires = new Dictionary<string, ParlementaireRow>();
+            var vusTotal = new Dictionary<string, (DateOnly Premier, DateOnly Dernier, string GroupeId)>();
+            // Du plus ancien au plus récent : la reconstruction des mandats suit l'ordre du temps.
+            foreach (var lot in aLire.OrderBy(v => v.Date).ThenBy(v => v.Id).Chunk(25))
+            {
+                var scrutins = new List<ScrutinAvecVotes>();
+                var vus = terminee ? vusTotal : new Dictionary<string, (DateOnly Premier, DateOnly Dernier, string GroupeId)>();
+                foreach (var v in lot)
+                {
+                    var bulletins = await source.LireBulletinsAsync(v);
+                    if (bulletins is null || bulletins.Count == 0) { Console.WriteLine($"      vote {v.Id} ({v.Date:yyyy-MM-dd}) : tableau introuvable, ignoré."); continue; }
+                    scrutins.Add(CanadaSenatSource.VersScrutin(v, bulletins));
+                    // Tous les sénateurs en fonction ce jour-là figurent dans le tableau (avec ou sans case cochée).
+                    foreach (var b in bulletins)
+                    {
+                        var gid = CanadaSenatSource.IdGroupe(l, b.Groupe);
+                        groupes.TryAdd(gid, CanadaSenatSource.Groupe(l, b.Groupe));
+                        var pid = CanadaSenatSource.IdMembre(b.SenateurId);
+                        if (!parlementaires.ContainsKey(pid))
+                        {
+                            var slug = existants.TryGetValue(pid, out var s0) ? s0 : Slugs.Unique(slugs, b.Prenom, b.Nom, pid);
+                            parlementaires[pid] = new ParlementaireRow(pid, Chambres.CaSenate, null, b.Prenom, b.Nom, slug, b.Province, null);
+                        }
+                        vus[pid] = vus.TryGetValue(pid, out var x)
+                            ? (v.Date < x.Premier ? v.Date : x.Premier, v.Date >= x.Dernier ? v.Date : x.Dernier, v.Date >= x.Dernier ? gid : x.GroupeId)
+                            : (v.Date, v.Date, gid);
+                    }
+                    await Task.Delay(200);   // politesse envers le site du Sénat
+                }
+                if (scrutins.Count == 0) continue;
+                await repo.EcrireMembresUeAsync(groupes.Values, parlementaires.Values);   // upsert générique (le nom « Ue » est historique)
+                var annuaire = new Annuaire(groupes.Values.ToList(), parlementaires.Values.ToList(), [], []);
+                var (_, ancienPlusRecent) = await repo.LireScrutinsAsync(Chambres.CaSenate);
+                var (n, v2, _) = await repo.EcrireScrutinsAsync(scrutins, annuaire);
+                if (!terminee) await repo.EcrireMandatsDeduitsAsync(Chambres.CaSenate, l, vus, ancienPlusRecent);
+                nbScrutins += n; nbVotes += v2;
+                Console.WriteLine($"  Législature {l} : {nbScrutins}/{aLire.Count} votes écrits…");
+            }
+            if (terminee && vusTotal.Count > 0) await repo.EcrireMandatsDeduitsAsync(Chambres.CaSenate, l, vusTotal, null, terminee: true);
+            Console.WriteLine($"  Législature {l} : {parlementaires.Count} sénateurs, {groupes.Count} groupes.");
+        }
+        Console.WriteLine($"  {nbScrutins} votes, {nbVotes:N0} votes individuels.");
         await repo.TerminerAsync(runId, true, nbScrutins, nbVotes, null);
         return 0;
     }

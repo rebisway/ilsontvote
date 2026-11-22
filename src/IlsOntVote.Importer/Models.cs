@@ -16,6 +16,7 @@ public static class Chambres
     public const string ChNr = "CHNR";
     public const string ChSr = "CHSR";
     public const string CaCommons = "CACOMMONS";
+    public const string CaSenate = "CASENATE";
 }
 
 /// <summary>Position d'un vote, telle que stockée en base (colonne votes.position).</summary>

@@ -129,6 +129,8 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AddPageRoute("/Parlementaire", "/senatore/{slug}");
     options.Conventions.AddPageRoute("/Parlementaires", "/mps");
     options.Conventions.AddPageRoute("/Parlementaire", "/mp/{slug}");
+    options.Conventions.AddPageRoute("/Parlementaires", "/canadian-senators");
+    options.Conventions.AddPageRoute("/Parlementaire", "/canadian-senator/{slug}");
     options.Conventions.AddPageRoute("/Parlementaires", "/tds");
     options.Conventions.AddPageRoute("/Parlementaire", "/td/{slug}");
     options.Conventions.AddPageRoute("/Parlementaires", "/seanad");
