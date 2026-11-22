@@ -149,11 +149,12 @@
                 {
                     @* Italie : votes de la Chambre, députés, participation, statistiques, données. *@
                     <a href="@L.Lien("/textes")" @Html.Raw(Actif("/textes") + Actif("/scrutin"))>@L.T("votes-nominaux")</a>
-                    <details class="plus" @Html.Raw(Actif("/deput") + Actif("/senator") + Actif("/elus") != "" ? "data-actif" : "")>
+                    <details class="plus" @Html.Raw(Actif("/deput") + Actif("/senator") + Actif("/eurodepute") + Actif("/elus") != "" ? "data-actif" : "")>
                         <summary>@L.T("parlementaires")</summary>
                         <div class="plus-liste">
                             <a href="@L.Lien("/deputies")" @Html.Raw(Actif("/deput"))>@L.T("deputes")</a>
                             <a href="@L.Lien("/senatori")" @Html.Raw(Actif("/senator"))>@L.T("senateurs")</a>
+                            <a href="@L.Lien("/eurodeputes")" @Html.Raw(Actif("/eurodepute"))>@L.T("eurodeputes")</a>
                             <hr class="plus-sep" />
                             <a href="@L.Lien("/elus")" @Html.Raw(Actif("/elus"))>@L.T("participation-21bf")</a>
                         </div>
@@ -205,11 +206,12 @@
                 {
                     @* Irlande : divisions, députés (TDs) et sénateurs, participation, statistiques, données. *@
                     <a href="@L.Lien("/textes")" @Html.Raw(Actif("/textes") + Actif("/scrutin"))>@L.T("scrutins-divisions")</a>
-                    <details class="plus" @Html.Raw(Actif("/td") + Actif("/seanad") + Actif("/elus") != "" ? "data-actif" : "")>
+                    <details class="plus" @Html.Raw(Actif("/td") + Actif("/seanad") + Actif("/eurodepute") + Actif("/elus") != "" ? "data-actif" : "")>
                         <summary>@L.T("parlementaires")</summary>
                         <div class="plus-liste">
                             <a href="@L.Lien("/tds")" @Html.Raw(Actif("/td"))>@L.T("deputes-tds")</a>
                             <a href="@L.Lien("/seanad")" @Html.Raw(Actif("/seanad"))>@L.T("senateurs")</a>
+                            <a href="@L.Lien("/eurodeputes")" @Html.Raw(Actif("/eurodepute"))>@L.T("eurodeputes")</a>
                             <hr class="plus-sep" />
                             <a href="@L.Lien("/elus")" @Html.Raw(Actif("/elus"))>@L.T("participation-21bf")</a>
                         </div>

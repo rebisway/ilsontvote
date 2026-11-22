@@ -61,8 +61,12 @@ public sealed class PaysSite(DapperContext db)
     public string[] ChambresVisibles(string? paysSite)
     {
         if (_chambres.Count == 0) return paysSite is null ? ["AN", "SENAT", "UE"] : [];
-        return _chambres.Where(c => paysSite is null ? c.Pays is "FR" or "EU" : c.Pays == paysSite).Select(c => c.Code).ToArray();
+        // Le Parlement européen (pays « EU ») est AUSSI visible sur le site d'un pays qui a ses eurodéputés (AvecParlementEuropeen) : mêmes données et mêmes pages que sur le site français (aucun filtre par pays).
+        return _chambres.Where(c => paysSite is null ? c.Pays is "FR" or "EU" : c.Pays == paysSite || (c.Pays == "EU" && AvecParlementEuropeen(paysSite))).Select(c => c.Code).ToArray();
     }
+
+    /// <summary>Pays dont le site montre le Parlement européen (en plus de la France) : l'Italie et l'Irlande, États membres. Les données ne sont PAS filtrées par pays : comme sur le site français.</summary>
+    public static bool AvecParlementEuropeen(string? paysSite) => paysSite is "IT" or "IE";
 
     /// <summary>
     /// Pays à préfixe pour lesquels le site propose les pages britanniques-seulement (projets de loi, pétitions) : le Royaume-Uni. Les autres pays (États-Unis…) n'ont que les
