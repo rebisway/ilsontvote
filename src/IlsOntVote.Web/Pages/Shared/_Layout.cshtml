@@ -127,7 +127,7 @@
                 }
                 @{
                     var textesActif = chemin.StartsWith("/lois", StringComparison.OrdinalIgnoreCase) || chemin.StartsWith("/texte", StringComparison.OrdinalIgnoreCase) || chemin.StartsWith("/scrutin", StringComparison.OrdinalIgnoreCase) || chemin.StartsWith("/petition", StringComparison.OrdinalIgnoreCase);
-                    var elusActif = chemin.StartsWith("/depute", StringComparison.OrdinalIgnoreCase) || chemin.StartsWith("/senateur", StringComparison.OrdinalIgnoreCase) || chemin.StartsWith("/eurodepute", StringComparison.OrdinalIgnoreCase);
+                    var elusActif = chemin.StartsWith("/depute", StringComparison.OrdinalIgnoreCase) || chemin.StartsWith("/senateur", StringComparison.OrdinalIgnoreCase) || chemin.StartsWith("/eurodepute", StringComparison.OrdinalIgnoreCase) || chemin.StartsWith("/elus", StringComparison.OrdinalIgnoreCase);
                 }
                 @if (L.Pays == "US")
                 {
@@ -138,6 +138,7 @@
                         <div class="plus-liste">
                             <a href="@L.Lien("/representatives")" @Html.Raw(Actif("/representative"))>@L.T("representants")</a>
                             <a href="@L.Lien("/senators")" @Html.Raw(Actif("/senator"))>@L.T("senateurs")</a>
+                            <hr class="plus-sep" />
                             <a href="@L.Lien("/elus")" @Html.Raw(Actif("/elus"))>@L.T("participation-21bf")</a>
                         </div>
                     </details>
@@ -153,6 +154,7 @@
                         <div class="plus-liste">
                             <a href="@L.Lien("/deputies")" @Html.Raw(Actif("/deput"))>@L.T("deputes")</a>
                             <a href="@L.Lien("/senatori")" @Html.Raw(Actif("/senator"))>@L.T("senateurs")</a>
+                            <hr class="plus-sep" />
                             <a href="@L.Lien("/elus")" @Html.Raw(Actif("/elus"))>@L.T("participation-21bf")</a>
                         </div>
                     </details>
@@ -167,6 +169,7 @@
                         <summary>@L.T("textes")</summary>
                         <div class="plus-liste">
                             <a href="@L.Lien("/textes")" @Html.Raw(Actif("/textes") + Actif("/scrutin"))>@L.T("votes-nominaux")</a>
+                            <hr class="plus-sep" />
                             <a href="@L.Lien("/votations")" @Html.Raw(Actif("/votation"))>@L.T("votations-titre")</a>
                         </div>
                     </details>
@@ -175,6 +178,7 @@
                         <div class="plus-liste">
                             <a href="@L.Lien("/conseillers-nationaux")" @Html.Raw(Actif("/conseiller-national") + Actif("/conseillers-nationaux"))>@L.T("conseillers-nationaux")</a>
                             <a href="@L.Lien("/conseillers-etats")" @Html.Raw(Actif("/conseiller-etats") + Actif("/conseillers-etats"))>@L.T("conseillers-aux-etats")</a>
+                            <hr class="plus-sep" />
                             <a href="@L.Lien("/elus")" @Html.Raw(Actif("/elus"))>@L.T("participation-21bf")</a>
                         </div>
                     </details>
@@ -190,6 +194,7 @@
                         <div class="plus-liste">
                             <a href="@L.Lien("/mps")" @Html.Raw(Actif("/mp"))>@L.T("deputes-canadiens")</a>
                             <a href="@L.Lien("/canadian-senators")" @Html.Raw(Actif("/canadian-senator"))>@L.T("senateurs")</a>
+                            <hr class="plus-sep" />
                             <a href="@L.Lien("/elus")" @Html.Raw(Actif("/elus"))>@L.T("participation-21bf")</a>
                         </div>
                     </details>
@@ -205,6 +210,7 @@
                         <div class="plus-liste">
                             <a href="@L.Lien("/tds")" @Html.Raw(Actif("/td"))>@L.T("deputes-tds")</a>
                             <a href="@L.Lien("/seanad")" @Html.Raw(Actif("/seanad"))>@L.T("senateurs")</a>
+                            <hr class="plus-sep" />
                             <a href="@L.Lien("/elus")" @Html.Raw(Actif("/elus"))>@L.T("participation-21bf")</a>
                         </div>
                     </details>
@@ -222,6 +228,7 @@
                             <a href="@L.Lien("/bills")" @Html.Raw(Actif("/bill"))>@L.T("projets-de-loi-eb82")</a> }
                             <a href="@L.Lien("/textes")" @Html.Raw(Actif("/textes") + Actif("/scrutin"))>@L.T("scrutins-divisions")</a>
                             @if (PaysSite.APetitionsEtProjets(L.Pays)) {
+                            <hr class="plus-sep" />
                             <a href="@L.Lien("/petitions")" @Html.Raw(Actif("/petition"))>@L.T("petitions")</a> }
                         </div>
                     </details>
@@ -230,7 +237,8 @@
                         <div class="plus-liste">
                             <a href="@L.Lien("/members")" @Html.Raw(Actif("/member"))>@L.T("deputes-d9dd")</a>
                             <a href="@L.Lien("/lords")" @Html.Raw(Actif("/lord"))>@L.T("pairs-lords")</a>
-                            <a href="@L.Lien("/elus")" @Html.Raw(Actif("/elus"))>@L.T("presence-e3f1")</a>
+                            <hr class="plus-sep" />
+                            <a href="@L.Lien("/elus")" @Html.Raw(Actif("/elus"))>@L.T("participation-21bf")</a>
                         </div>
                     </details>
                     <a href="@L.Lien("/statistiques")" @Html.Raw(Actif("/statistiques"))>@L.T("statistiques")</a>
@@ -245,6 +253,7 @@
                         <a href="@L.Lien("/lois")" @Html.Raw(Actif("/lois")) @Html.Raw(Actif("/texte/"))>@L.T("lois-b08d")</a>
                         <a href="@L.Lien("/textes")" @Html.Raw(Actif("/scrutin") + (chemin.StartsWith("/textes", StringComparison.OrdinalIgnoreCase) && !resolutions ? " aria-current=\"page\"" : ""))>@L.T("scrutins")</a>
                         <a href="@L.Lien("/textes")?nature=resolution" @Html.Raw(chemin.StartsWith("/textes", StringComparison.OrdinalIgnoreCase) && resolutions ? "aria-current=\"page\"" : "")>@L.T("resolutions")</a>
+                        <hr class="plus-sep" />
                         <a href="@L.Lien("/petitions")" @Html.Raw(Actif("/petitions"))>@L.T("petitions")</a>
                     </div>
                 </details>
@@ -254,6 +263,8 @@
                         <a href="@L.Lien("/deputes")" @Html.Raw(Actif("/depute"))>@L.T("deputes")</a>
                         <a href="@L.Lien("/senateurs")" @Html.Raw(Actif("/senateur"))>@L.T("senateurs")</a>
                         <a href="@L.Lien("/eurodeputes")" @Html.Raw(Actif("/eurodepute"))>@L.T("eurodeputes")</a>
+                        <hr class="plus-sep" />
+                        <a href="@L.Lien("/elus")" @Html.Raw(Actif("/elus"))>@L.T("participation-21bf")</a>
                     </div>
                 </details>
                 <a href="@L.Lien("/statistiques")" @Html.Raw(Actif("/statistiques"))>@L.T("statistiques")</a>

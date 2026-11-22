@@ -640,6 +640,7 @@ html[data-ordre="nom-prenom"] .np-n { order: -1; text-transform: uppercase; font
 .menu .plus summary::after { content: " ▾"; font-size: 0.8em; }
 .menu .plus summary:hover, .menu .plus[open] summary { color: var(--ink); }
 .menu .plus[data-actif] summary { color: var(--ink); border-bottom-color: var(--contre); }
+.menu .plus-sep { border: 0; border-top: 1px solid var(--line); margin: 6px 0; width: 100%; }
 .menu .plus-liste { position: absolute; left: 0; top: calc(100% + 6px); z-index: 20; min-width: 170px; display: flex; flex-direction: column; background: var(--paper, var(--bg)); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; box-shadow: 0 6px 18px rgba(0,0,0,.18); }
 .menu .plus-liste a { padding: 8px 0; }
 @media (max-width: 720px) {
