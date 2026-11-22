@@ -232,7 +232,7 @@ public sealed class ItalyCameraSource : IDisposable
         var scrutin = new ScrutinRow(
             id, Chambres.ItCamera, v.Legislature, Numero(v), v.Date, titre, "roll call", v.Approvata ? "adopté" : "rejeté", v.Fiche, v.Finale,
             v.Presenti, v.Favorevoli, v.Contrari, v.Astenuti, 0, null, manquants, string.Join(" ", notes),
-            v.Tipo.Length > 0 ? v.Tipo : null, "Simple majority of those voting (abstentions not counted)", v.Votanti, v.Maggioranza, titre);
+            v.Tipo.Length > 0 ? v.Tipo : null, "Simple majority of those voting (abstentions not counted)", v.Votanti, v.Maggioranza, titre, v.Fiducia);   // question de confiance : drapeau OFFICIEL de la source (richiestaFiducia)
         return new ScrutinAvecVotes(scrutin, lignes);
     }
 

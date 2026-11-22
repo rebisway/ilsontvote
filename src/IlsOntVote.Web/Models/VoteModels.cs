@@ -105,6 +105,8 @@ public sealed class Scrutin
 {
     /// <summary>Thèmes APPROXIMATIFS (mots-clés du titre, migration 048) : codes de la table <c>themes</c> ; vide = aucun thème repéré.</summary>
     public string[] Themes { get; set; } = [];
+    /// <summary>Question de confiance (Italie : le gouvernement engage sa responsabilité sur le texte ; drapeau officiel de la source). Équivalent italien le plus proche du 49.3, mais le vote a bien lieu.</summary>
+    public bool Confiance { get; set; }
     public string Id { get; set; } = "";
     public string Chambre { get; set; } = Chambres.AN;
     public int Legislature { get; set; }

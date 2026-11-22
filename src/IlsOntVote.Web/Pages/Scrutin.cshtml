@@ -61,6 +61,7 @@
     <p class="meta">
         @L.Chambre(s.Chambre) · @if (s.Chambre is Chambres.IeDail or Chambres.IeSeanad) { <text>@L.T("division") · </text> } else { <text>@(s.Chambre is Chambres.Commons or Chambres.Lords or Chambres.CaCommons ? L.T("division-n") : Chambres.EstNominal(s.Chambre) ? L.T("vote-nominal-n") : L.T("scrutin-n")) @s.Numero · </text> }<time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMMM yyyy", fr)</time>
         @if (s.Sort is not null) { <text>· </text><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("adopte") : L.T("rejete"))</span> }
+        @if (s.Confiance) { <span class="tag-493" title="@L.T("confiance-infobulle")" tabindex="0">@L.T("confiance-etiquette")</span> }
     </p>
     <h1>@Titres.Court(titre, 400)</h1>
     @if (titre.Length > 400) { <details class="titre-complet"><summary>@L.T("titre-complet")</summary><p>@titre</p></details> }

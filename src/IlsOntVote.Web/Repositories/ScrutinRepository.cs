@@ -38,7 +38,7 @@ public sealed class ScrutinRepository(DapperContext db, PaysSite site, Langue la
         id, chambre, legislature, numero, date_scrutin, titre, titre_en, titre_en_auto, titre_fr_auto, sort, type_vote, sur_ensemble,
         nb_votants, nb_pour, nb_contre, nb_abstentions, nb_non_votants, featured_title,
         nominatif_incomplet, nb_votes_manquants, note,
-        type_vote_libelle, type_majorite, suffrages_exprimes, suffrages_requis, dossier_ref, themes
+        type_vote_libelle, type_majorite, suffrages_exprimes, suffrages_requis, dossier_ref, themes, confiance
         """;
 
     public async Task<IReadOnlyList<Scrutin>> GetDernieresAsync(string chambre, int max)

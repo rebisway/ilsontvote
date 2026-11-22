@@ -140,7 +140,7 @@ else
                     <td class="nowrap" data-label="@L.T("date")"><time datetime="@s.DateScrutin.ToString("yyyy-MM-dd")">@s.DateScrutin.ToString("d MMM yyyy", fr)</time></td>
                     <td data-label="@L.T("chambre-accd")"><span class="chambre-tag @Chambres.ClasseTag(s.Chambre)">@L.ChambreCourt(s.Chambre)</span></td>
                     <td><a href="@L.Lien("/scrutin/" + s.Id)" title="@Titres.Info(s.TitreLangue(L.Anglais), s.InfobulleTitre(L))">@Titres.Court(s.TitreLangue(L.Anglais))</a></td>
-                    <td data-label="@L.T("resultat")"><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("adopte") : L.T("rejete"))</span></td>
+                    <td data-label="@L.T("resultat")"><span class="sort @(s.Adopte ? "adopte" : "rejete")">@(s.Adopte ? L.T("adopte") : L.T("rejete"))</span> @if (s.Confiance) { <span class="tag-493" title="@L.T("confiance-infobulle")" tabindex="0">@L.T("confiance-etiquette")</span> }</td>
                     <td class="num" data-label="@L.T("pour-2ecc")">@s.NbPour</td><td class="num" data-label="@L.T("contre-b885")">@s.NbContre</td><td class="num" data-label="@L.T("abstentions")">@s.NbAbstentions</td>
                 </tr>
             }

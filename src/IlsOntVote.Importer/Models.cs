@@ -96,7 +96,8 @@ public sealed record ScrutinRow(
     string? TypeMajorite = null,
     int? SuffragesExprimes = null,
     int? SuffragesRequis = null,
-    string? TitreEn = null);
+    string? TitreEn = null,
+    bool Confiance = false);
 
 /// <summary>
 /// Un vote enregistré. <c>Position</c> est la position FINALE (après mise au

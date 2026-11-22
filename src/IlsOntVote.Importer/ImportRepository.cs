@@ -924,11 +924,11 @@ public sealed class ImportRepository(string connectionString)
                 INSERT INTO scrutins (id, chambre, legislature, numero, date_scrutin, titre, type_vote, sort, dossier_ref,
                                       sur_ensemble, nb_votants, nb_pour, nb_contre, nb_abstentions, nb_non_votants, mode_publication,
                                       nb_votes_manquants, nominatif_incomplet, note,
-                                      type_vote_libelle, type_majorite, suffrages_exprimes, suffrages_requis, titre_en)
+                                      type_vote_libelle, type_majorite, suffrages_exprimes, suffrages_requis, titre_en, confiance)
                 VALUES (@Id, @Chambre, @Legislature, @Numero, @DateScrutin, @Titre, @TypeVote, @Sort, @DossierRef,
                         @SurEnsemble, @NbVotants, @NbPour, @NbContre, @NbAbstentions, @NbNonVotants, @ModePublication,
                         @NbVotesManquants, @NbVotesManquants > 0, @Note,
-                        @TypeVoteLibelle, @TypeMajorite, @SuffragesExprimes, @SuffragesRequis, @TitreEn)
+                        @TypeVoteLibelle, @TypeMajorite, @SuffragesExprimes, @SuffragesRequis, @TitreEn, @Confiance)
                 ON CONFLICT (id) DO UPDATE SET titre = EXCLUDED.titre, titre_fr_auto = false, type_vote = EXCLUDED.type_vote, sort = EXCLUDED.sort,
                     dossier_ref = EXCLUDED.dossier_ref, sur_ensemble = EXCLUDED.sur_ensemble,
                     nb_votants = EXCLUDED.nb_votants, nb_pour = EXCLUDED.nb_pour, nb_contre = EXCLUDED.nb_contre,
@@ -937,7 +937,7 @@ public sealed class ImportRepository(string connectionString)
                     nb_votes_manquants = EXCLUDED.nb_votes_manquants, nominatif_incomplet = EXCLUDED.nominatif_incomplet,
                     note = EXCLUDED.note, type_vote_libelle = EXCLUDED.type_vote_libelle,
                     type_majorite = EXCLUDED.type_majorite, suffrages_exprimes = EXCLUDED.suffrages_exprimes,
-                    suffrages_requis = EXCLUDED.suffrages_requis,
+                    suffrages_requis = EXCLUDED.suffrages_requis, confiance = EXCLUDED.confiance,
                     -- titre_en : seulement quand la source en fournit un (UE) ; une traduction automatique déjà enregistrée n'est jamais effacée.
                     titre_en = COALESCE(EXCLUDED.titre_en, scrutins.titre_en)
                 """,
@@ -948,7 +948,7 @@ public sealed class ImportRepository(string connectionString)
                     l.Scrutin.Titre, l.Scrutin.TypeVote, l.Scrutin.Sort, l.Scrutin.DossierRef, l.Scrutin.SurEnsemble,
                     l.Scrutin.NbVotants, l.Scrutin.NbPour, l.Scrutin.NbContre, l.Scrutin.NbAbstentions,
                     l.Scrutin.NbNonVotants, l.Scrutin.ModePublication, l.Scrutin.NbVotesManquants, l.Scrutin.Note,
-                    l.Scrutin.TypeVoteLibelle, l.Scrutin.TypeMajorite, l.Scrutin.SuffragesExprimes, l.Scrutin.SuffragesRequis, l.Scrutin.TitreEn,
+                    l.Scrutin.TypeVoteLibelle, l.Scrutin.TypeMajorite, l.Scrutin.SuffragesExprimes, l.Scrutin.SuffragesRequis, l.Scrutin.TitreEn, l.Scrutin.Confiance,
                 }), tx);
 
             // Les votes d'un scrutin sont REMPLACÉS en bloc (suppression puis COPY) : plus simple et plus sûr qu'un
