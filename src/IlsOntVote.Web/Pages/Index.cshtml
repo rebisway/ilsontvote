@@ -33,7 +33,7 @@
         <div class="chambre-tete">
             <h2>@L.Chambre(section.Chambre)</h2>
             <p class="actions-chambre">
-                <a class="bouton-lien" href="@L.Lien("/textes")?chambre=@Chambres.Filtre(section.Chambre)">@(section.Chambre is Chambres.Commons or Chambres.Lords or Chambres.IeDail or Chambres.IeSeanad ? L.T("toutes-les-divisions") : Chambres.EstNominal(section.Chambre) ? L.T("tous-les-votes-nominaux") : L.T("tous-les-textes"))</a>
+                <a class="bouton-lien" href="@L.Lien("/textes")?chambre=@Chambres.Filtre(section.Chambre)">@(section.Chambre is Chambres.Commons or Chambres.Lords or Chambres.CaCommons or Chambres.IeDail or Chambres.IeSeanad ? L.T("toutes-les-divisions") : Chambres.EstNominal(section.Chambre) ? L.T("tous-les-votes-nominaux") : L.T("tous-les-textes"))</a>
                 @if (Chambres.AUneFiche(section.Chambre)) {
                     <a class="bouton-lien" href="@L.Lien("/" + Chambres.Liste(section.Chambre))">@L.T("tous-les")@L.Membres(section.Chambre)</a>
                 }

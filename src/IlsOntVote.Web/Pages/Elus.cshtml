@@ -4,7 +4,7 @@
 @using IlsOntVote.Web.Services
 @{
     var lords = Model.ChambreCode == Chambres.Lords;
-    var titreElus = lords ? L.T("participation-aux-votes-des-pairs") : L.Pays == "US" ? L.T("participation-aux-votes-des-elus-du") : L.Pays == "CH" ? L.T("participation-aux-votes-du-parlement-suisse") : L.Pays == "IE" ? L.T("participation-aux-votes-des-parlementaires-i") : L.Pays == "IT" ? L.T("participation-aux-votes-des-parlementaires-i-0aa4") : L.T("taux-de-presence-des-elus");
+    var titreElus = lords ? L.T("participation-aux-votes-des-pairs") : L.Pays == "US" ? L.T("participation-aux-votes-des-elus-du") : L.Pays == "CH" ? L.T("participation-aux-votes-du-parlement-suisse") : L.Pays == "CA" ? L.T("elus-titre-ca") : L.Pays == "IE" ? L.T("participation-aux-votes-des-parlementaires-i") : L.Pays == "IT" ? L.T("participation-aux-votes-des-parlementaires-i-0aa4") : L.T("taux-de-presence-des-elus");
     ViewData["Title"] = titreElus;
     ViewData["Description"] = L.T("tous-les-elus-avec-leur-taux");
     var fr = L.Culture;

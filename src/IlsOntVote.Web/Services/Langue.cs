@@ -81,7 +81,7 @@ public sealed class Langue(IHttpContextAccessor accessor, Traductions? traductio
     // (« chambre.SENAT.nom »), jamais du libellé.
     /// <summary>Nom du site dans la langue courante (« Ils ont voté », « They voted », « Hanno votato », « Sie haben abgestimmt »).</summary>
     public string Marque => Pays == "CH" ? Code switch { "de" => "Sie haben abgestimmt", "it" => "Hanno votato", _ => "Ils ont voté" }
-        : Code == "it" ? "Hanno votato" : Pays is not null ? "They voted" : "Ils ont voté";
+        : Code == "it" ? "Hanno votato" : Pays is not null && !(Pays == "CA" && Code == "fr") ? "They voted" : "Ils ont voté";
 
     /// <summary>La marque avec le dernier mot en rouge (<c>&lt;em&gt;</c>), comme dans l'en-tête du site.</summary>
     public HtmlString MarqueHtml

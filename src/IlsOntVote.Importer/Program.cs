@@ -22,7 +22,7 @@ int[] LegislaturesCompletes = [15, 16, 17];
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var argv = args.ToList();
-if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements" or "communes" or "lords" or "us" or "italie" or "irlande" or "suisse" or "votations" or "themes" or "bills"))
+if (argv.Count == 0 || argv[0] is not ("an" or "senat" or "textes" or "ue" or "stats" or "dossiers" or "traductions" or "export" or "petitions" or "planificateur" or "amendements" or "communes" or "lords" or "us" or "italie" or "irlande" or "canada" or "suisse" or "votations" or "themes" or "bills"))
 {
     Console.Error.WriteLine("Usage : IlsOntVote.Importer an [--legislature 17|15,16,17|all] [--scrutins-dir D --amo-dir D]");
     Console.Error.WriteLine("        IlsOntVote.Importer senat [--senateurs-dir D --dosleg-sql F]");
@@ -75,6 +75,7 @@ return argv[0] switch
     "us" => await ImporterEtatsUnisAsync(),
     "irlande" => await ImporterIrlandeAsync(),
     "suisse" => await ImporterSuisseAsync(),
+    "canada" => await ImporterCanadaAsync(),
     "votations" => await ImporterVotationsAsync(),
     "italie" => Option("--chambre") == "senat" ? await ImporterItalieSenatAsync() : await ImporterItalieAsync(),
     "bills" => await ImporterBillsRoyaumeUniAsync(),
@@ -932,6 +933,77 @@ async Task<int> ImporterSuisseAsync()
     // Identifiants de conseillers (numéro de personne) connus pour un conseil : ceux de l'annuaire qu'on vient d'écrire.
     static HashSet<int> parlementairesDe(Dictionary<string, Annuaire> a, string conseil) =>
         a.TryGetValue(conseil, out var an) ? an.Parlementaires.Select(p => int.Parse(p.Id[(p.Id.LastIndexOf('-') + 1)..])).ToHashSet() : [];
+}
+
+/// <summary>
+/// Chambre des communes du Canada (données ouvertes officielles) : <c>--legislature N</c> ou plage <c>43-44</c> (la 45e par défaut). Annuaire daté (mandats, caucus), puis liste des votes
+/// de chaque session et détail de chaque division. Les absents se déduisent des mandats ; les jumelés ne sont pas des votes (dits dans la note). Lecture incrémentale : une division déjà en base
+/// n'est relue que si elle a moins de 7 jours. Une division dont le détail est introuvable est ignorée (un décompte sans noms ferait croire à des absents).
+/// </summary>
+async Task<int> ImporterCanadaAsync()
+{
+    Console.WriteLine("=== Chambre des communes du Canada (données ouvertes officielles) ===");
+    var runId = await repo.DemarrerAsync("CA");
+    try
+    {
+        var spec = Option("--legislature") ?? CanadaSource.Courante.ToString();
+        var bornes = spec.Split('-', 2).Select(int.Parse).ToArray();
+        var legislatures = Enumerable.Range(bornes[0], (bornes.Length > 1 ? bornes[1] : bornes[0]) - bornes[0] + 1).ToList();
+        using var source = new CanadaSource();
+        var existants = await repo.LireSlugsAsync();
+        var slugs = existants.Values.ToHashSet();
+        var seuil = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-7);
+        int nbScrutins = 0; long nbVotes = 0;
+
+        foreach (var l in legislatures)
+        {
+            var membres = await source.LireMembresAsync(l);
+            var caucus = membres.SelectMany(x => x.Partis).Select(p => p.Nom).Distinct().Select(n => CanadaSource.Groupe(l, n)).ToList();
+            var parlementaires = membres.Select(x =>
+            {
+                var pid = CanadaSource.IdMembre(x.PersonId);
+                var slug = existants.TryGetValue(pid, out var s0) ? s0 : Slugs.Unique(slugs, x.Prenom, x.Nom, pid);
+                return new ParlementaireRow(pid, Chambres.CaCommons, null, x.Prenom, x.Nom, slug, x.Province, x.Circonscription);
+            }).ToList();
+            var mandats = membres.Select(x => new MandatRow(CanadaSource.IdMembre(x.PersonId), l, x.Debut, x.Fin)).ToList();
+            var appartenances = membres.SelectMany(x => x.Partis.Select(p => new AppartenanceRow(CanadaSource.IdMembre(x.PersonId), CanadaSource.IdGroupe(l, p.Nom), p.Debut, p.Fin))).ToList();
+            await repo.EcrireAnnuaireAsync(new Annuaire(caucus, parlementaires, mandats, appartenances), Chambres.CaCommons, [l]);
+            var annuaire = new Annuaire(caucus, parlementaires, [], []);
+            var (deja, _) = await repo.LireScrutinsAsync(Chambres.CaCommons);
+            var parId = membres.ToDictionary(x => x.PersonId);
+            Console.WriteLine($"  Législature {l} : {membres.Count} députés, {caucus.Count} caucus.");
+
+            for (var session = 1; session <= 6; session++)
+            {
+                var divisions = await source.ListerDivisionsAsync(l, session);
+                if (divisions.Count == 0) break;
+                var terminee = membres.All(x => x.Fin is not null);
+                var aEcrire = divisions.Where(d => !deja.Contains(CanadaSource.IdScrutin(l, CanadaSource.Numero(d))) || (!terminee && DateOnly.FromDateTime(d.DateHeure) >= seuil)).ToList();
+                Console.WriteLine($"    Session {l}-{session} : {divisions.Count} divisions, {aEcrire.Count} à écrire.");
+                var inconnus = new HashSet<int>();
+                var lot = new List<ScrutinAvecVotes>();
+                foreach (var d in aEcrire)
+                {
+                    var bulletins = await source.LireBulletinsAsync(d);
+                    if (bulletins is null) { Console.WriteLine($"      division {d.Numero} : détail introuvable, ignorée."); continue; }
+                    lot.Add(CanadaSource.VersScrutin(d, bulletins, parId, inconnus));
+                    if (lot.Count >= 50) { var (n, v2, _) = await repo.EcrireScrutinsAsync(lot, annuaire); nbScrutins += n; nbVotes += v2; lot.Clear(); }
+                    await Task.Delay(150);   // politesse envers le serveur de la Chambre
+                }
+                if (lot.Count > 0) { var (n, v2, _) = await repo.EcrireScrutinsAsync(lot, annuaire); nbScrutins += n; nbVotes += v2; }
+                if (inconnus.Count > 0) Console.WriteLine($"      {inconnus.Count} identifiant(s) de député sans fiche ignoré(s).");
+            }
+        }
+        Console.WriteLine($"  {nbScrutins} divisions, {nbVotes:N0} votes individuels.");
+        await repo.TerminerAsync(runId, true, nbScrutins, nbVotes, null);
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex);
+        await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
+        return 1;
+    }
 }
 
 /// <summary>

@@ -88,6 +88,22 @@ public static class ExportDonnees
     private static JeuDonnees PourSuisse(JeuDonnees j) => new("ch_" + j.Nom, DescriptionsCh.GetValueOrDefault(j.Nom, j.Description),
         j.Sql.Replace(ChambresActives, ChambresCh).Replace("nominatif_incomplet, texte_id, texte_lie_id", "nominatif_incomplet, dossier_ref AS url_officielle"), "CH");
 
+    private const string ChambresCa = "chambre IN (SELECT code FROM chambres WHERE actif AND pays = 'CA')";
+
+    private static readonly Dictionary<string, string> DescriptionsCa = new()
+    {
+        ["groupes"] = "Caucus (partis) de la Chambre des communes du Canada (un identifiant par législature).",
+        ["parlementaires"] = "Députés de la Chambre des communes (identité, circonscription, province).",
+        ["mandats"] = "Périodes de mandat : dates de l'annuaire officiel de la Chambre. Une ligne par législature (colonne legislature).",
+        ["appartenances_groupes"] = "Appartenance d'un député à un caucus, avec dates officielles de l'annuaire.",
+        ["scrutins"] = "Divisions (votes nominaux) de la Chambre des communes : décomptes officiels, résultat (« Agreed To » / « Negatived »), type de document ; sur_ensemble = « 3rd reading » d'un projet de loi (calculé d'après le sujet) ; url_officielle = page officielle de la division.",
+        ["votes"] = "Vote de chaque député à chaque division (pour = Yea, contre = Nay). Les députés qui n'ont pas voté ni ne se sont jumelés ne figurent pas dans ce fichier : ils se déduisent des mandats. Les députés jumelés (« Paired ») ne sont pas des votes : leur nombre est dans la note de la division.",
+    };
+
+    /// <summary>Déclinaison canadienne d'un jeu commun : chambre du Canada, fichier « ca_… », adresse officielle de la division à la place du rattachement aux textes français.</summary>
+    private static JeuDonnees PourCanada(JeuDonnees j) => new("ca_" + j.Nom, DescriptionsCa.GetValueOrDefault(j.Nom, j.Description),
+        j.Sql.Replace(ChambresActives, ChambresCa).Replace("nominatif_incomplet, texte_id, texte_lie_id", "nominatif_incomplet, dossier_ref AS url_officielle"), "CA");
+
     private const string ChambresIe = "chambre IN (SELECT code FROM chambres WHERE actif AND pays = 'IE')";
 
     private static readonly Dictionary<string, string> DescriptionsIe = new()
@@ -128,6 +144,7 @@ public static class ExportDonnees
     {
         "IT" => "CC BY-SA 4.0 (Camera dei deputati, dati.camera.it) ; CC BY 3.0 (Senato della Repubblica, dati.senato.it) — attribution required, share-alike for derived data",
         "CH" => "Parlamentsdienste der Bundesversammlung, Bern (ws.parlament.ch) — data reproduced without modification, source and download date to be credited; totals, results and groups are calculated by this site",
+        "CA" => "House of Commons of Canada (ourcommons.ca) — reproduction permitted if accurate, not presented as official, and not for commercial purposes (Speaker's permission); totals and results as published, sur_ensemble calculated",
         "IE" => "Oireachtas (Open Data) PSI Licence, incorporating CC BY 4.0 (Houses of the Oireachtas, api.oireachtas.ie) — attribution required",
         _ => null,
     };
@@ -139,7 +156,8 @@ public static class ExportDonnees
         .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom) && !j.Nom.StartsWith("petitions")).Select(PourEtatsUnis),
         .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom) && !j.Nom.StartsWith("petitions")).Select(PourItalie),
         .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom) && !j.Nom.StartsWith("petitions")).Select(PourIrlande),
-        .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom) && !j.Nom.StartsWith("petitions")).Select(PourSuisse)];
+        .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom) && !j.Nom.StartsWith("petitions")).Select(PourSuisse),
+        .. Jeux.Where(j => JeuxCommuns.Contains(j.Nom) && !j.Nom.StartsWith("petitions")).Select(PourCanada)];
 
     public static readonly IReadOnlyList<JeuDonnees> Jeux =
     [

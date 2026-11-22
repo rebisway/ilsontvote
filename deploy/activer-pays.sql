@@ -20,3 +20,7 @@ SELECT p.code, p.prefixe_url, p.actif, count(c.*) FILTER (WHERE c.actif) AS cham
 -- Suisse (le Conseil des États exige la clé d'API Parlament:ApiKey dans appsettings.Local.json) :
 -- UPDATE pays SET actif = true WHERE code = 'CH';
 -- UPDATE chambres SET actif = true WHERE pays = 'CH';
+
+-- Canada (Chambre des communes ; permission de la Présidence : reproduction exacte, non officielle, non commerciale). Prérequis : migration 073, tâche `canada` (+ `canada_historique`), puis `stats` et `export`.
+-- UPDATE pays SET actif = true WHERE code = 'CA';
+-- UPDATE chambres SET actif = true WHERE pays = 'CA';

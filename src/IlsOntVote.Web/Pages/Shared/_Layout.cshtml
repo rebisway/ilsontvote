@@ -1,7 +1,7 @@
 @inject IlsOntVote.Web.Services.PaysSite SitePays
 @{
     // Description du site propre à un pays (balise description, partage) ; null pour la France (texte par défaut).
-    var descPays = L.Pays == "GB"
+    var descPays = L.Pays == "CA" ? L.T("description-site-ca") : L.Pays == "GB"
         ? L.T("pour-chaque-division-des-communes-et")
         : L.Pays == "US"
             ? L.T("pour-chaque-vote-nominal-de-la")
@@ -20,7 +20,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script>document.documentElement.classList.add("js");var th="dark";try{th=localStorage.getItem("theme")==="light"?"light":"dark";}catch(e){}document.documentElement.setAttribute("data-theme",th);/* sombre par défaut ; le bouton ◐ mémorise un choix clair */</script>
     <script>try{if(localStorage.getItem("ordreNom")==="nom-prenom")document.documentElement.setAttribute("data-ordre","nom-prenom");}catch(e){}</script>
-    <title>@(ViewData["Title"] is string t && t.Length > 0 ? $"{t} — {L.Marque}" : L.Pays == "GB" ? L.T("they-voted-qui-a-vote-quoi") : L.Pays == "IE" ? L.T("they-voted-qui-a-vote-quoi-4096") : L.Pays == "IT" ? L.T("they-voted-qui-a-vote-quoi-80e9") : L.Pays == "US" ? L.T("they-voted-qui-a-vote-quoi-2ba2") : L.T("ils-ont-vote-qui-a-vote"))</title>
+    <title>@(ViewData["Title"] is string t && t.Length > 0 ? $"{t} — {L.Marque}" : L.Pays == "GB" ? L.T("they-voted-qui-a-vote-quoi") : L.Pays == "CA" ? L.T("titre-site-ca") : L.Pays == "IE" ? L.T("they-voted-qui-a-vote-quoi-4096") : L.Pays == "IT" ? L.T("they-voted-qui-a-vote-quoi-80e9") : L.Pays == "US" ? L.T("they-voted-qui-a-vote-quoi-2ba2") : L.T("ils-ont-vote-qui-a-vote"))</title>
     <meta name="description" content="@(ViewData["Description"] ?? descPays ?? L.T("pour-chaque-grand-texte-de-loi"))" />
     @if (ViewData["NoIndex"] is true)
     {
@@ -181,6 +181,20 @@
                     <a href="@L.Lien("/statistiques")" @Html.Raw(Actif("/statistiques"))>@L.T("statistiques")</a>
                     <a href="@L.Lien("/donnees")" @Html.Raw(Actif("/donnees"))>@L.T("donnees")</a>
                 }
+                else if (L.Pays == "CA")
+                {
+                    @* Canada : divisions de la Chambre des communes, députés, participation, statistiques, données. *@
+                    <a href="@L.Lien("/textes")" @Html.Raw(Actif("/textes") + Actif("/scrutin"))>@L.T("scrutins-divisions")</a>
+                    <details class="plus" @Html.Raw(Actif("/mp") + Actif("/elus") != "" ? "data-actif" : "")>
+                        <summary>@L.T("parlementaires")</summary>
+                        <div class="plus-liste">
+                            <a href="@L.Lien("/mps")" @Html.Raw(Actif("/mp"))>@L.T("deputes-canadiens")</a>
+                            <a href="@L.Lien("/elus")" @Html.Raw(Actif("/elus"))>@L.T("participation-21bf")</a>
+                        </div>
+                    </details>
+                    <a href="@L.Lien("/statistiques")" @Html.Raw(Actif("/statistiques"))>@L.T("statistiques")</a>
+                    <a href="@L.Lien("/donnees")" @Html.Raw(Actif("/donnees"))>@L.T("donnees")</a>
+                }
                 else if (L.Pays == "IE")
                 {
                     @* Irlande : divisions, députés (TDs) et sénateurs, participation, statistiques, données. *@
@@ -302,6 +316,10 @@
             else if (L.Pays == "CH")
             {
                 <p>@L.TH("source-parlament-ch")</p>
+            }
+            else if (L.Pays == "CA")
+            {
+                <p>@L.TH("source-ourcommons-ca")</p>
             }
             else if (L.Pays == "IE")
             {

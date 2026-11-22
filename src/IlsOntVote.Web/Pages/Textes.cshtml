@@ -3,7 +3,7 @@
 @using IlsOntVote.Web.Models
 @using IlsOntVote.Web.Services
 @{
-    ViewData["Title"] = Model.Resolutions ? L.T("resolutions") : Model.SitePays ? (L.Pays is "GB" or "IE" ? L.T("divisions") : L.T("votes-nominaux")) : L.T("scrutins");
+    ViewData["Title"] = Model.Resolutions ? L.T("resolutions") : Model.SitePays ? (L.Pays is "GB" or "IE" or "CA" ? L.T("divisions") : L.T("votes-nominaux")) : L.T("scrutins");
     ViewData["Description"] = L.T("tous-les-scrutins-publics-de-l");
     var fr = L.Culture;
 }
@@ -15,7 +15,7 @@
 }
 else
 {
-    <h1 class="titre-page">@(Model.SitePays ? (L.Pays is "GB" or "IE" ? L.T("divisions") : L.T("votes-nominaux")) : L.T("scrutins"))</h1>
+    <h1 class="titre-page">@(Model.SitePays ? (L.Pays is "GB" or "IE" or "CA" ? L.T("divisions") : L.T("votes-nominaux")) : L.T("scrutins"))</h1>
 @* chapô des scrutins : voir plus bas *@
 @if (L.Pays == "US")
 {
@@ -28,6 +28,10 @@ else if (L.Pays == "CH")
 else if (L.Pays == "IE")
 {
     <p class="chapo">@L.T("les-divisions-votes-nominaux-du-dail")</p>
+}
+else if (L.Pays == "CA")
+{
+    <p class="chapo">@L.T("textes-chapo-ca")</p>
 }
 else if (L.Pays == "IT")
 {
@@ -80,7 +84,7 @@ else
         <label class="champ-date">@L.T("au") <input type="date" name="au" value="@Model.Au" aria-label="@L.T("au-date-de-fin")" /></label></span>
     @if (Model.Chambre != "lords" || !Model.SitePays)
     {
-    @if (L.Pays != "IE") {<label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" /> @(Model.SitePays ? (L.Pays == "GB" ? L.T("amendements-motions-et-autres-divisions") : (L.Pays == "IT" ? L.T("questions-de-confiance-et-autres-votes") : L.T("amendements-cloture-et-motions-de-procedure"))) : L.T("amendements-et-articles"))</label>}
+    @if (L.Pays != "IE") {<label class="case"><input type="checkbox" name="portee" value="tout" checked="@Model.ToutAfficher" /> @(Model.SitePays ? (L.Pays is "GB" or "CA" ? L.T("amendements-motions-et-autres-divisions") : (L.Pays == "IT" ? L.T("questions-de-confiance-et-autres-votes") : L.T("amendements-cloture-et-motions-de-procedure"))) : L.T("amendements-et-articles"))</label>}
     }
     @* Tri : en-têtes de colonne (écran large) ou ces listes (téléphone). *@
     <select name="tri" class="tri-mobile" aria-label="@L.T("trier-par")">

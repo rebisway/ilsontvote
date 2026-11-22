@@ -33,6 +33,10 @@ else if (L.Pays == "IE")
 {
     <p class="note-source">@L.TH("ces-fichiers-ne-contiennent-que-les-c717")</p>
 }
+else if (L.Pays == "CA")
+{
+    <p class="note-source">@L.TH("donnees-ca-fichiers-note")</p>
+}
 else if (L.Pays == "IT")
 {
     <p class="note-source">@L.TH("ces-fichiers-ne-contiennent-que-les-6b92")</p>
@@ -76,6 +80,15 @@ else
         <div><dt>@L.T("absents")</dt><dd>@L.TH("ch-absents-def")</dd></div>
         <div><dt>ch_scrutins</dt><dd>@L.TH("ch-scrutins-def")</dd></div>
         <div><dt>chambre</dt><dd>CHNR (Conseil national), CHSR (Conseil des États).</dd></div>
+    </dl>
+    }
+    else if (L.Pays == "CA")
+    {
+    <dl>
+        <div><dt>@Fichier("ca_votes")</dt><dd>@L.TH("ca-votes-def")</dd></div>
+        <div><dt>@L.T("absents")</dt><dd>@L.TH("ca-absents-def")</dd></div>
+        <div><dt>@Fichier("ca_scrutins")</dt><dd>@L.TH("ca-scrutins-def")</dd></div>
+        <div><dt>@Fichier("chambre")</dt><dd>CACOMMONS (@L.Chambre("CACOMMONS")).</dd></div>
     </dl>
     }
     else if (L.Pays == "IE")
@@ -139,6 +152,10 @@ else
     @if (L.Pays == "CH")
     {
     <p>@L.THf("donnees-sources-suisse", L.Lien("/methodologie"))</p>
+    }
+    else if (L.Pays == "CA")
+    {
+    <p>@L.THf("donnees-sources-canada", L.Lien("/methodologie"))</p>
     }
     else if (L.Pays == "IE")
     {
