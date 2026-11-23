@@ -174,7 +174,10 @@ public class ImportsModel(DapperContext db) : PageModel
 
         // Onglets : « Tous », puis un par pays ayant des tâches (ordre du catalogue), puis « Commun ». Pastille d'échec : dernière exécution de la tâche en échec.
         string Cle(string? pays) => pays ?? "commun";
-        bool Echec(TacheImport t) => t.DerniereFin is not null && t.DernierOk == false;
+        // Seules les tâches PLANIFIÉES (au moins un créneau actif) alertent : les tâches manuelles/ponctuelles (anciens historiques qui
+        // échouent toujours) gardent leur statut « échec » dans leur ligne mais ne gonflent pas les pastilles. Un succès ultérieur l'efface.
+        var planifiees = Planning.Where(c => c.Actif).Select(c => c.Tache).ToHashSet();
+        bool Echec(TacheImport t) => t.DerniereFin is not null && t.DernierOk == false && planifiees.Contains(t.Code);
         var onglets = new List<OngletImport> { new("", "Tous", Taches.Count, Taches.Any(Echec)) };
         // Ordre des pays de la table pays (France, Royaume-Uni, Union européenne), « Commun » en dernier.
         foreach (var g in Taches.GroupBy(t => Cle(t.Pays)).OrderBy(g => g.Key == "commun" ? int.MaxValue : paysOrdre.FirstOrDefault(x => x.Code == g.Key).Ordre))

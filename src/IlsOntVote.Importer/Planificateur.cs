@@ -146,6 +146,11 @@ public sealed class Planificateur(string connectionString)
              WHERE fin IS NULL
             """);
 
+        // Rétention du journal : les exécutions terminées de plus de 180 jours (sortie console comprise, le plus lourd) sont supprimées.
+        // Aucune clé étrangère (import_runs ne garde qu'un numéro) : les compteurs d'import restent, seule la trace d'exécution disparaît.
+        var purgees = await verrou.ExecuteAsync("DELETE FROM import_executions WHERE fin IS NOT NULL AND debut < now() - interval '180 days'");
+        if (purgees > 0) Console.WriteLine($"Journal : {purgees} exécution(s) de plus de 180 jours purgée(s).");
+
         var echecs = 0;
         for (var tour = 0; tour < 50; tour++)
         {

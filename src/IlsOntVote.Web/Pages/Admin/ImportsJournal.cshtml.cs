@@ -19,6 +19,8 @@ public class ImportsJournalModel(DapperContext db) : ListePageModel
     [BindProperty(SupportsGet = true)] public string? Origine { get; set; }
     /// <summary>Pays de la tâche : FR, GB, EU, ou « commun » (traductions, statistiques, export) ; vide = tous.</summary>
     [BindProperty(SupportsGet = true)] public string? Pays { get; set; }
+    /// <summary>Période affichée : vide = 7 derniers jours (le journal grossit de dizaines de lignes par nuit), 30, 90 ou « tout ».</summary>
+    [BindProperty(SupportsGet = true)] public string? Periode { get; set; }
     public IReadOnlyList<(string Code, string Nom)> PaysChoix { get; private set; } = [];
 
     public static readonly string[] Etats = ["ok", "echec", "en cours", "interrompue"];
@@ -40,7 +42,7 @@ public class ImportsJournalModel(DapperContext db) : ListePageModel
     protected override string TriDefaut => "debut";
     protected override IReadOnlyCollection<string> ClesTri { get; } = [.. Tris.Keys];
     protected override bool DecroissantInitial(string cle) => cle is "debut" or "duree" or "ajouts" or "erreurs";
-    protected override IEnumerable<(string Nom, string? Valeur)> Filtres => [("tache", Tache), ("etat", Etat), ("origine", Origine), ("pays", Pays)];
+    protected override IEnumerable<(string Nom, string? Valeur)> Filtres => [("tache", Tache), ("etat", Etat), ("origine", Origine), ("pays", Pays), ("periode", Periode)];
 
     private static IReadOnlyList<Colonne<ExecutionTache>> ColonnesExport() =>
     [
@@ -65,6 +67,9 @@ public class ImportsJournalModel(DapperContext db) : ListePageModel
         Taches = (await cx.QueryAsync<(string Code, string Libelle)>("SELECT code, libelle FROM import_taches ORDER BY ordre")).ToList();
         if (Etat is not null && !Etats.Contains(Etat)) Etat = null;
         if (Origine is not ("planning" or "admin")) Origine = null;
+        if (Periode is not ("30" or "90" or "tout")) Periode = null;
+        // Jours affichés (liste blanche) ; null = « tout ». Une exécution en cours reste toujours visible.
+        int? jours = Periode switch { "tout" => null, "30" => 30, "90" => 90, _ => 7 };
         PaysChoix = (await cx.QueryAsync<(string Code, string Nom)>(
             "SELECT DISTINCT p.code, p.nom_fr FROM import_taches t JOIN pays p ON p.code = t.pays ORDER BY p.nom_fr")).ToList();
         if (Pays is not null && Pays != "commun" && !PaysChoix.Any(x => x.Code == Pays)) Pays = null;
@@ -74,7 +79,8 @@ public class ImportsJournalModel(DapperContext db) : ListePageModel
         // État : mêmes règles que ImportAffichage.Etat (en cours = pas de fin ; interrompue = fin sans résultat).
         const string filtre =
             """
-             WHERE (@tache IS NULL OR e.tache = @tache)
+             WHERE (@jours::int IS NULL OR e.fin IS NULL OR e.debut >= now() - make_interval(days => @jours::int))
+               AND (@tache IS NULL OR e.tache = @tache)
                -- Pays de la tâche (catalogue) ; « commun » = tâche sans pays ou tâche retirée du catalogue.
                AND (@pays IS NULL OR (@pays = 'commun' AND t.pays IS NULL) OR t.pays = @pays)
                AND (@origine IS NULL OR e.declencheur = @origine)
@@ -84,7 +90,7 @@ public class ImportsJournalModel(DapperContext db) : ListePageModel
                     OR (@etat = 'echec' AND e.ok IS FALSE)
                     OR (@etat = 'interrompue' AND e.fin IS NOT NULL AND e.ok IS NULL))
             """;
-        var p = new { tache, pays, etat = Etat, origine = Origine, limit = ParPage, offset = (Math.Max(1, NumeroPage) - 1) * ParPage };
+        var p = new { jours, tache, pays, etat = Etat, origine = Origine, limit = ParPage, offset = (Math.Max(1, NumeroPage) - 1) * ParPage };
         var total = await cx.ExecuteScalarAsync<int>($"SELECT count(*) FROM import_executions e LEFT JOIN import_taches t ON t.code = e.tache {filtre}", p);
         var ordre = Tris[TriEffectif];
         var sens = Decroissant ? "DESC" : "ASC";

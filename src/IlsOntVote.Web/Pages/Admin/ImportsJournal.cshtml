@@ -30,6 +30,12 @@
         <option value="planning" selected="@(Model.Origine == "planning")">Planning</option>
         <option value="admin" selected="@(Model.Origine == "admin")">Manuel</option>
     </select>
+    <select name="periode" aria-label="Période">
+        <option value="">7 derniers jours</option>
+        <option value="30" selected="@(Model.Periode == "30")">30 derniers jours</option>
+        <option value="90" selected="@(Model.Periode == "90")">90 derniers jours</option>
+        <option value="tout" selected="@(Model.Periode == "tout")">Tout l'historique</option>
+    </select>
     <button type="submit" class="sans-js">Filtrer</button>
     @if (Model.FiltreActif) { <a class="effacer" href="@Model.LienSansFiltre" title="Effacer le filtre" aria-label="Effacer le filtre">✕</a> }
 </form>
