@@ -13,6 +13,16 @@
     ViewData["Title"] = titre.Length > 60 ? titre[..60] + "…" : titre;
     var fr = L.Culture;
     ViewData["Fil"] = new List<(string, string)> { (L.T("accueil"), L.Lien("/")), (L.T("votes-nominaux"), L.Lien("/textes")), (Titres.Court(titre, 110), L.Lien("/scrutin/" + s.Id)) };
+    // Lieu : pays de la chambre (code ISO ; pas pour le Parlement européen, siégeant dans plusieurs pays). Organisateur : site d'origine de la fiche officielle.
+    var codePays = s.Chambre switch
+    {
+        "AN" or "SENAT" => "FR", "COMMONS" or "LORDS" => "GB", "USHOUSE" or "USSENATE" => "US", "ITCAMERA" or "ITSENATE" => "IT",
+        "IEDAIL" or "IESEANAD" => "IE", "CHNR" or "CHSR" => "CH", "CACOMMONS" or "CASENATE" => "CA", _ => null,
+    };
+    var lieu = new Dictionary<string, object> { ["@type"] = "Place", ["name"] = L.Chambre(s.Chambre) };
+    if (codePays is not null) lieu["address"] = new Dictionary<string, object> { ["@type"] = "PostalAddress", ["addressCountry"] = codePays };
+    var organisateur = new Dictionary<string, object> { ["@type"] = "GovernmentOrganization", ["name"] = L.Chambre(s.Chambre) };
+    if (Uri.TryCreate(s.UrlOfficielle, UriKind.Absolute, out var uriOrg)) organisateur["url"] = uriOrg.GetLeftPart(UriPartial.Authority);
     // Données structurées : un vote est un événement daté d'une assemblée (le résultat est dans la description, pas dans un champ inventé).
     ViewData["JsonLd"] = new Dictionary<string, object>
     {
@@ -22,10 +32,13 @@
         ["startDate"] = s.DateScrutin.ToString("yyyy-MM-dd"),
         ["eventAttendanceMode"] = "https://schema.org/OfflineEventAttendanceMode",
         ["eventStatus"] = "https://schema.org/EventScheduled",
-        ["location"] = new Dictionary<string, object> { ["@type"] = "Place", ["name"] = L.Chambre(s.Chambre) },
-        ["organizer"] = new Dictionary<string, object> { ["@type"] = "GovernmentOrganization", ["name"] = L.Chambre(s.Chambre) },
+        ["endDate"] = s.DateScrutin.ToString("yyyy-MM-dd"),   // un vote est ponctuel : même jour (l'heure n'est pas dans les données)
+        ["image"] = new[] { "https://www.ilsontvote.org" + L.Lien("/apercu/scrutin/" + s.Id + ".png") + "?v=3" },   // adresse absolue, même version que og:image
+        ["location"] = lieu,
+        ["organizer"] = organisateur,
         ["description"] = (string)ViewData["Description"]!,
     };
+    // « offers » et « performer » ne sont volontairement PAS fournis : un vote n'a ni billet ni artiste, les inventer serait faux.
     // Phrase visible de résultat (texte indexable, calculée d'après les décomptes publiés ; rien n'est inventé).
     var phrase = s.Sort is null
         ? L.Tf("scrutin-phrase-neutre", s.DateScrutin.ToString("d MMMM yyyy", L.Culture), L.Chambre(s.Chambre), s.NbPour ?? 0, s.NbContre ?? 0, s.NbAbstentions ?? 0)
