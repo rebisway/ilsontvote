@@ -16,8 +16,8 @@ public sealed class JourPays
 }
 
 public enum Granularite { Jour, Mois }
-/// <summary>Source des visites : lecteurs (non-robots), robots déclarés, ou tous.</summary>
-public enum SourceVues { Humains, Bots, Tous }
+/// <summary>Source des visites : lecteurs (ni robot ni cloud), robots déclarés, hébergeurs cloud, robots + cloud, ou tous.</summary>
+public enum SourceVues { Humains, Bots, Cloud, BotsCloud, Tous }
 
 /// <summary>Vues et visiteurs uniques pour une clé (une page).</summary>
 public sealed record CompteVues(string Cle, int Vues, int Visiteurs);
@@ -34,10 +34,15 @@ public sealed class ApercuStats
     public IReadOnlyList<CompteVues> Pays { get; set; } = [];
 }
 
+/// <summary>Une ligne du récapitulatif par source.</summary>
+public sealed record LigneSource(string Source, int Vues, int Visiteurs);
+
 /// <summary>Enregistrement et lecture des pages vues. Rien d'identifiant n'est stocké : ni IP, ni User-Agent en clair.</summary>
 public interface IPageViewRepository
 {
-    Task RecordAsync(string path, string ipHash, bool isBot, string? pays);
+    Task RecordAsync(string path, string ipHash, bool isBot, bool estCloud, string? pays);
+    /// <summary>Vues et visiteurs uniques de chaque source sur la période (toutes les lignes, même à zéro).</summary>
+    Task<IReadOnlyList<LigneSource>> GetRecapAsync(DateTime depuis, DateTime? jusqua);
     Task<ApercuStats> GetStatsAsync(DateTime depuis, DateTime? jusqua, Granularite granularite, SourceVues source);
     /// <summary>Pays (code ISO, « ? » = inconnu) ayant des visites de lecteurs depuis la date donnée, avec leurs vues : sert à remplir la liste de choix.</summary>
     Task<IReadOnlyList<CompteVues>> GetPaysDisponiblesAsync(DateTime depuis);
@@ -47,12 +52,12 @@ public interface IPageViewRepository
 
 public sealed class PageViewRepository(DapperContext db) : IPageViewRepository
 {
-    public async Task RecordAsync(string path, string ipHash, bool isBot, string? pays)
+    public async Task RecordAsync(string path, string ipHash, bool isBot, bool estCloud, string? pays)
     {
         using var conn = db.CreateConnection();
         await conn.ExecuteAsync(
-            "INSERT INTO page_views (path, ip_hash, is_bot, country_code) VALUES (@path, @ipHash, @isBot, @pays)",
-            new { path, ipHash, isBot, pays });
+            "INSERT INTO page_views (path, ip_hash, is_bot, est_cloud, country_code) VALUES (@path, @ipHash, @isBot, @estCloud, @pays)",
+            new { path, ipHash, isBot, estCloud, pays });
     }
 
     public async Task<IReadOnlyList<CompteVues>> GetPaysDisponiblesAsync(DateTime depuis)
@@ -61,7 +66,7 @@ public sealed class PageViewRepository(DapperContext db) : IPageViewRepository
         return (await conn.QueryAsync<CompteVues>(
             """
             SELECT COALESCE(country_code, '?') AS cle, count(*)::int AS vues, count(DISTINCT ip_hash)::int AS visiteurs
-              FROM page_views WHERE visited_at >= @depuis AND NOT is_bot
+              FROM page_views WHERE visited_at >= @depuis AND NOT is_bot AND NOT est_cloud
              GROUP BY 1 ORDER BY count(*) DESC
             """, new { depuis })).ToList();
     }
@@ -74,7 +79,7 @@ public sealed class PageViewRepository(DapperContext db) : IPageViewRepository
         // Filtre pays : NULL = tous ; « ? » = visites sans pays connu (country_code NULL) ; sinon le code ISO.
         const string filtre =
             """
-            visited_at >= @debut AND visited_at < @fin AND NOT is_bot
+            visited_at >= @debut AND visited_at < @fin AND NOT is_bot AND NOT est_cloud
             AND (@pays::text IS NULL OR (@pays = '?' AND country_code IS NULL) OR country_code = @pays)
             """;
         var total = await conn.QuerySingleAsync<(int Vues, int Visiteurs)>(
@@ -88,20 +93,42 @@ public sealed class PageViewRepository(DapperContext db) : IPageViewRepository
         return new JourPays { Vues = total.Vues, Visiteurs = total.Visiteurs, TopPages = top };
     }
 
+    public async Task<IReadOnlyList<LigneSource>> GetRecapAsync(DateTime depuis, DateTime? jusqua)
+    {
+        using var conn = db.CreateConnection();
+        // Un seul parcours de la période, un compteur filtré par source. « Cloud » exclut les robots déclarés : Lecteurs + Bots + Cloud = Tout (en vues).
+        var r = await conn.QuerySingleAsync<(int Lv, int Lu, int Bv, int Bu, int Cv, int Cu, int Xv, int Xu, int Tv, int Tu)>(
+            """
+            SELECT count(*) FILTER (WHERE NOT is_bot AND NOT est_cloud)::int, count(DISTINCT ip_hash) FILTER (WHERE NOT is_bot AND NOT est_cloud)::int,
+                   count(*) FILTER (WHERE is_bot)::int, count(DISTINCT ip_hash) FILTER (WHERE is_bot)::int,
+                   count(*) FILTER (WHERE est_cloud AND NOT is_bot)::int, count(DISTINCT ip_hash) FILTER (WHERE est_cloud AND NOT is_bot)::int,
+                   count(*) FILTER (WHERE is_bot OR est_cloud)::int, count(DISTINCT ip_hash) FILTER (WHERE is_bot OR est_cloud)::int,
+                   count(*)::int, count(DISTINCT ip_hash)::int
+              FROM page_views
+             WHERE visited_at >= @depuis AND (@jusqua::timestamp IS NULL OR visited_at < @jusqua)
+            """, new { depuis, jusqua });
+        return
+        [
+            new("Lecteurs", r.Lv, r.Lu), new("Bots", r.Bv, r.Bu), new("Cloud", r.Cv, r.Cu),
+            new("Bots + Cloud", r.Xv, r.Xu), new("Tout", r.Tv, r.Tu),
+        ];
+    }
+
     public async Task<ApercuStats> GetStatsAsync(DateTime depuis, DateTime? jusqua, Granularite granularite, SourceVues source)
     {
         using var conn = db.CreateConnection();
 
-        // NULL = pas de filtre sur la source. Passé tel quel à Postgres : « @isBot IS NULL OR is_bot = @isBot »
-        // évite de dupliquer chaque requête par cas.
-        bool? isBot = source switch { SourceVues.Humains => false, SourceVues.Bots => true, _ => null };
-        var p = new { depuis, jusqua, isBot };
-
-        const string filtre =
-            """
-            visited_at >= @depuis AND (@jusqua::timestamp IS NULL OR visited_at < @jusqua)
-            AND (@isBot::boolean IS NULL OR is_bot = @isBot)
-            """;
+        // Condition choisie dans une liste fermée (enum interne, jamais une saisie) : l'interpolation est sûre.
+        var p = new { depuis, jusqua };
+        var condition = source switch
+        {
+            SourceVues.Humains => "NOT is_bot AND NOT est_cloud",
+            SourceVues.Bots => "is_bot",
+            SourceVues.Cloud => "est_cloud AND NOT is_bot",
+            SourceVues.BotsCloud => "(is_bot OR est_cloud)",
+            _ => "true",
+        };
+        var filtre = $"visited_at >= @depuis AND (@jusqua::timestamp IS NULL OR visited_at < @jusqua) AND {condition}";
 
         var total = await conn.QuerySingleAsync<(int Vues, int Visiteurs)>(
             $"SELECT count(*)::int, count(DISTINCT ip_hash)::int FROM page_views WHERE {filtre}", p);

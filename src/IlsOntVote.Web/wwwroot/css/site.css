@@ -286,7 +286,9 @@ table.groupes td.col-barre { text-align: left; }
 .chiffres span { color: var(--ink-soft); font-size: 0.85rem; }
 .liste-simple { margin: 0; padding-left: 1.2rem; color: var(--ink-soft); }
 
-.separateur { width: 1px; background: var(--line); margin: 0 6px; align-self: stretch; }
+/* Séparateur vertical d'une barre de puces. Sélecteur à deux classes : la règle « .separateur » de la page Soutenir (marges de 44/28 px,
+   plus bas) l'écrasait et étirait toutes les puces de la barre. */
+.barre-groupes .separateur { width: 1px; background: var(--line); margin: 0 6px; border: 0; align-self: stretch; }
 a.puce { text-decoration: none; }
 
 .formulaire { display: flex; flex-direction: column; gap: 12px; max-width: 420px; margin: 12px 0; }

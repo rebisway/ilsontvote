@@ -35,7 +35,7 @@
     </label>
     <noscript><button type="submit" class="bouton petit">Afficher</button></noscript>
 </form>
-<p class="note-source">@Model.DebutJourParis.ToString("dddd d MMMM yyyy", fr), heure de Paris. Lecteurs uniquement (robots exclus). Le pays est déduit de l'adresse IP sans la conserver.</p>
+<p class="note-source">@Model.DebutJourParis.ToString("dddd d MMMM yyyy", fr), heure de Paris. Lecteurs uniquement (robots et hébergeurs cloud exclus). Le pays est déduit de l'adresse IP sans la conserver.</p>
 <div class="chiffres">
     <div><b>@Model.Aujourdhui.Vues.ToString("N0", fr)</b><span>pages vues aujourd'hui</span></div>
     <div><b>@Model.Aujourdhui.Visiteurs.ToString("N0", fr)</b><span>visiteurs uniques aujourd'hui</span></div>

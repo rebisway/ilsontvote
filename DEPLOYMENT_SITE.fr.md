@@ -29,7 +29,7 @@ Pays des visites (facultatif, pour `/Admin/Stats`) : déposer `GeoLite2-Country.
 dans `/var/www/ilsontvote_app/App_Data/` (propriétaire `www-data`), puis `sudo systemctl restart ilsontvote`. Sans ce fichier le site fonctionne, le pays reste « ? ».
 
 Détection des robots hébergés (facultatif, statistiques seulement) : déposer aussi `GeoLite2-ASN.mmdb` (même compte MaxMind) dans `App_Data/`. Les visites dont
-le réseau appartient à un hébergeur cloud (Alibaba, Tencent, Amazon, OVH…) sont comptées comme robots ; rien n'est bloqué. Sans ce fichier, seul le User-Agent est utilisé.
+le réseau appartient à un hébergeur cloud (Alibaba, Tencent, Amazon, OVH…) sont comptées à part (« Cloud ») ; rien n'est bloqué. Sans ce fichier, seul le User-Agent est utilisé.
 
 Puis retirer `AdminBootstrapEmail` / `AdminBootstrapPassword` du fichier de secrets (l'administrateur existe) ; les autres
 comptes se gèrent dans `/Admin/Utilisateurs`. Ajouter `ilsontvote.com` : modifier `ALIASES` dans `setup-site.sh` quand le DNS est prêt.

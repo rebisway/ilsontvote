@@ -8,7 +8,7 @@
     var max = Model.Apercu.Serie.Count == 0 ? 1 : Math.Max(1, Model.Apercu.Serie.Max(p => p.Vues));
     var parMois = Model.Periode is "annee" or "tout";
     var periodes = new[] { ("jour", "Aujourd'hui"), ("hier", "Hier"), ("mois", "Ce mois"), ("annee", "Cette année"), ("tout", "Tout") };
-    var sources = new[] { ("humains", "Lecteurs"), ("bots", "Robots"), ("tous", "Tous") };
+    var sources = new[] { ("humains", "Lecteurs"), ("bots", "Bots"), ("cloud", "Cloud"), ("bots-cloud", "Bots + Cloud"), ("tous", "Tout") };
 }
 <partial name="_AdminNav" />
 <h1 class="titre-page">Fréquentation</h1>
@@ -26,10 +26,19 @@
     }
 </div>
 
-<div class="chiffres">
-    <div><b>@Model.Apercu.TotalVues.ToString("N0", fr)</b><span>pages vues</span></div>
-    <div><b>@Model.Apercu.VisiteursUniques.ToString("N0", fr)</b><span>visiteurs uniques</span></div>
+<h2>Récapitulatif</h2>
+<div class="table-wrap">
+    <table>
+        <thead><tr><th>Source</th><th class="num">Vues</th><th class="num">Visiteurs uniques</th></tr></thead>
+        <tbody>
+        @foreach (var r in Model.Recap)
+        {
+            <tr><td>@r.Source</td><td class="num">@r.Vues.ToString("N0", fr)</td><td class="num">@r.Visiteurs.ToString("N0", fr)</td></tr>
+        }
+        </tbody>
+    </table>
 </div>
+<p class="note-source">« Cloud » : visites venant d'un hébergeur (collecteurs probables), hors robots déclarés. Détection active seulement avec la base GeoLite2 ASN.</p>
 
 <h2>Évolution</h2>
 @if (Model.Apercu.Serie.Count == 0)

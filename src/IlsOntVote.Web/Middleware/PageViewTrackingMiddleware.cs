@@ -30,13 +30,14 @@ public sealed class PageViewTrackingMiddleware(RequestDelegate next)
         // Chemin complet avec le préfixe /en : les statistiques distinguent les visites des deux langues.
         var path = context.Request.PathBase.Add(context.Request.Path).Value ?? "/";
         var userAgent = context.Request.Headers.UserAgent.ToString();
-        // Robot annoncé (User-Agent) OU adresse d'un hébergeur cloud (collecteur déguisé en navigateur) : classé robot, jamais bloqué.
-        var estBot = string.IsNullOrWhiteSpace(userAgent) || BotUserAgent.IsMatch(userAgent) || reseau.EstHebergeur(context.Connection.RemoteIpAddress);
+        // Deux catégories distinctes, jamais bloquées : robot annoncé (User-Agent) ; sinon adresse d'un hébergeur cloud (collecteur déguisé en navigateur).
+        var estBot = string.IsNullOrWhiteSpace(userAgent) || BotUserAgent.IsMatch(userAgent);
+        var estCloud = !estBot && reseau.EstHebergeur(context.Connection.RemoteIpAddress);
 
         // Best-effort : une erreur de statistiques ne doit jamais casser une page déjà servie.
         try
         {
-            await vues.RecordAsync(path.Length > 300 ? path[..300] : path, hasher.Hash(context.Connection.RemoteIpAddress), estBot,
+            await vues.RecordAsync(path.Length > 300 ? path[..300] : path, hasher.Hash(context.Connection.RemoteIpAddress), estBot, estCloud,
                 pays.Resolve(context.Connection.RemoteIpAddress));
         }
         catch (Exception ex)

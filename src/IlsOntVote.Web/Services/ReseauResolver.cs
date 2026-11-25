@@ -8,9 +8,9 @@ namespace IlsOntVote.Web.Services;
 /// <summary>
 /// Adresse IP -> « vient d'un hébergeur cloud ? », avec la base locale GeoLite2 ASN (<c>App_Data/GeoLite2-ASN.mmdb</c>, même compte MaxMind
 /// gratuit que la base pays, jamais versionnée : à déposer sur la VM). Sert aux STATISTIQUES seulement : une visite venant d'un hébergeur
-/// est comptée comme robot, jamais bloquée. Pourquoi : les collecteurs de pages (Alibaba, Tencent, AWS…) se présentent avec un navigateur
+/// est comptée à part (« Cloud »), jamais bloquée. Pourquoi : les collecteurs de pages (Alibaba, Tencent, AWS…) se présentent avec un navigateur
 /// ordinaire, le filtre sur le User-Agent ne les voit pas ; ils apparaissaient comme des centaines de « lecteurs » à Singapour ou aux États-Unis.
-/// Limite assumée : un vrai lecteur derrière un VPN hébergé est classé robot (acceptable pour des chiffres d'audience).
+/// Limite assumée : un vrai lecteur derrière un VPN hébergé est classé « Cloud » (acceptable pour des chiffres d'audience).
 /// Base absente ou adresse inconnue : faux, le site fonctionne.
 /// </summary>
 public sealed class ReseauResolver : IDisposable
