@@ -75,6 +75,7 @@ builder.Services.AddSingleton(new DonneesOuvertes(
     builder.Configuration["Export:Dir"] ?? Environment.GetEnvironmentVariable("ILSONVOTE_EXPORT_DIR") ?? "/var/lib/ilsontvote-export"));
 builder.Services.AddSingleton<IIpHasher, IpHasher>();
 builder.Services.AddSingleton<PaysResolver>();
+builder.Services.AddSingleton<ReseauResolver>();
 builder.Services.AddSingleton<ApercuImage>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<Langue>();

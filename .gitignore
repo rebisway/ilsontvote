@@ -31,3 +31,4 @@ data/
 # Contexte de travail de l'assistant (non publié)
 CLAUDE.md
 image/
+/state.md

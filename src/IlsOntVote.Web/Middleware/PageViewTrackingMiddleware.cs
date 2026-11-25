@@ -19,7 +19,7 @@ public sealed class PageViewTrackingMiddleware(RequestDelegate next)
         "headless|phantomjs|node-fetch|axios|go-http-client|java/|libwww-perl",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    public async Task InvokeAsync(HttpContext context, IPageViewRepository vues, IIpHasher hasher, PaysResolver pays)
+    public async Task InvokeAsync(HttpContext context, IPageViewRepository vues, IIpHasher hasher, PaysResolver pays, ReseauResolver reseau)
     {
         await next(context);
 
@@ -30,7 +30,8 @@ public sealed class PageViewTrackingMiddleware(RequestDelegate next)
         // Chemin complet avec le préfixe /en : les statistiques distinguent les visites des deux langues.
         var path = context.Request.PathBase.Add(context.Request.Path).Value ?? "/";
         var userAgent = context.Request.Headers.UserAgent.ToString();
-        var estBot = string.IsNullOrWhiteSpace(userAgent) || BotUserAgent.IsMatch(userAgent);
+        // Robot annoncé (User-Agent) OU adresse d'un hébergeur cloud (collecteur déguisé en navigateur) : classé robot, jamais bloqué.
+        var estBot = string.IsNullOrWhiteSpace(userAgent) || BotUserAgent.IsMatch(userAgent) || reseau.EstHebergeur(context.Connection.RemoteIpAddress);
 
         // Best-effort : une erreur de statistiques ne doit jamais casser une page déjà servie.
         try
