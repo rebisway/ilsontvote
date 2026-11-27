@@ -148,7 +148,7 @@ else
     <p class="note-source">@L.TH("un-fichier-se-lit-avec-n")</p>
 </section>
 
-<section class="definitions" aria-label="@L.T("sources-et-licences")">
+<section class="definitions" id="sources" aria-label="@L.T("sources-et-licences")">
     <h2>@L.T("sources-et-conditions-de-reutilisation")</h2>
     @if (L.Pays == "CH")
     {
@@ -178,5 +178,37 @@ else
     else
     {
     <p>@L.TH("les-donnees-viennent-des-sources-officielles")</p>
+    }
+    @* Liens vers les sources (auparavant dans le pied de page de toutes les pages). *@
+    @if (L.Pays == "US")
+    {
+        <p>@L.TH("sources-greffe-de-la-chambre-officiel")</p>
+    }
+    else if (L.Pays == "IT")
+    {
+        <p>@L.TH("sources-dati-camera-it-open-data")</p>
+    }
+    else if (L.Pays == "CH")
+    {
+        <p>@L.TH("source-parlament-ch")</p>
+    }
+    else if (L.Pays == "CA")
+    {
+        <p>@L.TH("source-ourcommons-ca")</p>
+        <p>@L.TH("source-sencanada-ca")</p>
+    }
+    else if (L.Pays == "IE")
+    {
+        <p>@L.TH("source-oireachtas-donnees-ouvertes-licence-c")</p>
+    }
+    else if (L.Pays == "GB")
+    {
+        <p>@L.TH("sources-parlement-britannique-api-commons-et")</p>
+    }
+    else
+    {
+        <p>
+        @L.TH("sources-data-assemblee-nationale-fr-data")
+        </p>
     }
 </section>

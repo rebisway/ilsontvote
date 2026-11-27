@@ -319,49 +319,36 @@
 
     <footer class="site-footer">
         <div class="wrap">
-            @if (L.Pays == "US")
-            {
-                <p>@L.TH("sources-greffe-de-la-chambre-officiel")</p>
-            }
-            else if (L.Pays == "IT")
-            {
-                <p>@L.TH("sources-dati-camera-it-open-data")</p>
-            }
-            else if (L.Pays == "CH")
-            {
-                <p>@L.TH("source-parlament-ch")</p>
-            }
-            else if (L.Pays == "CA")
-            {
-                <p>@L.TH("source-ourcommons-ca")</p>
-                <p>@L.TH("source-sencanada-ca")</p>
-            }
-            else if (L.Pays == "IE")
-            {
-                <p>@L.TH("source-oireachtas-donnees-ouvertes-licence-c")</p>
-            }
-            else if (L.Pays == "GB")
-            {
-                <p>@L.TH("sources-parlement-britannique-api-commons-et")</p>
-            }
-            else
-            {
-            <p>
-                @L.TH("sources-data-assemblee-nationale-fr-data")
-            </p>
-            }
-            <p>
-                © 2026 Thomas Gourgnier ·
-                <a href="@L.Lien("/soutenir")">@L.T("soutenir")</a> ·
-                <a href="@L.Lien("/mcp-info")">@L.T("mcp-lien")</a> ·
-                <a href="@L.Lien("/methodologie")">@L.T("methodologie-et-limites")</a> ·
-                <a href="@L.Lien("/donnees")">@L.T("donnees-ouvertes")</a> ·
-                <a href="@L.Lien("/mentions-legales")">@L.T("mentions-legales-et-confidentialite")</a> ·
-                <a href="https://github.com/rebisway/ilsontvote">@L.T("code-source")</a> @L.T("libre") (GPL-3.0) ·
-                <a href="https://www.rebisway.com">@L.T("la-voie-du-rebis")</a> ·
-                <a href="mailto:contact@rebisway.com">contact@rebisway.com</a> ·
-                <a href="/Admin">Administration</a>
-            </p>
+            @* Liens regroupés par intention : les données, le projet, les informations légales. *@
+            <div class="pied-colonnes">
+                <nav aria-labelledby="pied-donnees">
+                    <h2 id="pied-donnees">@L.T("pied-titre-donnees")</h2>
+                    <ul>
+                        <li><a href="@L.Lien("/donnees")">@L.T("donnees-ouvertes")</a></li>
+                        <li><a href="@L.Lien("/donnees")#sources">@L.T("sources-et-licences")</a></li>
+                        <li><a href="@L.Lien("/methodologie")">@L.T("methodologie-et-limites")</a></li>
+                        <li><a href="@L.Lien("/mcp-info")">@L.T("mcp-lien")</a></li>
+                    </ul>
+                </nav>
+                <nav aria-labelledby="pied-projet">
+                    <h2 id="pied-projet">@L.T("pied-titre-projet")</h2>
+                    <ul>
+                        <li><a href="@L.Lien("/soutenir")">@L.T("soutenir")</a></li>
+                        <li><a href="https://github.com/rebisway/ilsontvote">@L.T("code-source")</a> @L.T("libre") (GPL-3.0)</li>
+                        <li><a href="https://www.rebisway.com">@L.T("la-voie-du-rebis")</a></li>
+                    </ul>
+                </nav>
+                <nav aria-labelledby="pied-infos">
+                    <h2 id="pied-infos">@L.T("pied-titre-infos")</h2>
+                    <ul>
+                        <li><a href="@L.Lien("/mentions-legales")">@L.T("mentions-legales-et-confidentialite")</a></li>
+                        <li><a href="mailto:contact@rebisway.com">contact@rebisway.com</a></li>
+                    </ul>
+                </nav>
+            </div>
+            <div class="pied-bas">
+                <p>© 2026 Thomas Gourgnier</p>
+            </div>
         </div>
     </footer>
     <script>
