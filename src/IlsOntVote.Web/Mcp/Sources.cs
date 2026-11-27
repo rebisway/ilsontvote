@@ -26,7 +26,7 @@ public sealed class Licence
     public object VersApi() => new
     {
         Producer = Producteur, DocumentTypes = Types, Chambers = Chambres, License = NomLicence, TermsUrl = UrlConditions, Attribution,
-        CommercialUse = UsageCommercial, ShareAlike = PartageIdentique, Status = Statut, VerifiedOn = Reponse.Jour(VerifieLe), Note = Remarque,
+        CommercialUse = UsageCommercial, ShareAlike = PartageIdentique, Status = Statut, LicenceVerifiedOn = Reponse.Jour(VerifieLe), Note = Remarque,
         LastSuccessfulImport = Reponse.Jour(MisAJour),
     };
 }

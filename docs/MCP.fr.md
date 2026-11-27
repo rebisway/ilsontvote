@@ -28,7 +28,7 @@ Ajouter `https://www.ilsontvote.org/mcp` comme serveur MCP HTTP distant dans tou
 
 Les réponses de `search`, `get_document`, `vote_positions` et `member_history` portent un bloc `sources` pour les données
 renvoyées (`list_types` les liste toutes) : producteur, licence, lien des conditions, attribution, `commercial_use` et
-`share_alike` (`yes`, `no`, `unknown`), `status` (`verified`, `no_named_licence`, `unverified`), date de vérification et
+`share_alike` (`yes`, `no`, `unknown`), `status` (`verified`, `no_named_licence`, `unverified`), date de vérification de la licence (`licence_verified_on`, pas celle des données) et
 dernier import réussi. Elles sont dans la table `licences` (migration 078) : mettre la ligne à jour après vérification.
 
 ## Types de documents
