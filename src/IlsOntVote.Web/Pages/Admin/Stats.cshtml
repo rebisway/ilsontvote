@@ -40,6 +40,32 @@
 </div>
 <p class="note-source">« Cloud » : visites venant d'un hébergeur (collecteurs probables), hors robots déclarés. Détection active seulement avec la base GeoLite2 ASN.</p>
 
+<h2>MCP</h2>
+@if (Model.Mcp is null)
+{
+    <p class="vide">Table absente : migration 077 à appliquer.</p>
+}
+else if (Model.Mcp.Appels == 0)
+{
+    <p class="vide">Aucun appel sur cette période.</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Outil</th><th class="num">Appels</th><th class="num">Clients distincts</th></tr></thead>
+            <tbody>
+            @foreach (var o in Model.Mcp.Outils)
+            {
+                <tr><td>@o.Outil</td><td class="num">@o.Appels.ToString("N0", fr)</td><td class="num">@o.Clients.ToString("N0", fr)</td></tr>
+            }
+                <tr><th>Total</th><th class="num">@Model.Mcp.Appels.ToString("N0", fr)</th><th class="num">@Model.Mcp.Clients.ToString("N0", fr)</th></tr>
+            </tbody>
+        </table>
+    </div>
+}
+<p class="note-source">Appels d'outils du serveur MCP (assistants IA) sur la période choisie ; le filtre de source ne s'applique pas. Un client = une empreinte d'adresse IP. Visites « DNT » non comptées.</p>
+
 <h2>Évolution</h2>
 @if (Model.Apercu.Serie.Count == 0)
 {

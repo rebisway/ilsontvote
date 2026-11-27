@@ -24,6 +24,10 @@ public sealed class PurgeVuesService(DapperContext db, ILogger<PurgeVuesService>
                 var n = await cx.ExecuteAsync(
                     "DELETE FROM page_views WHERE visited_at < (now() AT TIME ZONE 'utc') - make_interval(days => @jours)",
                     new { jours = JoursConservation });
+                // Appels MCP : même durée. Table absente (migration 077 non appliquée) : l'erreur est journalisée ci-dessous, les visites sont déjà purgées.
+                await cx.ExecuteAsync(
+                    "DELETE FROM mcp_appels WHERE appele_le < (now() AT TIME ZONE 'utc') - make_interval(days => @jours)",
+                    new { jours = JoursConservation });
                 if (n > 0) log.LogInformation("Purge des visites : {N} lignes de plus de {J} jours supprimées.", n, JoursConservation);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)

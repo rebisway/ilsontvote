@@ -71,6 +71,8 @@ builder.Services.AddScoped<IBillRepository, BillRepository>();
 builder.Services.AddScoped<IVotationRepository, VotationRepository>();
 builder.Services.AddScoped<IPageViewRepository, PageViewRepository>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
+builder.Services.AddScoped<IQualiteRepository, QualiteRepository>();
+builder.Services.AddScoped<IMcpAppelRepository, McpAppelRepository>();
 // Données ouvertes : dossier de l'export nocturne (Export:Dir, ou ILSONVOTE_EXPORT_DIR, ou /var/lib/ilsontvote-export en production).
 builder.Services.AddSingleton(new DonneesOuvertes(
     builder.Configuration["Export:Dir"] ?? Environment.GetEnvironmentVariable("ILSONVOTE_EXPORT_DIR") ?? "/var/lib/ilsontvote-export"));

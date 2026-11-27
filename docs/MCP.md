@@ -25,6 +25,8 @@ their source.
 | `get_document` | Full record of one document |
 | `vote_positions` | Breakdown by group and each member's position (200 per page at most) |
 | `member_history` | A member's votes, absences included |
+| `import_status` | Last run and last success of each data import (no error details) |
+| `data_quality` | Known gaps per chamber (latest vote, incomplete roll calls, terms, groups) |
 
 Vote positions are `for`, `against`, `abstention`, `non_voting` and `absent`. Theme codes are French identifiers
 (`sante`…); `list_types` gives their English names.
@@ -55,6 +57,8 @@ Rules: stay within the published scope (`Perimetre`); SQL parameters only; missi
 computed or inferred is named or annotated as such; every document carries its `url`.
 
 ## Operations
+
+Tool calls are counted in `/Admin/Stats` (table `mcp_appels`, migration 077; hashed IP only, kept 400 days).
 
 Each tool call writes a `MCP : outil …` line to the log (no parameters, no IP address):
 

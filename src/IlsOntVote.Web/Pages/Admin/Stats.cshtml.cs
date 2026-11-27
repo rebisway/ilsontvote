@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace IlsOntVote.Web.Pages.Admin;
 
 /// <summary>Statistiques de fréquentation. Les « visiteurs uniques » comptent des empreintes d'IP irréversibles (cf. IpHasher), jamais des adresses.</summary>
-public class StatsModel(IPageViewRepository vues) : PageModel
+public class StatsModel(IPageViewRepository vues, IMcpAppelRepository appels) : PageModel
 {
+    /// <summary>Usage du serveur MCP sur la période (le filtre de source ne s'y applique pas) ; null sans la migration 077.</summary>
+    public UsageMcp? Mcp { get; private set; }
     public string Periode { get; private set; } = "jour";
     public string Source { get; private set; } = "humains";
     public ApercuStats Apercu { get; private set; } = new();
@@ -33,6 +35,7 @@ public class StatsModel(IPageViewRepository vues) : PageModel
 
         var src = Source switch { "bots" => SourceVues.Bots, "cloud" => SourceVues.Cloud, "bots-cloud" => SourceVues.BotsCloud, "tous" => SourceVues.Tous, _ => SourceVues.Humains };
         Recap = await vues.GetRecapAsync(depuis, jusqua);
+        Mcp = await appels.LireAsync(depuis, jusqua);
         Apercu = await vues.GetStatsAsync(depuis, jusqua, g, src);
     }
 

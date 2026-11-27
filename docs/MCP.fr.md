@@ -21,6 +21,8 @@ Ajouter `https://www.ilsontvote.org/mcp` comme serveur MCP HTTP distant dans tou
 | `get_document` | Fiche d'un document |
 | `vote_positions` | Décompte par groupe et position de chaque élu (200 au plus par page) |
 | `member_history` | Votes d'un élu, absences comprises |
+| `import_status` | Dernière exécution et dernier succès de chaque import (sans détail d'erreur) |
+| `data_quality` | Lacunes connues par chambre (dernier vote, décomptes incomplets, mandats, groupes) |
 
 ## Types de documents
 
@@ -43,6 +45,8 @@ Règles : se limiter au périmètre publié (`Perimetre`) ; paramètres SQL uniq
 `null` ; ce qui est calculé ou déduit est nommé ou annoté comme tel ; chaque document porte son `url`.
 
 ## Exploitation
+
+Les appels d'outils sont comptés dans `/Admin/Stats` (table `mcp_appels`, migration 077 ; IP hachée seulement, 400 jours).
 
 Chaque appel d'outil écrit une ligne `MCP : outil …` dans le journal (ni paramètres ni adresse IP) :
 

@@ -52,15 +52,80 @@ public static class McpServeur
 public sealed class McpOutils(
     IEnumerable<ITypeDocument> types, VotesParlementaires votes, Elus elus,
     IScrutinRepository scrutins, IParlementaireRepository parlementaires,
-    PaysSite site, Themes themes, ILogger<McpOutils> journal)
+    PaysSite site, Themes themes, ILogger<McpOutils> journal,
+    IQualiteRepository qualite, IMcpAppelRepository appels, IIpHasher empreintes, IHttpContextAccessor http)
 {
     private const int MaxDocuments = 50;
     private const int MaxLignes = 200;
 
-    private Task<Perimetre> PerimetreAsync(string outil)
+    // État des chambres gardé 5 minutes : requête coûteuse sur les mandats, et le serveur est public.
+    private static (DateTime Charge, IReadOnlyList<ChambreQualite> Lignes) _chambres;
+
+    /// <summary>Compte l'appel (journal et /Admin/Stats) puis charge le périmètre publié.</summary>
+    private async Task<Perimetre> PerimetreAsync(string outil)
     {
-        journal.LogInformation("MCP : outil {Outil}", outil);   // mesure d'usage ; ni paramètres ni adresse IP
-        return Perimetre.ChargerAsync(site);
+        journal.LogInformation("MCP : outil {Outil}", outil);   // ni paramètres ni adresse IP
+        var ctx = http.HttpContext;
+        // Même choix du visiteur que pour les pages : DNT ou Sec-GPC = appel non enregistré.
+        if (ctx is not null && ctx.Request.Headers["DNT"] != "1" && ctx.Request.Headers["Sec-GPC"] != "1")
+        {
+            // Au mieux : une erreur de statistiques ne doit jamais faire échouer un appel.
+            try { await appels.EnregistrerAsync(outil, empreintes.Hash(ctx.Connection.RemoteIpAddress)); }
+            catch (Exception ex) { journal.LogWarning(ex, "Échec d'enregistrement d'un appel MCP"); }
+        }
+        return await Perimetre.ChargerAsync(site);
+    }
+
+    private async Task<IReadOnlyList<ChambreQualite>> ChambresAsync()
+    {
+        if (DateTime.UtcNow - _chambres.Charge > TimeSpan.FromMinutes(5)) _chambres = (DateTime.UtcNow, await qualite.ChambresAsync());
+        return _chambres.Lignes;
+    }
+
+    /// <summary>Instant UTC au format ISO ; null si inconnu.</summary>
+    private static string? Instant(DateTime? d) => d?.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture);
+
+    // Volontairement absents : messages d'erreur, sorties des tâches et commandes (détails internes, réservés à /Admin).
+    [McpServerTool(Name = "import_status", Title = "Import status", ReadOnly = true, OpenWorld = false)]
+    [Description("State of the data imports: for each scheduled task, its last run, whether it succeeded and the last successful run (UTC).")]
+    public async Task<string> EtatImports([Description("Country code (tasks common to all countries are always listed)")] string? country = null)
+    {
+        var p = await PerimetreAsync("import_status");
+        p.Filtrer(country, null);   // pays non publié : erreur explicite
+        var voulu = string.IsNullOrWhiteSpace(country) ? null : country.Trim().ToUpperInvariant();
+        var publies = p.Chambres.Values.ToHashSet();
+        var taches = (await qualite.TachesAsync()).Where(t => t.Pays is null || (publies.Contains(t.Pays) && (voulu is null || t.Pays == voulu)));
+        return Reponse.Json(new
+        {
+            Tasks = taches.Select(t => new
+            {
+                Task = t.Code, Country = t.Pays, OneOff = t.Ponctuelle, LastRunStarted = Instant(t.Debut), LastRunEnded = Instant(t.Fin),
+                LastRunSucceeded = t.Ok, LastRunErrors = t.NbErreurs, LastSuccess = Instant(t.DernierSucces),
+            }),
+            Note = "One-off tasks are run by hand (history loading). null means never run or not finished. A successful import does not prove the source was up to date.",
+        });
+    }
+
+    [McpServerTool(Name = "data_quality", Title = "Data quality", ReadOnly = true, OpenWorld = false)]
+    [Description("Known gaps in the data, per chamber: date of the latest vote, incomplete roll calls, votes without a result, members in office compared with seats, overlapping terms, members without a group.")]
+    public async Task<string> QualiteDonnees(
+        [Description("Country code")] string? country = null,
+        [Description("Chamber code")] string? chamber = null)
+    {
+        var p = await PerimetreAsync("data_quality");
+        var voulues = p.Filtrer(country, chamber).ToHashSet();
+        return Reponse.Json(new
+        {
+            Chambers = (await ChambresAsync()).Where(c => voulues.Contains(c.Code)).Select(c => new
+            {
+                Chamber = c.Code, Country = p.Chambres[c.Code], Name = Models.Chambres.Nom(c.Code, true),
+                Votes = c.Scrutins, LatestVote = Reponse.Jour(c.Dernier), DaysSinceLatestVote = c.AgeJours,
+                IncompleteRollCalls = c.Incomplets, VotesWithoutResult = c.SansResultat,
+                MembersInOffice = c.EnExercice, Seats = c.Sieges, MoreMembersThanSeats = c.AuDessusDesSieges,
+                OverlappingTerms = c.Chevauchants, MembersWithoutGroup = c.SansGroupe,
+            }),
+            Note = "Computed from our database. A long time without a vote may be a recess. More members than seats or overlapping terms point to badly dated terms.",
+        });
     }
 
     private ITypeDocument Type(string code, Perimetre p) =>
