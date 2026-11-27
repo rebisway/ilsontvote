@@ -22,6 +22,10 @@ Live site: <https://www.ilsontvote.org> · Version française : [README.fr.md](R
 
 Only **roll-call votes** record each member's vote; show-of-hands votes appear without the detail of who voted what, and the site says so.
 
+## MCP server
+
+AI assistants can query the data (read-only, no key) at `https://www.ilsontvote.org/mcp`. See [docs/MCP.md](docs/MCP.md).
+
 ## Data sources
 
 | Assembly | Source |

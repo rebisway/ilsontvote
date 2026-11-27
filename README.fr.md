@@ -22,6 +22,10 @@ Site : <https://www.ilsontvote.org> · English version: [README.md](README.md)
 
 Seuls les **scrutins publics** enregistrent le vote de chaque élu ; les votes à main levée apparaissent sans le détail de qui a voté quoi, et le site le dit.
 
+## Serveur MCP
+
+Les assistants IA peuvent interroger les données (lecture seule, sans clé) sur `https://www.ilsontvote.org/mcp`. Voir [docs/MCP.fr.md](docs/MCP.fr.md).
+
 ## Sources de données
 
 | Assemblée | Source |

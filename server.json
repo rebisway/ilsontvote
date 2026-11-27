@@ -1,0 +1,13 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "org.ilsontvote/mcp",
+  "title": "They voted (ilsontvote.org)",
+  "description": "Who voted how: parliamentary and popular votes, laws and petitions. Read-only.",
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://www.ilsontvote.org/mcp"
+    }
+  ]
+}

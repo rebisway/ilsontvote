@@ -72,3 +72,22 @@ Each tool call writes a `MCP : outil …` line to the log (no parameters, no IP 
 ```
 journalctl -u ilsontvote | grep "MCP : outil"
 ```
+
+## Publishing to the official registry
+
+`server.json` (repository root) describes the server. Install `mcp-publisher` (see the registry quickstart), then, in Git Bash at the repository root, create the key and the DNS record:
+
+```bash
+openssl genpkey -algorithm Ed25519 -out key.pem
+echo "ilsontvote.org. IN TXT \"v=MCPv1; k=ed25519; p=$(openssl pkey -in key.pem -pubout -outform DER | tail -c 32 | base64)\""
+```
+
+Add that TXT record at the apex of `ilsontvote.org`, wait for propagation, then publish:
+
+```bash
+PRIVATE_KEY="$(openssl pkey -in key.pem -noout -text | grep -A3 "priv:" | tail -n +2 | tr -d ' :\n')"
+./mcp-publisher.exe login dns --domain ilsontvote.org --private-key "$PRIVATE_KEY"
+./mcp-publisher.exe publish
+```
+
+Keep `key.pem` out of the repository. Raise `version` in `server.json` before publishing again. The registry is in preview: check its documentation (modelcontextprotocol.io/registry).

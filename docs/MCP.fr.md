@@ -68,3 +68,22 @@ pas aux visiteurs, et ne passe pas par la table `traductions`.
 
 Le serveur fait partie de l'application web (`src/IlsOntVote.Web/Mcp/`) : déployer le site le déploie. Aucun service,
 port, règle nginx ni migration en plus.
+
+## Publier au registre officiel
+
+`server.json` (racine du dépôt) décrit le serveur. Installer `mcp-publisher` (voir le guide de démarrage du registre), puis, dans Git Bash à la racine du dépôt, créer la clé et l'enregistrement DNS :
+
+```bash
+openssl genpkey -algorithm Ed25519 -out key.pem
+echo "ilsontvote.org. IN TXT \"v=MCPv1; k=ed25519; p=$(openssl pkey -in key.pem -pubout -outform DER | tail -c 32 | base64)\""
+```
+
+Ajouter cet enregistrement TXT à la racine (apex) de `ilsontvote.org`, attendre la propagation, puis publier :
+
+```bash
+PRIVATE_KEY="$(openssl pkey -in key.pem -noout -text | grep -A3 "priv:" | tail -n +2 | tr -d ' :\n')"
+./mcp-publisher.exe login dns --domain ilsontvote.org --private-key "$PRIVATE_KEY"
+./mcp-publisher.exe publish
+```
+
+`key.pem` ne va jamais dans le dépôt. Augmenter `version` dans `server.json` avant de republier. Le registre est en préversion : vérifier sa documentation (modelcontextprotocol.io/registry).

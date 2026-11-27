@@ -1,0 +1,42 @@
+@page "/mcp-info"
+@{
+    // Page de présentation du serveur MCP (le point d'accès lui-même est /mcp, réservé aux clients MCP). Commune à tous les pays.
+    ViewData["Title"] = L.T("mcp-titre");
+    ViewData["Description"] = L.T("mcp-description");
+}
+
+<h1 class="titre-page">@L.T("mcp-titre")</h1>
+<p class="chapo">@L.T("mcp-chapo")</p>
+
+<section class="bloc-texte">
+    <h2>@L.T("mcp-adresse-titre")</h2>
+    <pre class="adresse-mcp"><code>https://www.ilsontvote.org/mcp</code></pre>
+    <p>@L.T("mcp-adresse-aide")</p>
+
+    <h2>@L.T("mcp-exemples-titre")</h2>
+    <ul>
+        <li>@L.T("mcp-exemple-depute")</li>
+        <li>@L.T("mcp-exemple-groupes")</li>
+        <li>@L.T("mcp-exemple-loi")</li>
+        <li>@L.T("mcp-exemple-votation")</li>
+    </ul>
+
+    <h2>@L.T("mcp-contenu-titre")</h2>
+    <p>@L.T("mcp-contenu")</p>
+
+    <h2>@L.T("mcp-limites-titre")</h2>
+    <ul>
+        <li>@L.T("mcp-limite-erreurs")</li>
+        <li>@L.T("mcp-limite-main-levee")</li>
+        <li>@L.T("mcp-limite-debit")</li>
+    </ul>
+
+    <h2>@L.T("mcp-licences-titre")</h2>
+    <p>@L.T("mcp-licences")</p>
+
+    <h2>@L.T("mcp-confidentialite-titre")</h2>
+    <p>@L.T("mcp-confidentialite")</p>
+
+    <p><a href="https://github.com/rebisway/ilsontvote/blob/main/docs/@(L.Code == "fr" ? "MCP.fr.md" : "MCP.md")" rel="noopener">@L.T("mcp-documentation")</a></p>
+    <p class="note-source">@L.TH("une-question-contact-rebisway-com")</p>
+</section>
