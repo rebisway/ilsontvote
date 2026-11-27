@@ -83,7 +83,7 @@ public sealed class Perimetre
 /// <summary>Mise en forme commune des réponses.</summary>
 public static class Reponse
 {
-    private static readonly JsonSerializerOptions Options = new()
+    public static readonly JsonSerializerOptions Options = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         DefaultIgnoreCondition = JsonIgnoreCondition.Never,   // une donnée manquante reste visible (null), jamais omise

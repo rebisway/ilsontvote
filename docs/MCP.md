@@ -31,6 +31,13 @@ their source.
 Vote positions are `for`, `against`, `abstention`, `non_voting` and `absent`. Theme codes are French identifiers
 (`sante`…); `list_types` gives their English names.
 
+## Sources and licences
+
+Every `search`, `get_document`, `vote_positions` and `member_history` answer carries a `sources` block for the data it
+returns (`list_types` lists them all): producer, licence, terms URL, attribution, `commercial_use` and `share_alike`
+(`yes`, `no`, `unknown`), `status` (`verified`, `no_named_licence`, `unverified`), verification date and last successful
+import. They live in the `licences` table (migration 078): update the row when terms are checked.
+
 ## Document types
 
 | Type | Content | Countries |

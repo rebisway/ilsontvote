@@ -19,6 +19,7 @@ public static class McpServeur
     public static void AjouterMcp(this IServiceCollection services)
     {
         // Un type de document = une classe ; l'ordre est celui présenté aux clients.
+        services.AddSingleton<Sources>();
         services.AddScoped<VotesParlementaires>();
         services.AddScoped<Elus>();
         services.AddScoped<ITypeDocument>(s => s.GetRequiredService<VotesParlementaires>());
@@ -39,7 +40,8 @@ public static class McpServeur
                     "Read-only data from ilsontvote.org: who voted how. Start with list_types. " +
                     "Cite the 'url' of each document. Respect the caveats: 'computed' or 'inferred' is not official; " +
                     "null means missing data (not zero); 'absent' is inferred and no reason is known: never assume one. " +
-                    "Source licences are listed at " + Perimetre.Site + "/en/mentions-legales (and /{country}/mentions-legales).";
+                    "Each answer carries a 'sources' block: give the requested attribution, respect commercial_use and share_alike, " +
+                    "and never treat 'unknown' or 'unverified' as permission.";
             })
             // Sans état : aucune session à conserver entre deux requêtes (redémarrages et cache sans effet).
             .WithHttpTransport(o => o.Stateless = true)
@@ -53,7 +55,7 @@ public sealed class McpOutils(
     IEnumerable<ITypeDocument> types, VotesParlementaires votes, Elus elus,
     IScrutinRepository scrutins, IParlementaireRepository parlementaires,
     PaysSite site, Themes themes, ILogger<McpOutils> journal,
-    IQualiteRepository qualite, IMcpAppelRepository appels, IIpHasher empreintes, IHttpContextAccessor http)
+    IQualiteRepository qualite, IMcpAppelRepository appels, IIpHasher empreintes, IHttpContextAccessor http, Sources sources)
 {
     private const int MaxDocuments = 50;
     private const int MaxLignes = 200;
@@ -142,6 +144,8 @@ public sealed class McpOutils(
             Types = types.Where(t => t.Pays(p).Count > 0).Select(t => new { Type = t.Code, Name = t.Nom, t.Description, Filters = t.Filtres, Countries = t.Pays(p) }),
             Chambers = p.Chambres.Select(c => new { Code = c.Key, Country = c.Value, Name = Models.Chambres.Nom(c.Key, true) }),
             Themes = themes.Lister().Select(t => new { t.Code, Name = t.NomEn }),
+            // Toutes les licences des chambres et plateformes publiées (les pays inactifs n'apparaissent pas).
+            Sources = (await sources.ListerAsync()).Where(l => l.Chambres.Any(c => p.Chambres.ContainsKey(c) || p.Publie(c == "UK" ? "GB" : c))).Select(l => l.VersApi()),
         });
     }
 
@@ -176,7 +180,7 @@ public sealed class McpOutils(
 
         var r = new Recherche(text, country, chamber, from, to, codeTheme, final_votes_only, Math.Clamp(page, 1, 10_000), Math.Clamp(limit, 1, MaxDocuments));
         var res = await t.RechercherAsync(r, p);
-        return Reponse.Json(new { Type = t.Code, res.Total, r.Page, PerPage = r.Limite, Results = res.Resultats });
+        return await sources.JoindreAsync(t.Code, new { Type = t.Code, res.Total, r.Page, PerPage = r.Limite, Results = res.Resultats });
     }
 
     [McpServerTool(Name = "get_document", Title = "Get a document", ReadOnly = true, OpenWorld = false)]
@@ -187,7 +191,7 @@ public sealed class McpOutils(
     {
         var p = await PerimetreAsync("get_document");
         var document = await Type(type, p).ConsulterAsync(id, p) ?? throw new McpException($"No document '{id}' of type '{type}'.");
-        return Reponse.Json(document);
+        return await sources.JoindreAsync(type, document);
     }
 
     [McpServerTool(Name = "vote_positions", Title = "Who voted how", ReadOnly = true, OpenWorld = false)]
@@ -216,7 +220,7 @@ public sealed class McpOutils(
         page = Math.Clamp(page, 1, 10_000);
         limit = Math.Clamp(limit, 1, MaxLignes);
         var pays = p.Chambres[s.Chambre];
-        return Reponse.Json(new
+        return await sources.JoindreAsync(votes.Code, new
         {
             Vote = new { s.Id, Chamber = s.Chambre, Date = Reponse.Jour(s.DateScrutin), Title = s.TitreAffiche, TitleEn = s.TitreEn, Url = p.Url(pays, "/scrutin/" + s.Id) },
             Caveats = new
@@ -254,7 +258,8 @@ public sealed class McpOutils(
         var res = await parlementaires.GetVotesAsync(e.Id, e.Chambre, final_votes_only, Math.Clamp(page, 1, 10_000), Math.Clamp(limit, 1, MaxDocuments),
             Date(from), Date(to), text, Reponse.PositionSaisie(position, attributs: true));
         var pays = p.Chambres[e.Chambre];
-        return Reponse.Json(new
+        // Les votes appartiennent au lot des scrutins de la chambre.
+        return await sources.JoindreAsync(votes.Code, new
         {
             Member = new { e.Id, FirstName = e.Prenom, LastName = e.Nom, Chamber = e.Chambre, Url = p.Url(pays, e.Lien) },
             res.Total, res.Page, PerPage = res.ParPage,
