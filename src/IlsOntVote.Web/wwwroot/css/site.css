@@ -84,6 +84,11 @@ a { color: inherit; }
 .site-header .wrap { display: flex; align-items: baseline; gap: 16px; padding-top: 14px; padding-bottom: 14px; flex-wrap: wrap; }
 .brand { font-size: 1.35rem; font-weight: 800; text-decoration: none; letter-spacing: -0.02em; }
 .brand em { font-style: normal; color: var(--contre); }
+.logo-marque { width: 2.4rem; height: auto; margin-right: .45rem; vertical-align: -.08em; }
+.logo-marque .m-pour { fill: var(--pour); }
+.logo-marque .m-contre { fill: var(--contre); }
+.logo-marque .m-abstention { fill: var(--abstention); }
+.logo-marque .m-nonvotant { fill: var(--nonvotant); }
 .tagline { color: var(--ink-soft); font-size: 0.9rem; }
 
 .site-footer { margin-top: 56px; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 0.85rem; }

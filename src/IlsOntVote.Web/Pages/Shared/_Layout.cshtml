@@ -119,7 +119,7 @@
     }
     <header class="site-header">
         <div class="wrap">
-            <a class="brand" href="@L.Lien("/")">@L.MarqueHtml</a>
+            <a class="brand" href="@L.Lien("/")"><partial name="_LogoMarque" />@L.MarqueHtml</a>
             <nav class="menu" id="menu-principal" aria-label="@L.T("navigation-principale")">
                 @if (chemin != "/" && chemin != "")
                 {
