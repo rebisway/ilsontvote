@@ -16,6 +16,9 @@ public interface IParlementaireRepository
 
     Task<BilanParlementaire> GetBilanAsync(string parlementaireId, string chambre);
 
+    /// <summary>Bilan sur les seuls votes sur l'ensemble d'un texte ; null si non applicable à la chambre ou aucun pendant ses mandats.</summary>
+    Task<BilanParlementaire?> GetBilanEnsembleAsync(string parlementaireId, string chambre);
+
     /// <summary>Périodes de mandat de l'élu (les périodes contiguës sont fusionnées), de la plus ancienne à la plus récente.</summary>
     Task<IReadOnlyList<PeriodeMandat>> GetMandatsAsync(string parlementaireId);
 
@@ -142,6 +145,36 @@ public sealed class ParlementaireRepository(DapperContext db) : IParlementaireRe
                               AND m.date_debut <= s.date_scrutin
                               AND (m.date_fin IS NULL OR m.date_fin >= s.date_scrutin))
             """, new { parlementaireId, chambre });
+    }
+
+    /// <summary>
+    /// Bilan limité aux votes sur l'ensemble d'un texte, mêmes règles que <see cref="GetBilanAsync"/> ; null pour les chambres
+    /// sans vote sur l'ensemble exploitable (Lords, Irlande) ou si aucun n'a eu lieu pendant les mandats (« non applicable », pas zéro).
+    /// </summary>
+    public async Task<BilanParlementaire?> GetBilanEnsembleAsync(string parlementaireId, string chambre)
+    {
+        if (Chambres.SansVoteSurEnsemble(chambre)) return null;
+        using var cx = db.CreateConnection();
+        // Absent = siégeait (mandat de la législature du scrutin, à sa date) sans ligne dans votes.
+        var bilan = await cx.QuerySingleAsync<BilanParlementaire>(
+            """
+            SELECT count(*)::int AS total,
+                   count(*) FILTER (WHERE v.position = 'pour')::int AS pour,
+                   count(*) FILTER (WHERE v.position = 'contre')::int AS contre,
+                   count(*) FILTER (WHERE v.position = 'abstention')::int AS abstention,
+                   count(*) FILTER (WHERE v.position = 'non_votant')::int AS non_votant,
+                   count(*) FILTER (WHERE v.parlementaire_id IS NULL)::int AS absent,
+                   count(*) FILTER (WHERE v.par_delegation)::int AS delegation
+              FROM scrutins s
+              LEFT JOIN votes v ON v.scrutin_id = s.id AND v.parlementaire_id = @id
+             WHERE s.chambre = @chambre AND s.sur_ensemble AND NOT s.nominatif_incomplet
+               AND EXISTS (SELECT 1 FROM mandats m
+                            WHERE m.parlementaire_id = @id
+                              AND (m.legislature IS NULL OR m.legislature = s.legislature)
+                              AND m.date_debut <= s.date_scrutin
+                              AND (m.date_fin IS NULL OR m.date_fin >= s.date_scrutin))
+            """, new { id = parlementaireId, chambre });
+        return bilan.Total == 0 ? null : bilan;
     }
 
     public async Task<IReadOnlyList<PeriodeMandat>> GetMandatsAsync(string parlementaireId)

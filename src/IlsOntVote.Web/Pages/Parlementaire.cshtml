@@ -81,6 +81,33 @@
     }
 </section>
 
+@if (Model.BilanEnsemble is { } t)
+{
+    // Second bilan, à côté de celui de tous les scrutins (amendements compris) : les deux taux diffèrent fortement et ne doivent pas être confondus.
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    string Part(int n) => (100.0 * n / t.Total).ToString("0.##", inv);
+    <section class="bilan" aria-labelledby="t-bilan-ensemble">
+        <h2 id="t-bilan-ensemble">@L.T("elu-ensemble-titre")</h2>
+        <p class="bilan-chiffre"><strong>@t.TauxParticipation.ToString("0", fr) %</strong> <span>@L.Tf("elu-ensemble-chiffre", t.Total)</span></p>
+        <div class="barre-empilee" role="img" aria-label="@L.T("repartition-de-ses-votes")">
+            <span class="b-pour" style="width:@Part(t.Pour)%"></span>
+            <span class="b-contre" style="width:@Part(t.Contre)%"></span>
+            <span class="b-abstention" style="width:@Part(t.Abstention)%"></span>
+            <span class="b-non_votant" style="width:@Part(t.NonVotant)%"></span>
+            <span class="b-absent" style="width:@Part(t.Absent)%"></span>
+        </div>
+        <ul class="legende">
+            <li class="d-pour"><i></i> @L.T("pour-2ecc") <b>@t.Pour</b></li>
+            <li class="d-contre"><i></i> @L.T("contre-b885") <b>@t.Contre</b></li>
+            <li class="d-abstention"><i></i> @L.T("abstention") <b>@t.Abstention</b></li>
+            <li class="d-nonvotant"><i></i> @L.T("non-votant") <b>@t.NonVotant</b></li>
+            <li class="d-absent"><i></i> @L.T("absent") <b>@t.Absent</b></li>
+            <li class="d-delegation"><i></i> @L.T("par-delegation") <b>@t.Delegation</b></li>
+        </ul>
+        <p class="note-source">@L.T("elu-ensemble-note")</p>
+    </section>
+}
+
 @if (Model.Mensuel.Count > 1)
 {
     // Barres mensuelles : hauteur totale = participation (vote exprimé, délégation comprise), partie foncée = présence (vote exprimé par l'élu

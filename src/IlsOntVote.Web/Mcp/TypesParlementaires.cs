@@ -112,11 +112,15 @@ public sealed class Elus(DapperContext db, IParlementaireRepository repo) : ITyp
         return cle is { } c ? await repo.GetParSlugAsync(c.Chambre, c.Slug) : null;
     }
 
+    /// <summary>Pourcentage à une décimale.</summary>
+    private static double Pourcent(double taux) => Math.Round(taux, 1);
+
     public async Task<object?> ConsulterAsync(string id, Perimetre p)
     {
         if (await LireAsync(id, p) is not { } e) return null;
         var bilan = await repo.GetBilanAsync(e.Id, e.Chambre);
         var mandats = await repo.GetMandatsAsync(e.Id);
+        var ensemble = await repo.GetBilanEnsembleAsync(e.Id, e.Chambre);
         return new
         {
             Document = Resume(e, p), InOffice = e.EnExercice, CurrentGroup = e.GroupeLibelle, CurrentGroupShort = e.GroupeSigle, DirectoryStatus = e.Statut,
@@ -125,7 +129,16 @@ public sealed class Elus(DapperContext db, IParlementaireRepository repo) : ITyp
             {
                 Votes = bilan.Total, For = bilan.Pour, Against = bilan.Contre, bilan.Abstention, NonVoting = bilan.NonVotant, bilan.Absent,
                 IncludingDelegated = bilan.Delegation, IncludingCorrected = bilan.MiseAuPoint,
-                Note = "Computed over the recorded votes held during their terms, incomplete roll calls excluded. 'Absent' is inferred; no reason is known.",
+                ParticipationPct = Pourcent(bilan.TauxParticipation),
+                Note = "Computed over ALL recorded votes held during their terms (amendments, articles, motions and whole texts), incomplete roll calls excluded. " +
+                       "Participation = for, against and abstention, delegated votes included. 'Absent' is inferred; no reason is known.",
+            },
+            // Second bilan : sans lui, un assistant présente la participation à tous les scrutins comme celle aux votes sur les textes.
+            ComputedFinalVotesRecord = ensemble is null ? null : new
+            {
+                Votes = ensemble.Total, For = ensemble.Pour, Against = ensemble.Contre, ensemble.Abstention, NonVoting = ensemble.NonVotant, ensemble.Absent,
+                IncludingDelegated = ensemble.Delegation, ParticipationPct = Pourcent(ensemble.TauxParticipation),
+                Note = "Same computation restricted to final votes on a whole text (identified from the title; includes resolutions and every reading of a text).",
             },
         };
     }

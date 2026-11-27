@@ -21,6 +21,8 @@ public class ParlementaireModel(IParlementaireRepository parlementaires, PaysSit
     public Parlementaire Elu { get; private set; } = null!;
     /// <summary>Participation sur les scrutins publics tenus pendant ses mandats (scrutins aux données incomplètes exclus).</summary>
     public BilanParlementaire Bilan { get; private set; } = new();
+    /// <summary>Même bilan sur les votes sur l'ensemble d'un texte ; null si non applicable (Lords, Irlande) ou aucun.</summary>
+    public BilanParlementaire? BilanEnsemble { get; private set; }
     /// <summary>Périodes de mandat (début = prise de fonction), affichées sous le nom : elles expliquent un nombre de scrutins parfois faible.</summary>
     public IReadOnlyList<PeriodeMandat> Mandats { get; private set; } = [];
     /// <summary>Participation mois par mois (graphique de la fiche).</summary>
@@ -73,6 +75,7 @@ public class ParlementaireModel(IParlementaireRepository parlementaires, PaysSit
         Voisin Vers(Parlementaire x) => new(x.Slug, $"{x.Prenom} {x.Nom}");
         Voisins = new VoisinsVue("/" + Chambres.Fiche(chambre) + "/", prec is null ? null : Vers(prec), suiv is null ? null : Vers(suiv));
         Bilan = await parlementaires.GetBilanAsync(elu.Id, chambre);
+        BilanEnsemble = await parlementaires.GetBilanEnsembleAsync(elu.Id, chambre);
         Mensuel = await parlementaires.GetParticipationMensuelleAsync(elu.Id);
         Mandats = await parlementaires.GetMandatsAsync(elu.Id);
         var (du, au) = Periode.Lire(Du, Au);
