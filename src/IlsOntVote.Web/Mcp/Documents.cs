@@ -8,7 +8,7 @@ using ModelContextProtocol;
 namespace IlsOntVote.Web.Mcp;
 
 /// <summary>Filtres communs d'une recherche. Un type de document ignore ceux qui ne le concernent pas et les annonce dans <see cref="ITypeDocument.Filtres"/>.</summary>
-public sealed record Recherche(string? Texte, string? Pays, string? Chambre, string? Du, string? Au, string? Theme, bool SurEnsemble, int Page, int Limite)
+public sealed record Recherche(string? Texte, string? Pays, string? Chambre, string? Du, string? Au, string? Theme, bool SurEnsemble, int Page, int Limite, bool ParSignatures = false)
 {
     public int Decalage => (Page - 1) * Limite;
 }

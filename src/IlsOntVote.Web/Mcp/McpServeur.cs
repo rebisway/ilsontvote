@@ -154,7 +154,7 @@ public sealed class McpOutils(
     }
 
     [McpServerTool(Name = "search", Title = "Search documents", ReadOnly = true, OpenWorld = false)]
-    [Description("Searches documents of one type, most recent first (members: alphabetical order). Titles are in the language of the source: search with words of that language.")]
+    [Description("Searches documents of one type, most recent first (members: alphabetical order; petitions can be sorted by signatures). Titles are in the language of the source: search with words of that language.")]
     public async Task<string> Rechercher(
         [Description("Type code (see list_types), for example parliamentary_vote")] string type,
         [Description("Words that must all appear in the title (or in the member's name)")] string? text = null,
@@ -165,7 +165,8 @@ public sealed class McpOutils(
         [Description("Theme code (approximate keyword classification)")] string? theme = null,
         [Description("Parliamentary votes: only final votes on a whole text (computed from the title). Includes resolutions, which are not laws; a text adopted at one reading is not necessarily enacted: check the title.")] bool final_votes_only = false,
         [Description("Page, starting at 1")] int page = 1,
-        [Description("Results per page (50 at most)")] int limit = 20)
+        [Description("Results per page (50 at most)")] int limit = 20,
+        [Description("Petitions only: 'date' (most recent first, default) or 'signatures' (most supported first, over all matching petitions)")] string? sort = null)
     {
         var p = await PerimetreAsync("search");
         var t = Type(type, p);
@@ -174,15 +175,20 @@ public sealed class McpOutils(
         {
             ("country", !string.IsNullOrWhiteSpace(country)), ("chamber", !string.IsNullOrWhiteSpace(chamber)), ("from", !string.IsNullOrWhiteSpace(from)),
             ("to", !string.IsNullOrWhiteSpace(to)), ("theme", !string.IsNullOrWhiteSpace(theme)), ("final_votes_only", final_votes_only),
+            ("sort", !string.IsNullOrWhiteSpace(sort)),
         };
         var refuses = demandes.Where(f => f.Present && !t.Filtres.Contains(f.Nom)).Select(f => f.Nom).ToList();
         if (refuses.Count > 0) throw new McpException($"Filter(s) not supported for '{type}': {string.Join(", ", refuses)}. Available: {string.Join(", ", t.Filtres)}.");
+
+        // Liste blanche : la valeur ne sert qu'à choisir entre deux tris écrits dans le code.
+        var tri = string.IsNullOrWhiteSpace(sort) ? "date" : sort.Trim().ToLowerInvariant();
+        if (tri is not ("date" or "signatures")) throw new McpException("Expected sort: date or signatures.");
 
         string? codeTheme = null;
         if (!string.IsNullOrWhiteSpace(theme))
             codeTheme = themes.Valider(theme) ?? throw new McpException($"Unknown theme: '{theme}'. See list_types.");
 
-        var r = new Recherche(text, country, chamber, from, to, codeTheme, final_votes_only, Math.Clamp(page, 1, 10_000), Math.Clamp(limit, 1, MaxDocuments));
+        var r = new Recherche(text, country, chamber, from, to, codeTheme, final_votes_only, Math.Clamp(page, 1, 10_000), Math.Clamp(limit, 1, MaxDocuments), tri == "signatures");
         var res = await t.RechercherAsync(r, p);
         return await sources.JoindreAsync(t.Code, new { Type = t.Code, res.Total, r.Page, PerPage = r.Limite, Results = res.Resultats });
     }
@@ -233,6 +239,11 @@ public sealed class McpOutils(
                 Absences = s.NominatifIncomplet
                     ? "UNCERTAIN: the source's roll call is incomplete; members shown as absent may have voted."
                     : "Inferred: they held a seat on the date of the vote and do not appear in it. No reason is known.",
+                // Constat sur un assistant : « le groupe s'est abstenu dans son ensemble » alors que plus de la moitié de ses membres étaient absents.
+                Reading = "Never say that a group voted unanimously or as a whole without also giving its number of absent and non-voting members.",
+                NonVoting = "'non_voting' is a status declared by the source (for example the member chairing the sitting): it does not establish that the member was present.",
+                // Compté sur tous les élus de la liste filtrée, pas sur la seule page renvoyée.
+                Delegation = $"{filtres.Count(x => x.ParDelegation)} of the {filtres.Count} listed members voted by delegation (through a colleague, 'delegated'): say so when listing who voted.",
             },
             ComputedBreakdownByGroup = groupes,
             Total = filtres.Count, Page = page, PerPage = limit,

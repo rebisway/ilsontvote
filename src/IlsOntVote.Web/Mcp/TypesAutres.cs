@@ -142,8 +142,9 @@ public sealed class Petitions(DapperContext db, IPetitionRepository repo) : ITyp
     public string Code => "petition";
     public string Nom => "Petition";
     public string Description => "Petitions to the French National Assembly and Senate (and to the UK Parliament). Signature counts are those of the latest snapshot; a petition is not a vote. " +
-        "Only the title, status, signature counts, dates and official link are available: not the text of the petition.";
-    public string[] Filtres => ["text", "country", "from", "to", "theme"];
+        "Only the title, status, signature counts, dates and official link are available: not the text of the petition. " +
+        "To find the most supported petitions use sort=signatures: never rank them from a single page sorted by date.";
+    public string[] Filtres => ["text", "country", "from", "to", "theme", "sort"];
     public IReadOnlyList<string> Pays(Perimetre p) => p.Publie("GB") ? ["FR", "GB"] : ["FR"];
 
     private const string Colonnes =
@@ -180,8 +181,10 @@ public sealed class Petitions(DapperContext db, IPetitionRepository repo) : ITyp
         var param = new { plateformes = Plateformes(p, r.Pays), mots, du, au, theme = r.Theme, limite = r.Limite, decalage = r.Decalage };
         using var cx = db.CreateConnection();
         var total = await cx.ExecuteScalarAsync<int>($"SELECT count(*) FROM petitions {filtre}", param);
+        // Soutiens inconnus (NULL) en fin de liste : manquant n'est pas zéro, mais ne peut pas être classé.
+        var ordre = r.ParSignatures ? "nb_votes DESC NULLS LAST, date_publication DESC NULLS LAST, id" : "date_publication DESC NULLS LAST, id";
         var lignes = await cx.QueryAsync<Petition>(
-            $"SELECT {Colonnes} FROM petitions {filtre} ORDER BY date_publication DESC NULLS LAST, id LIMIT @limite OFFSET @decalage", param);
+            $"SELECT {Colonnes} FROM petitions {filtre} ORDER BY {ordre} LIMIT @limite OFFSET @decalage", param);
         return new(total, [.. lignes.Select(x => Resume(x, p))]);
     }
 

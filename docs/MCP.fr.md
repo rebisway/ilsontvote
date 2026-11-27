@@ -17,7 +17,7 @@ Ajouter `https://www.ilsontvote.org/mcp` comme serveur MCP HTTP distant dans tou
 | Outil | Rôle |
 |---|---|
 | `list_types` | Types de documents, filtres, pays, chambres, thèmes |
-| `search` | Recherche paginée dans un type (50 résultats au plus) |
+| `search` | Recherche paginée dans un type (50 résultats au plus) ; pétitions : `sort=date` ou `sort=signatures` |
 | `get_document` | Fiche d'un document |
 | `vote_positions` | Décompte par groupe et position de chaque élu (200 au plus par page) |
 | `member_history` | Votes d'un élu, absences comprises |

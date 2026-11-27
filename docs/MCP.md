@@ -21,7 +21,7 @@ their source.
 | Tool | Purpose |
 |---|---|
 | `list_types` | Document types, filters, countries, chambers, themes |
-| `search` | Paginated search within one type (50 results at most) |
+| `search` | Paginated search within one type (50 results at most); petitions: `sort=date` or `sort=signatures` |
 | `get_document` | Full record of one document |
 | `vote_positions` | Breakdown by group and each member's position (200 per page at most) |
 | `member_history` | A member's votes, absences included |
