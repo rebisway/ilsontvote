@@ -12,7 +12,8 @@ public sealed class VotesParlementaires(DapperContext db) : ITypeDocument
     public string Nom => "Parliamentary vote";
     public string Description =>
         "Recorded votes of parliamentary chambers. Votes by show of hands have no individual record and are not listed here. " +
-        "Use the vote_positions tool to see who voted how. Titles are in the language of the source.";
+        "Use the vote_positions tool to see who voted how. Titles are in the language of the source. " +
+        "Not all sources are official: European Parliament data comes from HowTheyVote.eu and US Senate data from Voteview, both third parties.";
     public string[] Filtres => ["text", "country", "chamber", "from", "to", "theme", "final_votes_only"];
     public IReadOnlyList<string> Pays(Perimetre p) => [.. p.Chambres.Values.Distinct()];
 
@@ -79,7 +80,7 @@ public sealed class Elus(DapperContext db, IParlementaireRepository repo) : ITyp
 {
     public string Code => "member";
     public string Nom => "Member of parliament";
-    public string Description => "Deputies, senators and other members of parliamentary chambers. Use the member_history tool for their votes.";
+    public string Description => "Deputies, senators and other members of parliamentary chambers. Use the member_history tool for their votes. Search is by name only.";
     public string[] Filtres => ["text", "country", "chamber"];
     public IReadOnlyList<string> Pays(Perimetre p) => [.. p.Chambres.Values.Distinct()];
 

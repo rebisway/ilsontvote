@@ -37,7 +37,8 @@ public static class McpServeur
             {
                 o.ServerInfo = new() { Name = "ilsontvote", Title = "They voted (ilsontvote.org)", Version = "1.0.0" };
                 o.ServerInstructions =
-                    "Read-only data from ilsontvote.org: who voted how. Start with list_types. " +
+                    "Read-only data from ilsontvote.org: who voted how. Start with list_types and rely on its descriptions to state what is covered. " +
+                    "EU is the European Parliament, not a country: do not count it as one. Not every source is official (see 'sources'). " +
                     "Cite the 'url' of each document. Respect the caveats: 'computed' or 'inferred' is not official; " +
                     "null means missing data (not zero); 'absent' is inferred and no reason is known: never assume one. " +
                     "Each answer carries a 'sources' block: give the requested attribution, respect commercial_use and share_alike, " +
@@ -139,8 +140,11 @@ public sealed class McpOutils(
     public async Task<string> ListerTypes()
     {
         var p = await PerimetreAsync("list_types");
+        var pays = p.Chambres.Values.Distinct().ToList();
         return Reponse.Json(new
         {
+            // Compte explicite : un assistant comptait « EU » parmi les pays.
+            Coverage = new { Countries = pays.Where(c => c != "EU"), SupranationalParliaments = pays.Where(c => c == "EU") },
             Types = types.Where(t => t.Pays(p).Count > 0).Select(t => new { Type = t.Code, Name = t.Nom, t.Description, Filters = t.Filtres, Countries = t.Pays(p) }),
             Chambers = p.Chambres.Select(c => new { Code = c.Key, Country = c.Value, Name = Models.Chambres.Nom(c.Key, true) }),
             Themes = themes.Lister().Select(t => new { t.Code, Name = t.NomEn }),

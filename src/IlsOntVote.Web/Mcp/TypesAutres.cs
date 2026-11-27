@@ -13,7 +13,7 @@ public sealed class VotesPopulaires(IVotationRepository repo) : ITypeDocument
     public string Nom => "Popular vote";
     public string Description =>
         "Swiss federal popular votes since 2000 (Swissvotes, Année Politique Suisse, University of Bern, CC BY 4.0). " +
-        "Aggregate results (people and cantons), no individual votes.";
+        "Federal ballots only (no cantonal or municipal ballots), with results by canton. No individual votes.";
     public string[] Filtres => ["text"];
     public IReadOnlyList<string> Pays(Perimetre p) => p.Publie("CH") ? ["CH"] : [];
 
@@ -141,7 +141,8 @@ public sealed class Petitions(DapperContext db, IPetitionRepository repo) : ITyp
 {
     public string Code => "petition";
     public string Nom => "Petition";
-    public string Description => "Petitions to the French National Assembly and Senate (and to the UK Parliament). Signature counts are those of the latest snapshot; a petition is not a vote.";
+    public string Description => "Petitions to the French National Assembly and Senate (and to the UK Parliament). Signature counts are those of the latest snapshot; a petition is not a vote. " +
+        "Only the title, status, signature counts, dates and official link are available: not the text of the petition.";
     public string[] Filtres => ["text", "country", "from", "to", "theme"];
     public IReadOnlyList<string> Pays(Perimetre p) => p.Publie("GB") ? ["FR", "GB"] : ["FR"];
 
