@@ -163,7 +163,7 @@ public sealed class McpOutils(
         [Description("Start date, YYYY-MM-DD")] string? from = null,
         [Description("End date, YYYY-MM-DD")] string? to = null,
         [Description("Theme code (approximate keyword classification)")] string? theme = null,
-        [Description("Parliamentary votes: only final votes on a whole text")] bool final_votes_only = false,
+        [Description("Parliamentary votes: only final votes on a whole text (computed from the title). Includes resolutions, which are not laws; a text adopted at one reading is not necessarily enacted: check the title.")] bool final_votes_only = false,
         [Description("Page, starting at 1")] int page = 1,
         [Description("Results per page (50 at most)")] int limit = 20)
     {
@@ -250,7 +250,7 @@ public sealed class McpOutils(
         [Description("Member id (search, type member)")] string id,
         [Description("Words of the vote title")] string? text = null,
         [Description("for, against, abstention, non_voting, absent, delegated or corrected")] string? position = null,
-        [Description("Only final votes on a whole text")] bool final_votes_only = false,
+        [Description("Only final votes on a whole text (computed from the title; includes resolutions, and any reading of a text)")] bool final_votes_only = false,
         [Description("Start date, YYYY-MM-DD")] string? from = null,
         [Description("End date, YYYY-MM-DD")] string? to = null,
         [Description("Page, starting at 1")] int page = 1,
