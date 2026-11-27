@@ -123,7 +123,7 @@ public class QualiteModel(DapperContext db) : PageModel
         EnsemblesSansTexte = await cx.ExecuteScalarAsync<int>("SELECT count(*)::int FROM scrutins WHERE sur_ensemble AND texte_id IS NULL AND chambre <> 'UE'");
         // Mises au point du Sénat dont la position d'origine n'est pas publiée.
         MisesAuPointSansOrigine = await cx.ExecuteScalarAsync<int>("SELECT count(*)::int FROM votes WHERE origine_inconnue");
-        // Contrôle de cohérence des mandats AN : doit rester <= 577 (cf. CLAUDE.md, piège des suppléants).
+        // Contrôle de cohérence des mandats AN : doit rester <= 577 (piège des suppléants : début de mandat = prise de fonction, pas date d'élection).
         Sieges = await cx.ExecuteScalarAsync<int>(
             """
             SELECT count(DISTINCT m.parlementaire_id)::int
@@ -147,7 +147,7 @@ public class QualiteModel(DapperContext db) : PageModel
             """)).OrderBy(i => i.Source).ToList();
 
         // Par chambre : volumes, fraîcheur, scrutins incomplets ou sans résultat, effectif en exercice face aux sièges, mandats qui se chevauchent, élus sans groupe.
-        // La législature « courante » est calculée UNE fois par chambre (CTE) : en sous-requête corrélée elle serait recalculée à chaque ligne (voir CLAUDE.md, performance).
+        // La législature « courante » est calculée UNE fois par chambre (CTE) : en sous-requête corrélée elle serait recalculée à chaque ligne.
         Chambres = (await cx.QueryAsync<ChambreQualite>(
             """
             WITH cur AS (
