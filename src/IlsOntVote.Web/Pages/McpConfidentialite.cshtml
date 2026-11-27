@@ -1,0 +1,28 @@
+@page "/mcp-confidentialite"
+@{
+    // Politique de confidentialité et conditions du serveur MCP (demandées par les annuaires). Toute évolution de ce qui est enregistré
+    // (table mcp_appels, journaux, durée de conservation) doit être reportée ici.
+    ViewData["Title"] = L.T("mcpc-titre");
+    ViewData["Description"] = L.T("mcpc-description");
+}
+
+<h1 class="titre-page">@L.T("mcpc-titre")</h1>
+<p class="chapo">@L.T("mcpc-chapo")</p>
+
+<section class="bloc-texte" id="confidentialite">
+    <h2>@L.T("mcpc-conf-titre")</h2>
+    <p>@L.TH("mcpc-responsable")</p>
+    <p>@L.TH("mcpc-collecte")</p>
+    <p>@L.TH("mcpc-usage")</p>
+    <p>@L.TH("mcpc-tiers")</p>
+    <p>@L.TH("mcpc-duree")</p>
+</section>
+
+<section class="bloc-texte" id="conditions">
+    <h2>@L.T("mcpc-cond-titre")</h2>
+    <p>@L.T("mcpc-cond-service")</p>
+    <p>@L.T("mcpc-cond-garantie")</p>
+    <p>@L.T("mcpc-cond-licences")</p>
+</section>
+
+<p><a href="@L.Lien("/mcp-info")">@L.T("mcp-lien")</a> · <a href="@L.Lien("/mentions-legales")">@L.T("mentions-legales-et-confidentialite")</a></p>

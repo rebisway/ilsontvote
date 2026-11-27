@@ -16,12 +16,12 @@ public class BillsModel(IBillRepository bills, Langue langue, Themes themes) : L
     /// <summary>Thèmes proposés par le filtre.</summary>
     public IReadOnlyList<Theme> ThemesListe => themes.Lister();
     [BindProperty(SupportsGet = true, Name = "q")] public string? Recherche { get; set; }
-    /// <summary>loi | en-cours | retire (retiré ou rejeté) ; vide = tous.</summary>
+    /// <summary>loi | en-cours | session-close (calculé) | retire (retiré ou rejeté) ; vide = tous.</summary>
     [BindProperty(SupportsGet = true)] public string? Statut { get; set; }
     /// <summary>Chambre où se trouve le projet : Commons | Lords ; vide = les deux.</summary>
     [BindProperty(SupportsGet = true)] public string? Chambre { get; set; }
 
-    public static readonly string[] Statuts = ["loi", "en-cours", "retire"];
+    public static readonly string[] Statuts = ["loi", "en-cours", "session-close", "retire"];
     public static readonly string[] Chambres = ["Commons", "Lords"];
 
     public Resultats<Bill> Resultats { get; private set; } = new([], 0, 1, 30);
@@ -43,6 +43,7 @@ public class BillsModel(IBillRepository bills, Langue langue, Themes themes) : L
         "loi" => l.T("loi-a3bb") + (b.DateLoi is { } d ? l.T("sanction-royale-le") + d.ToString("d MMM yyyy", l.Culture) : ""),
         "rejete" => l.T("rejete-cf6a"),
         "retire" => l.T("retire"),
+        "session-close" => l.T("bill-session-close"),
         _ => b.EtapeCourante ?? l.T("en-cours-34e5"),
     };
 
@@ -60,7 +61,7 @@ public class BillsModel(IBillRepository bills, Langue langue, Themes themes) : L
     }
 
     /// <summary>Classe de teinte (puce de statut) : mêmes teintes que les pétitions, distinctes des couleurs de vote.</summary>
-    public static string StatutClasse(Bill b) => b.StatutCle switch { "loi" => "st-ouverte", "rejete" => "st-archivee", "retire" => "st-neutre", _ => "st-seuil" };
+    public static string StatutClasse(Bill b) => b.StatutCle switch { "loi" => "st-ouverte", "rejete" => "st-archivee", "retire" or "session-close" => "st-neutre", _ => "st-seuil" };
 
     private IReadOnlyList<Colonne<Bill>> ColonnesExport() =>
     [

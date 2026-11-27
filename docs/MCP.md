@@ -91,3 +91,5 @@ PRIVATE_KEY="$(openssl pkey -in key.pem -noout -text | grep -A3 "priv:" | tail -
 ```
 
 Keep `key.pem` out of the repository. Raise `version` in `server.json` before publishing again. The registry is in preview: check its documentation (modelcontextprotocol.io/registry).
+
+Privacy and terms: <https://www.ilsontvote.org/en/mcp-confidentialite>.

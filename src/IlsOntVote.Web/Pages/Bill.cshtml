@@ -15,7 +15,7 @@
 
 <section class="definitions fiche-petition @BillsModel.StatutClasse(b)" aria-label="@L.T("details")">
     <dl>
-        <div><dt>@L.T("statut")</dt><dd><span class="puce-statut @BillsModel.StatutClasse(b)">@BillsModel.StatutLibelle(b, L)</span></dd></div>
+        <div><dt>@L.T("statut")</dt><dd><span class="puce-statut @BillsModel.StatutClasse(b)">@BillsModel.StatutLibelle(b, L)</span>@if (b.SessionClose) { <span class="note-source">@L.T("bill-session-close-aide")</span> }</dd></div>
         @if (b.ChambreOrigine is not null) { <div><dt>@L.T("depose-a")</dt><dd>@(b.ChambreOrigine == "Commons" ? L.T("la-chambre-des-communes") : L.T("la-chambre-des-lords"))</dd></div> }
         @if (b.ChambreCourante is not null) { <div><dt>@L.T("actuellement-a")</dt><dd>@(b.ChambreCourante == "Commons" ? L.T("la-chambre-des-communes") : L.T("la-chambre-des-lords"))</dd></div> }
         @if (b.DateDepot is { } dd) { <div><dt>@L.T("premiere-seance")</dt><dd>@dd.ToString("d MMMM yyyy", fr)</dd></div> }

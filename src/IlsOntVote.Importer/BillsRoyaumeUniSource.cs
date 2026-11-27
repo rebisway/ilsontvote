@@ -56,6 +56,12 @@ public sealed class BillsRoyaumeUniSource : IDisposable
         return Convertir(resume, etapes.RootElement.GetProperty("items"), longTitle);
     }
 
+    /// <summary>Sessions où figure un projet de la liste (« includedSessionIds ») ; vide si la source ne les donne pas.</summary>
+    public static int[] SessionsDe(JsonElement resume) =>
+        resume.TryGetProperty("includedSessionIds", out var s) && s.ValueKind == JsonValueKind.Array
+            ? [.. s.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.Number).Select(x => x.GetInt32()).Order()]
+            : [];
+
     /// <summary>Conversion pure (testée sans réseau) : résumé de la liste + étapes + objet du projet.</summary>
     public static BillRow Convertir(JsonElement resume, JsonElement etapes, string? titreLong)
     {

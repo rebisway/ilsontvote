@@ -16,7 +16,7 @@
 {
     <section class="definitions" aria-label="@L.T("chiffres")">
         <dl>
-            <div><dt>@L.T("projets-de-loi-eb82")</dt><dd>@Model.ParStatut.Sum(x => x.Nombre).ToString("N0", fr) — @L.T("lois") @N("loi").ToString("N0", fr) · @L.T("en-cours") @N("en-cours").ToString("N0", fr) · @L.T("retires-ou-rejetes") @N("retire").ToString("N0", fr)</dd></div>
+            <div><dt>@L.T("projets-de-loi-eb82")</dt><dd>@Model.ParStatut.Sum(x => x.Nombre).ToString("N0", fr) — @L.T("lois") @N("loi").ToString("N0", fr) · @L.T("en-cours") @N("en-cours").ToString("N0", fr) · <span title="@L.T("bill-session-close-aide")">@L.T("bills-sessions-closes") @N("session-close").ToString("N0", fr)</span> · @L.T("retires-ou-rejetes") @N("retire").ToString("N0", fr)</dd></div>
         </dl>
     </section>
 }
@@ -27,6 +27,7 @@
         <option value="">@L.T("tous-les-statuts")</option>
         <option value="loi" selected="@(Model.Statut == "loi")">@L.T("lois-sanction-royale")</option>
         <option value="en-cours" selected="@(Model.Statut == "en-cours")">@L.T("en-cours-34e5")</option>
+        <option value="session-close" selected="@(Model.Statut == "session-close")">@L.T("bills-sessions-closes")</option>
         <option value="retire" selected="@(Model.Statut == "retire")">@L.T("retires-ou-rejetes-c794")</option>
     </select>
     <select name="theme" aria-label="@L.T("theme")" title="@L.T("theme-estime-d-apres-les-mots")">
@@ -87,7 +88,7 @@ else
                 <tr>
                     <td class="nowrap col-date" data-label="@L.T("premiere-seance")">@(b.DateDepot?.ToString("d MMM yyyy", fr) ?? "—")</td>
                     <td class="col-titre"><a href="@L.Lien("/bill/" + b.Id)">@b.Titre</a> <a class="note-source" href="@b.Url" rel="noopener" title="@L.T("page-du-projet-sur-bills-parliament")">↗</a></td>
-                    <td class="col-statut" data-label="@L.T("statut")"><span class="puce-statut @BillsModel.StatutClasse(b)" title="@BillsModel.StatutLibelle(b, L)">@BillsModel.StatutCourt(b, L)</span></td>
+                    <td class="col-statut" data-label="@L.T("statut")"><span class="puce-statut @BillsModel.StatutClasse(b)" title="@(b.SessionClose ? L.T("bill-session-close-aide") : BillsModel.StatutLibelle(b, L))">@BillsModel.StatutCourt(b, L)</span></td>
                     <td data-label="@L.T("chambre")">@(b.ChambreCourante ?? "—")@if (b.ChambreOrigine is not null && b.ChambreOrigine != b.ChambreCourante) { <span class="note-source"> (@L.T("venu-de") @b.ChambreOrigine)</span> }</td>
                     <td class="num" data-label="@L.T("divisions")">@if (b.NbDivisions > 0) { <a href="@L.Lien("/bill/" + b.Id)" title="@L.T("divisions-rattachees-d-apres-le-titre")">@b.NbDivisions</a> } else { <span class="note-source">—</span> }</td>
                     <td class="nowrap col-date" data-label="@L.T("mis-a-jour")">@(b.DerniereMaj?.ToString("d MMM yyyy", fr) ?? "—")</td>

@@ -25,7 +25,9 @@ public sealed class Bill
     public int NbDivisions { get; set; }
 
     /// <summary>Statut selon la source : loi (sanction royale), retiré, rejeté, sinon en cours. Jamais un jugement : ce sont les indicateurs publiés (isAct, billWithdrawn, isDefeated).</summary>
-    public string StatutCle => EstLoi ? "loi" : Rejete ? "rejete" : RetireLe is not null ? "retire" : "en-cours";
+    public string StatutCle => EstLoi ? "loi" : Rejete ? "rejete" : RetireLe is not null ? "retire" : SessionClose ? "session-close" : "en-cours";
+    /// <summary>CALCULÉ : ni loi, ni retiré, ni rejeté, et absent de la session la plus récente. Faux tant que les sessions ne sont pas importées.</summary>
+    public bool SessionClose { get; set; }
 }
 
 /// <summary>Une séance d'une étape d'un projet (NULL = étape sans séance connue).</summary>
@@ -65,17 +67,22 @@ public interface IBillRepository
 /// <summary>Projets de loi britanniques. Le tri vient d'une liste blanche (jamais du SQL construit depuis l'adresse) ; sans la table (migration 036), les pages affichent une liste vide.</summary>
 public sealed class BillRepository(DapperContext db) : IBillRepository
 {
+    // Session close sans issue publiée. La session courante est la plus récente connue : sous-requête indépendante de la ligne, évaluée une seule fois.
+    // Sessions NULL (pas encore importées) = faux : on ne déclare pas close une session sans le savoir.
+    private const string Close =
+        "(NOT b.est_loi AND NOT b.rejete AND b.retire_le IS NULL AND COALESCE(NOT ((SELECT max(y) FROM bills z, unnest(z.sessions) y) = ANY(b.sessions)), false))";
+
     private const string Colonnes =
         """
         b.id, b.titre, b.titre_long, b.chambre_origine, b.chambre_courante, b.est_loi, b.date_loi, b.retire_le, b.rejete, b.etape_courante, b.date_depot, b.derniere_maj, b.url, b.themes,
         (SELECT count(*) FROM scrutins s WHERE s.bill_id = b.id)::int AS nb_divisions
-        """;
+        """ + ", " + Close + " AS session_close";
 
     public static readonly IReadOnlyDictionary<string, string> Tris = new Dictionary<string, string>
     {
         ["depot"] = "b.date_depot",
         ["titre"] = "recherche_norm(b.titre)",
-        ["statut"] = "(CASE WHEN b.est_loi THEN 1 WHEN b.rejete THEN 4 WHEN b.retire_le IS NOT NULL THEN 3 ELSE 2 END)",
+        ["statut"] = "(CASE WHEN b.est_loi THEN 1 WHEN b.rejete THEN 4 WHEN b.retire_le IS NOT NULL THEN 3 WHEN " + Close + " THEN 5 ELSE 2 END)",
         ["divisions"] = "(SELECT count(*) FROM scrutins s WHERE s.bill_id = b.id)",
         ["maj"] = "b.derniere_maj",
     };
@@ -88,17 +95,19 @@ public sealed class BillRepository(DapperContext db) : IBillRepository
         using var cx = db.CreateConnection();
         if (!await TableExisteAsync(cx)) return new Resultats<Bill>([], 0, 1, parPage);
         var mots = RechercheSql.Mots(recherche);
-        const string filtre =
+        const string filtre0 =
             """
              WHERE (cardinality(@mots) = 0 OR recherche_norm(b.titre) ILIKE ALL (@mots))
                AND (@statut::text IS NULL
                     OR (@statut = 'loi' AND b.est_loi)
-                    OR (@statut = 'en-cours' AND NOT b.est_loi AND NOT b.rejete AND b.retire_le IS NULL)
+                    OR (@statut = 'en-cours' AND NOT b.est_loi AND NOT b.rejete AND b.retire_le IS NULL AND NOT {close})
+                    OR (@statut = 'session-close' AND {close})
                     OR (@statut = 'retire' AND NOT b.est_loi AND (b.rejete OR b.retire_le IS NOT NULL)))
                AND (@chambre::text IS NULL OR b.chambre_courante = @chambre)
                -- Thème (approximatif, mots-clés du titre : migration 057) ; le code vient de Themes.Valider.
                AND (@theme::text IS NULL OR @theme = ANY(b.themes))
             """;
+        var filtre = filtre0.Replace("{close}", Close);
         var p = new { mots, statut = Vide(statut), chambre = Vide(chambre), theme, limit = parPage, offset = (Math.Max(1, page) - 1) * parPage };
         var total = await cx.ExecuteScalarAsync<int>($"SELECT count(*) FROM bills b {filtre}", p);
         var ordre = Tris.GetValueOrDefault(tri, Tris["depot"]);
@@ -146,10 +155,8 @@ public sealed class BillRepository(DapperContext db) : IBillRepository
         using var cx = db.CreateConnection();
         if (!await TableExisteAsync(cx)) return [];
         var l = await cx.QueryAsync<(string Cle, int Nombre)>(
-            """
-            SELECT CASE WHEN est_loi THEN 'loi' WHEN rejete OR retire_le IS NOT NULL THEN 'retire' ELSE 'en-cours' END, count(*)::int
-              FROM bills GROUP BY 1
-            """);
+            "SELECT CASE WHEN b.est_loi THEN 'loi' WHEN b.rejete OR b.retire_le IS NOT NULL THEN 'retire' WHEN " + Close +
+            " THEN 'session-close' ELSE 'en-cours' END, count(*)::int FROM bills b GROUP BY 1");
         return l.ToList();
     }
 

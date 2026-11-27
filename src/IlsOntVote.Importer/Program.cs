@@ -1294,6 +1294,8 @@ async Task<int> ImporterBillsRoyaumeUniAsync()
             if (++n % 50 == 0) Console.WriteLine($"  {n}/{aLire.Count} projets lus…");
             await Task.Delay(150);
         }
+        // Après l'écriture des projets nouveaux : tous ont alors leur ligne. Une liste de sessions vide n'est pas écrite (donnée manquante).
+        await repo.EcrireSessionsBillsAsync([.. liste.Select(b => (b.GetProperty("billId").GetInt64(), BillsRoyaumeUniSource.SessionsDe(b))).Where(x => x.Item2.Length > 0)]);
         var (rattachees, total) = await repo.RattacherDivisionsCommonsAsync();
         Console.WriteLine($"  {n} projets écrits ; {rattachees}/{total} divisions rattachées à un projet (d'après le titre).");
         await repo.TerminerAsync(runId, true, n, rattachees, $"{rattachees}/{total} divisions rattachées");

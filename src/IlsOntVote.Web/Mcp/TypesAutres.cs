@@ -104,14 +104,19 @@ public sealed class ProjetsDeLoi(IBillRepository repo) : ITypeDocument
 {
     public string Code => "bill";
     public string Nom => "Bill (United Kingdom)";
-    public string Description => "UK Parliament bills and the divisions linked to them (link computed from the title).";
+    public string Description => "UK Parliament bills and the divisions linked to them (link computed from the title). " +
+        "Bills of a closed session that did not become law are marked session_closed_without_royal_assent (computed). " +
+        "latest_stage_named may only be scheduled: check the stage dates before saying it took place.";
     public string[] Filtres => ["text", "theme"];
     public IReadOnlyList<string> Pays(Perimetre p) => p.Publie("GB") ? ["GB"] : [];
 
     private static object Resume(Bill b, Perimetre p) => new
     {
         Id = b.Id.ToString(CultureInfo.InvariantCulture), Country = "GB", Title = b.Titre,
-        Status = b.EstLoi ? "act" : b.Rejete ? "rejected" : b.RetireLe is not null ? "withdrawn" : "ongoing", CurrentStage = b.EtapeCourante,
+        Status = b.EstLoi ? "act" : b.Rejete ? "rejected" : b.RetireLe is not null ? "withdrawn" : b.SessionClose ? "session_closed_without_royal_assent" : "ongoing",
+        StatusComputed = b.SessionClose,
+        // Nom de l'étape la plus avancée selon la source : elle peut être seulement programmée.
+        LatestStageNamed = b.EtapeCourante,
         Introduced = Reponse.Jour(b.DateDepot), RoyalAssent = Reponse.Jour(b.DateLoi),
         Url = p.Url("GB", "/bill/" + b.Id.ToString(CultureInfo.InvariantCulture)), OfficialUrl = b.Url,
     };

@@ -87,3 +87,5 @@ PRIVATE_KEY="$(openssl pkey -in key.pem -noout -text | grep -A3 "priv:" | tail -
 ```
 
 `key.pem` ne va jamais dans le dépôt. Augmenter `version` dans `server.json` avant de republier. Le registre est en préversion : vérifier sa documentation (modelcontextprotocol.io/registry).
+
+Confidentialité et conditions : <https://www.ilsontvote.org/mcp-confidentialite>.

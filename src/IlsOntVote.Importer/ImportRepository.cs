@@ -181,6 +181,16 @@ public sealed class ImportRepository(string connectionString)
         return (await conn.QueryAsync<(long Id, DateTime? Maj)>("SELECT id, derniere_maj FROM bills")).ToDictionary(r => r.Id, r => r.Maj);
     }
 
+    /// <summary>
+    /// Sessions de CHAQUE projet listé, y compris ceux que l'import ne relit pas (non modifiés) : un report dans la session suivante change le statut affiché.
+    /// </summary>
+    public async Task EcrireSessionsBillsAsync(IReadOnlyList<(long Id, int[] Sessions)> projets)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.ExecuteAsync("UPDATE bills SET sessions = @Sessions WHERE id = @Id AND sessions IS DISTINCT FROM @Sessions",
+            projets.Select(p => new { p.Id, p.Sessions }));
+    }
+
     /// <summary>Écrit un projet et REMPLACE ses étapes (transaction : on ne voit jamais un projet sans ses étapes).</summary>
     public async Task EcrireBillAsync(BillRow b)
     {
