@@ -3,7 +3,12 @@
   "name": "org.ilsontvote/mcp",
   "title": "They voted (ilsontvote.org)",
   "description": "Who voted how: parliamentary and popular votes, laws and petitions. Read-only.",
-  "version": "1.0.0",
+  "version": "1.0.1",
+  "websiteUrl": "https://www.ilsontvote.org/mcp-info",
+  "icons": [
+    { "src": "https://www.ilsontvote.org/logo-512.png", "mimeType": "image/png", "sizes": ["512x512"] },
+    { "src": "https://www.ilsontvote.org/logo.svg", "mimeType": "image/svg+xml", "sizes": ["any"] }
+  ],
   "remotes": [
     {
       "type": "streamable-http",

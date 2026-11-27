@@ -13,6 +13,8 @@ public static class McpServeur
 {
     public const string Chemin = "/mcp";
     public const string Limite = "mcp";
+    /// <summary>Version annoncée aux clients ; la même que dans server.json (registre officiel).</summary>
+    private const string Version = "1.0.1";
     /// <summary>Requêtes par minute et par adresse IP : large pour un assistant, trop bas pour aspirer la base (les fichiers de données ouvertes servent à cela).</summary>
     private const int RequetesParMinute = 60;
 
@@ -35,7 +37,17 @@ public static class McpServeur
 
         services.AddMcpServer(o =>
             {
-                o.ServerInfo = new() { Name = "ilsontvote", Title = "They voted (ilsontvote.org)", Version = "1.0.0" };
+                o.ServerInfo = new()
+                {
+                    Name = "ilsontvote", Title = "They voted (ilsontvote.org)", Version = Version,
+                    WebsiteUrl = Perimetre.Site + "/mcp-info",
+                    // Logo proposé aux clients (affichage selon le client), en adresse absolue HTTPS ; mêmes valeurs dans server.json.
+                    Icons =
+                    [
+                        new() { Source = Perimetre.Site + "/logo-512.png", MimeType = "image/png", Sizes = ["512x512"] },
+                        new() { Source = Perimetre.Site + "/logo.svg", MimeType = "image/svg+xml", Sizes = ["any"] },
+                    ],
+                };
                 o.ServerInstructions =
                     "Read-only data from ilsontvote.org: who voted how. Start with list_types and rely on its descriptions to state what is covered. " +
                     "EU is the European Parliament, not a country: do not count it as one. Not every source is official (see 'sources'). " +
