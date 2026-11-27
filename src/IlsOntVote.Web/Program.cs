@@ -1,6 +1,7 @@
 using System.Threading.RateLimiting;
 using Dapper;
 using IlsOntVote.Web.Data;
+using IlsOntVote.Web.Mcp;
 using IlsOntVote.Web.Middleware;
 using IlsOntVote.Web.Repositories;
 using IlsOntVote.Web.Services;
@@ -97,6 +98,8 @@ builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(builder.Environment.ContentRootPath, "App_Data", "keys")));
 
 // Anti-force-brute de la connexion : 10 essais par minute et par IP.
+builder.Services.AjouterMcp();   // Serveur MCP (assistants IA), lecture seule : Mcp/McpServeur.cs
+
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -149,6 +152,7 @@ builder.Services.AddOutputCache(options =>
     options.AddBasePolicy(b => b
         .With(c => !(c.HttpContext.Request.Path.StartsWithSegments("/Admin", StringComparison.OrdinalIgnoreCase)
                   || c.HttpContext.Request.Path.StartsWithSegments("/Identity", StringComparison.OrdinalIgnoreCase)
+                  || c.HttpContext.Request.Path.StartsWithSegments(McpServeur.Chemin)
                   || c.HttpContext.Request.Path.StartsWithSegments("/donnees/fichier", StringComparison.OrdinalIgnoreCase)))   // gros fichiers : jamais en cache mémoire
         .Expire(builder.Environment.IsDevelopment() ? TimeSpan.FromSeconds(1) : TimeSpan.FromMinutes(5))
         .SetVaryByQuery("*")
@@ -318,6 +322,9 @@ app.MapGet("/apercu/scrutin/{id}.png", async (string id, IScrutinRepository scru
 }).CacheOutput(p => p.Expire(TimeSpan.FromHours(12)).SetVaryByRouteValue("id").VaryByValue(c => new KeyValuePair<string, string>("lang", (c.Items["lang"] as string ?? "fr") + "|" + (c.Items["pays"] as string ?? ""))));
 app.MapGet("/apercu/defaut.png", (ApercuImage image, Langue langue) => Results.File(image.Defaut(langue, langue.Pays), "image/png"))
     .CacheOutput(p => p.Expire(TimeSpan.FromHours(12)).VaryByValue(c => new KeyValuePair<string, string>("lang", (c.Items["lang"] as string ?? "fr") + "|" + (c.Items["pays"] as string ?? ""))));   // la clé inclut le PAYS : /uk et /en n'ont pas la même image
+
+// MCP : public, sans clé, limité par IP ; jamais mis en cache de sortie (réponses propres à chaque requête).
+app.MapMcp(McpServeur.Chemin).RequireRateLimiting(McpServeur.Limite);
 
 app.MapRazorPages();
 
