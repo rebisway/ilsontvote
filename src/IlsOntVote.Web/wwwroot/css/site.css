@@ -758,3 +758,6 @@ a.raccourci:hover { background: var(--tag-delegation); color: var(--surface); }
 
 /* Adresse du serveur MCP : se replie sur téléphone, sans débordement. */
 .adresse-mcp { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: .75rem 1rem; white-space: pre-wrap; overflow-wrap: anywhere; user-select: all; }
+
+/* Journal du site : la pile d'appels se replie dans la cellule au lieu d'élargir le tableau. */
+.journal-detail { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .75rem; margin: 6px 0 0; }

@@ -86,6 +86,10 @@ builder.Services.AddSingleton<PaysSite>();
 builder.Services.AddScoped<IStatistiquesRepository, StatistiquesRepository>();
 builder.Services.AddScoped<IPetitionRepository, PetitionRepository>();
 builder.Services.AddHostedService<PurgeVuesService>();
+// Journal consultable dans /Admin/Journal (appels MCP, avertissements, erreurs), écrit en arrière-plan.
+builder.Services.AddSingleton<JournalSite>();
+builder.Services.AddSingleton<ILoggerProvider>(s => s.GetRequiredService<JournalSite>());
+builder.Services.AddHostedService<EcritureJournalService>();
 
 // nginx en reverse proxy devant l'appli : sans ça, l'IP vue serait toujours celle de nginx.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
