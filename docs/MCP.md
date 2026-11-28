@@ -48,7 +48,7 @@ import. They live in the `licences` table (migration 078): update the row when t
 | `popular_vote` | Federal popular votes (aggregate results) | Switzerland |
 | `law` | Bills and laws with their progress | France |
 | `bill` | Bills | United Kingdom |
-| `petition` | Parliamentary petitions | France, United Kingdom |
+| `petition` | Parliamentary petitions | France, United Kingdom, Canada (files loaded by hand) |
 | `member` | Members of the assemblies | all active countries |
 
 ## Deployment

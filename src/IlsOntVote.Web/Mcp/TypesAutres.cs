@@ -141,7 +141,7 @@ public sealed class ProjetsDeLoi(IBillRepository repo) : ITypeDocument
     }
 }
 
-/// <summary>Pétitions des plateformes parlementaires (France ; Royaume-Uni s'il est publié).</summary>
+/// <summary>Pétitions des plateformes parlementaires (France ; Royaume-Uni et Canada s'ils sont publiés).</summary>
 public sealed class Petitions(DapperContext db, IPetitionRepository repo) : ITypeDocument
 {
     public string Code => "petition";

@@ -39,7 +39,7 @@ dernier import réussi. Elles sont dans la table `licences` (migration 078) : me
 | `popular_vote` | Votations fédérales (résultats agrégés) | Suisse |
 | `law` | Dossiers législatifs et leur parcours | France |
 | `bill` | Bills | Royaume-Uni |
-| `petition` | Pétitions parlementaires | France, Royaume-Uni |
+| `petition` | Pétitions parlementaires | France, Royaume-Uni, Canada (fichiers chargés à la main) |
 | `member` | Membres des assemblées | tous les pays actifs |
 
 ## Ajouter un type de document
