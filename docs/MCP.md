@@ -6,7 +6,9 @@ Lets an AI assistant query the site's data (Model Context Protocol).
 
 - URL: `https://www.ilsontvote.org/mcp` (local: `http://localhost:5310/mcp`)
 - Transport: stateless streamable HTTP. Read-only, no key.
-- Rate limit: 60 requests per minute per IP address (429 beyond that).
+- Rate limit: 60 requests per minute per IP address (429 beyond that). The limit can be raised for tests and audits (contact@rebisway.com): the maintainer
+  sets it, for a limited time, in
+  `/Admin/Mcp` (table `mcp_reglage`, migration 086).
 - Scope: France, the European Union and the **active** countries, as on the website.
 
 ## Connecting a client

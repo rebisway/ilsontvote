@@ -5,7 +5,7 @@ Permet à un assistant IA d'interroger les données du site (Model Context Proto
 
 - Adresse : `https://www.ilsontvote.org/mcp` (local : `http://localhost:5310/mcp`)
 - Transport : HTTP « streamable », sans état. Lecture seule, sans clé.
-- Limite : 60 requêtes par minute et par adresse IP (réponse 429 au-delà).
+- Limite : 60 requêtes par minute et par adresse IP (réponse 429 au-delà). La limite peut être relevée pour des tests et des audits (contact@rebisway.com) : réglage temporaire dans `/Admin/Mcp` (table `mcp_reglage`, migration 086).
 - Périmètre : France, Union européenne et pays **actifs**, comme le site.
 
 ## Brancher un client

@@ -1,0 +1,35 @@
+@page
+@using IlsOntVote.Web.Mcp
+@model IlsOntVote.Web.Pages.Admin.McpModel
+@{
+    ViewData["Title"] = "Serveur MCP";
+    ViewData["NoIndex"] = true;
+    var fr = new System.Globalization.CultureInfo("fr-FR");
+}
+<partial name="_AdminNav" />
+<h1 class="titre-page">Serveur MCP</h1>
+<p class="chapo">Limite de requêtes par minute et par adresse IP. Un assistant IA appelle depuis ses propres serveurs : ses utilisateurs partagent la même limite. Les appels sont comptés dans <a href="/Admin/Stats">Fréquentation</a>.</p>
+@if (Model.Message is not null) { <p role="status"><strong>@Model.Message</strong></p> }
+
+<h2>En ce moment</h2>
+@if (Model.Fin is { } fin)
+{
+    <p><strong>@(Model.Courante is { } n ? $"{n} requêtes par minute" : "Aucune limite")</strong> jusqu'au @fin.ToString("d MMMM yyyy à HH:mm", fr) UTC, puis retour à @LimiteMcp.Normale.</p>
+    <form method="post" asp-page-handler="Retablir">
+        <button type="submit" class="bouton">Rétablir la limite normale</button>
+    </form>
+}
+else
+{
+    <p><strong>@LimiteMcp.Normale requêtes par minute</strong> (limite normale).</p>
+}
+
+<h2>Dérogation temporaire</h2>
+<form method="post" asp-page-handler="Activer">
+    <p><label class="case"><input type="radio" name="mode" value="limite" checked /> Limite de</label>
+        <input type="number" name="valeur" value="300" min="1" max="10000" class="champ-court" aria-label="Requêtes par minute" /> requêtes par minute</p>
+    <p><label class="case"><input type="radio" name="mode" value="aucune" /> Aucune limite (le serveur n'est plus protégé contre les rafales)</label></p>
+    <p><label>Pendant <input type="number" name="jours" value="30" min="1" max="@LimiteMcp.JoursMax" class="champ-court" /> jours</label></p>
+    <button type="submit" class="bouton">Activer</button>
+</form>
+<p class="note-source">Effet immédiat. La page publique et les conditions du MCP continuent d'annoncer @LimiteMcp.Normale requêtes par minute.</p>

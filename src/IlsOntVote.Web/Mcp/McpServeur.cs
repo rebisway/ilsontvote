@@ -15,8 +15,6 @@ public static class McpServeur
     public const string Limite = "mcp";
     /// <summary>Version annoncée aux clients ; la même que dans server.json (registre officiel).</summary>
     private const string Version = "1.0.1";
-    /// <summary>Requêtes par minute et par adresse IP : large pour un assistant, trop bas pour aspirer la base (les fichiers de données ouvertes servent à cela).</summary>
-    private const int RequetesParMinute = 60;
 
     public static void AjouterMcp(this IServiceCollection services)
     {
@@ -31,9 +29,14 @@ public static class McpServeur
         services.AddScoped<ITypeDocument, Petitions>();
         services.AddScoped<ITypeDocument>(s => s.GetRequiredService<Elus>());
 
-        services.Configure<Microsoft.AspNetCore.RateLimiting.RateLimiterOptions>(o => o.AddPolicy(Limite, ctx => RateLimitPartition.GetFixedWindowLimiter(
-            ctx.Connection.RemoteIpAddress?.ToString() ?? "inconnue",
-            _ => new FixedWindowRateLimiterOptions { PermitLimit = RequetesParMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 })));
+        services.AddSingleton<LimiteMcp>();
+        services.Configure<Microsoft.AspNetCore.RateLimiting.RateLimiterOptions>(o => o.AddPolicy(Limite, ctx =>
+        {
+            if (ctx.RequestServices.GetRequiredService<LimiteMcp>().Courante() is not { } max) return RateLimitPartition.GetNoLimiter("mcp-sans-limite");
+            // La valeur fait partie de la clé : un limiteur déjà créé garde sa limite, un changement de réglage doit en créer un autre.
+            return RateLimitPartition.GetFixedWindowLimiter($"{ctx.Connection.RemoteIpAddress}|{max}",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = max, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 });
+        }));
 
         services.AddMcpServer(o =>
             {
