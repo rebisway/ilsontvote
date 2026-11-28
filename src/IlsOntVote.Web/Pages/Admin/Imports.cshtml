@@ -75,6 +75,14 @@
                 <td>
                     @if (t.EnAttente > 0) { <span class="note">demandé…</span> }
                     else if (t.DerniereId is not null && t.DerniereFin is null) { <span class="note">en cours…</span> }
+                    else if (t.AccepteFichier)
+                    {
+                        <form method="post" asp-page-handler="Televerser" enctype="multipart/form-data">
+                            <input type="hidden" name="tache" value="@t.Code" />
+                            <input type="file" name="fichier" accept=".xml" required aria-label="Fichier à importer" />
+                            <button type="submit" class="bouton petit">Téléverser et importer</button>
+                        </form>
+                    }
                     else
                     {
                         <form method="post" asp-page-handler="Lancer"><input type="hidden" name="tache" value="@t.Code" /><button type="submit" class="bouton petit">Lancer maintenant</button></form>
@@ -118,7 +126,7 @@ else
 
 <form method="post" asp-page-handler="AjouterCreneau" class="filtres">
     <select name="tache" aria-label="Import" required>
-        @foreach (var t in Model.Taches) { <option value="@t.Code">@t.Libelle</option> }
+        @foreach (var t in Model.Taches.Where(x => !x.AccepteFichier)) { <option value="@t.Code">@t.Libelle</option> }
     </select>
     <span class="periode">
         @for (var i = 0; i < 7; i++)

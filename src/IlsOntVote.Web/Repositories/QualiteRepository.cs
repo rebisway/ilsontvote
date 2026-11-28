@@ -1,5 +1,6 @@
 using Dapper;
 using IlsOntVote.Web.Data;
+using IlsOntVote.Web.Models;
 
 namespace IlsOntVote.Web.Repositories;
 
@@ -51,10 +52,61 @@ public interface IQualiteRepository
     Task<IReadOnlyList<ChambreQualite>> ChambresAsync();
     /// <summary>Chaque tâche du catalogue d'import avec sa dernière exécution.</summary>
     Task<IReadOnlyList<TacheQualite>> TachesAsync();
+    /// <summary>
+    /// Scrutins en anomalie des chambres données : liste nominative incomplète ou résultat absent. <paramref name="type"/> : « incomplet »,
+    /// « sans-resultat » ou null (les deux). <paramref name="parPage"/> = 0 : tout (export).
+    /// </summary>
+    Task<Resultats<Scrutin>> AnomaliesAsync(string[] chambres, string? type, string tri, bool decroissant, int page, int parPage);
+    /// <summary>Par chambre, nombre de mises au point dont la source ne dit pas la position d'origine.</summary>
+    Task<IReadOnlyDictionary<string, int>> OriginesInconnuesAsync(string[] chambres);
 }
 
 public sealed class QualiteRepository(DapperContext db) : IQualiteRepository
 {
+    /// <summary>Clés de tri de la liste des anomalies -> expression SQL (liste blanche : jamais de SQL venu de l'adresse).</summary>
+    public static readonly IReadOnlyDictionary<string, string> TrisAnomalies = new Dictionary<string, string>
+    {
+        ["date"] = "date_scrutin",
+        ["chambre"] = "chambre",
+        ["titre"] = "titre",
+        ["manquants"] = "nb_votes_manquants",
+    };
+
+    public async Task<Resultats<Scrutin>> AnomaliesAsync(string[] chambres, string? type, string tri, bool decroissant, int page, int parPage)
+    {
+        using var cx = db.CreateConnection();
+        // Condition tirée d'une liste fermée ; les chambres sont celles que le site courant a le droit de montrer.
+        var condition = type switch
+        {
+            "incomplet" => "nominatif_incomplet",
+            "sans-resultat" => "sort IS NULL",
+            _ => "(nominatif_incomplet OR sort IS NULL)",
+        };
+        var filtre = $"chambre = ANY(@chambres) AND {condition}";
+        var ordre = TrisAnomalies.GetValueOrDefault(tri, "date_scrutin");
+        page = Math.Max(1, page);
+        var p = new { chambres, limite = parPage, decalage = (page - 1) * parPage };
+        var total = await cx.ExecuteScalarAsync<int>($"SELECT count(*)::int FROM scrutins WHERE {filtre}", p);
+        var lignes = (await cx.QueryAsync<Scrutin>(
+            $"""
+             SELECT {ScrutinRepository.Colonnes} FROM scrutins WHERE {filtre}
+              ORDER BY {ordre} {(decroissant ? "DESC" : "ASC")}, date_scrutin DESC, id
+              {(parPage > 0 ? "LIMIT @limite OFFSET @decalage" : "")}
+             """, p)).ToList();
+        return new Resultats<Scrutin>(lignes, total, page, parPage > 0 ? parPage : Math.Max(1, total));
+    }
+
+    public async Task<IReadOnlyDictionary<string, int>> OriginesInconnuesAsync(string[] chambres)
+    {
+        using var cx = db.CreateConnection();
+        // Index partiel ix_votes_origine_inconnue (migration 058) : seules les rares lignes concernées sont lues.
+        return (await cx.QueryAsync<(string Chambre, int N)>(
+            """
+            SELECT s.chambre, count(*)::int FROM votes v JOIN scrutins s ON s.id = v.scrutin_id
+             WHERE v.origine_inconnue AND s.chambre = ANY(@chambres) GROUP BY s.chambre
+            """, new { chambres })).ToDictionary(x => x.Chambre, x => x.N);
+    }
+
     public async Task<IReadOnlyList<ChambreQualite>> ChambresAsync()
     {
         using var cx = db.CreateConnection();

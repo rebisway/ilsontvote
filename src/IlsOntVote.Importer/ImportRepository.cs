@@ -42,9 +42,11 @@ public sealed class ImportRepository(string connectionString)
     /// Écrit un relevé de pétitions d'UNE source : (1) la fiche courante (upsert ; <paramref name="majFiche"/> = false pour une ARCHIVE ancienne, qui ne
     /// doit pas écraser un état plus récent), (2) une ligne d'historique (ajout seul), (3) les anomalies par comparaison avec le relevé PRÉCÉDENT de la
     /// même source. Les requêtes sont limitées à la source (<c>chambre</c>) : deux plateformes peuvent avoir un relevé le même jour.
+    /// <paramref name="complet"/> = false pour un fichier téléversé à la main (peut-être partiel ou filtré) : l'absence d'une pétition ne signifie alors
+    /// rien, aucune disparition, réapparition ni « absente depuis » n'est enregistrée.
     /// Idempotent : rejouer le même relevé ne duplique ni l'historique ni les anomalies. Retourne (pétitions écrites, anomalies nouvelles).
     /// </summary>
-    public async Task<(int Ecrites, int Anomalies)> EcrireReleveAsync(string chambre, IReadOnlyList<PetitionRow> petitions, DateTime releve, bool majFiche, string? sha)
+    public async Task<(int Ecrites, int Anomalies)> EcrireReleveAsync(string chambre, IReadOnlyList<PetitionRow> petitions, DateTime releve, bool majFiche, string? sha, bool complet = true)
     {
         await using var conn = new NpgsqlConnection(connectionString);
         await conn.OpenAsync();
@@ -97,7 +99,7 @@ public sealed class ImportRepository(string connectionString)
                 ON CONFLICT (petition_id, type, detecte_le) DO NOTHING
                 """, p, tx);
             // Disparition : présente au relevé précédent, absente de celui-ci.
-            anomalies += await conn.ExecuteAsync(
+            if (complet) anomalies += await conn.ExecuteAsync(
                 """
                 INSERT INTO petitions_anomalies (petition_id, type, detecte_le, releve_precedent, valeur_avant, valeur_apres)
                 SELECT a.petition_id, 'disparition', @releve::date, @precedent::date, a.nb_votes, NULL
@@ -108,7 +110,7 @@ public sealed class ImportRepository(string connectionString)
                 ON CONFLICT (petition_id, type, detecte_le) DO NOTHING
                 """, p, tx);
             // Réapparition : présente ici, absente du relevé précédent, mais connue avant (dernier nombre connu = valeur_avant).
-            anomalies += await conn.ExecuteAsync(
+            if (complet) anomalies += await conn.ExecuteAsync(
                 """
                 INSERT INTO petitions_anomalies (petition_id, type, detecte_le, releve_precedent, valeur_avant, valeur_apres)
                 SELECT h.petition_id, 'reapparition', @releve::date, @precedent::date,
@@ -124,7 +126,7 @@ public sealed class ImportRepository(string connectionString)
         }
 
         // « Absente depuis » : seulement si ce relevé est le plus récent de CETTE source (un rattrapage d'archives ne doit pas le fausser).
-        await conn.ExecuteAsync(
+        if (complet) await conn.ExecuteAsync(
             """
             UPDATE petitions p SET absente_depuis =
                    CASE WHEN EXISTS (SELECT 1 FROM petitions_historique h WHERE h.petition_id = p.id AND h.releve_le = @releve::date) THEN NULL

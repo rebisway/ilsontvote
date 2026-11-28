@@ -1343,6 +1343,36 @@ async Task<int> ImporterPetitionsRoyaumeUniAsync()
 }
 
 /// <summary>
+/// Pétitions de la Chambre des communes du Canada depuis un fichier XML téléversé (<c>petitions --source ca --fichier chemin</c>) : la source protège
+/// son téléchargement par reCAPTCHA. Le fichier pouvant être partiel, aucune disparition n'est déduite.
+/// </summary>
+async Task<int> ImporterPetitionsCanadaAsync()
+{
+    Console.WriteLine("=== Pétitions du Canada (fichier) ===");
+    var runId = await repo.DemarrerAsync("PETITIONS-CA");
+    try
+    {
+        var chemin = Option("--fichier") ?? throw new InvalidOperationException("Fichier absent : téléverser l'export XML depuis /Admin/Imports (ou --fichier chemin).");
+        FichierPetitionsCanada fichier;
+        await using (var flux = File.OpenRead(chemin)) fichier = PetitionsCanadaSource.Lire(flux);
+        if (fichier.Petitions.Count == 0) throw new InvalidDataException("Aucune pétition lisible dans le fichier.");
+        var sha = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(await File.ReadAllBytesAsync(chemin))).ToLowerInvariant();
+        var (n, anomalies) = await repo.EcrireReleveAsync(PetitionsCanadaSource.Plateforme, fichier.Petitions, DateTime.UtcNow.Date, majFiche: true, sha, complet: false);
+        var message = $"{fichier.Petitions.Count} pétitions lues, {n} écrites ; {anomalies} baisse(s) de soutiens" +
+                      (fichier.Partiel ? $" ; FICHIER PARTIEL : {fichier.Annonces} résultats annoncés par la source" : "");
+        Console.WriteLine("  " + message + ".");
+        await repo.TerminerAsync(runId, true, n, anomalies, message);
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex);
+        await repo.TerminerAsync(runId, false, 0, 0, ex.Message);
+        return 1;
+    }
+}
+
+/// <summary>
 /// Amendements déposés à l'Assemblée, par dossier législatif (jeu officiel « Amendements », ~365 Mo par législature). Par défaut la législature
 /// en cours ; <c>--legislature 16,17</c> ou <c>all</c> pour les deux. Le fichier n'est retéléchargé que si son ETag a changé (planning plusieurs
 /// fois par jour sans coût) ; <c>--force</c> ignore l'ETag. Après traitement le zip est remplacé par un fichier vide : seul l'ETag compte, le disque
@@ -1405,6 +1435,7 @@ async Task<int> ImporterAmendementsAsync()
 async Task<int> ImporterPetitionsAsync()
 {
     if (Option("--source") == "uk") return await ImporterPetitionsRoyaumeUniAsync();
+    if (Option("--source") == "ca") return await ImporterPetitionsCanadaAsync();
     Console.WriteLine("=== Pétitions ===");
     var runId = await repo.DemarrerAsync("PETITIONS");
     try

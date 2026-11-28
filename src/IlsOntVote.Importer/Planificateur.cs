@@ -71,6 +71,7 @@ public sealed class Planificateur(string connectionString)
         ["amendements_historique"] = ["amendements", "--legislature", "all"],
         ["petitions"] = ["petitions"],
         ["petitions_uk"] = ["petitions", "--source", "uk"],
+        ["petitions_ca"] = ["petitions", "--source", "ca"],   // + --fichier : le fichier téléversé (voir ExecuterAsync)
         ["bills_uk"] = ["bills"],
         ["petitions_archives"] = ["petitions", "--archives"],
         ["traductions"] = ["traductions"],
@@ -251,6 +252,24 @@ public sealed class Planificateur(string connectionString)
         return args;
     }
 
+    /// <summary>
+    /// Écrit sur disque le fichier joint à une demande, puis libère son contenu en base (le nom et la taille restent pour la traçabilité).
+    /// Le nom du fichier sur disque est construit ici : jamais celui fourni par le navigateur. Null si la demande n'a pas de fichier.
+    /// </summary>
+    private static async Task<string?> DeposerFichierAsync(NpgsqlConnection cx, long? demande, long execution)
+    {
+        if (demande is null) return null;
+        var contenu = await cx.ExecuteScalarAsync<byte[]?>(
+            "SELECT f.contenu FROM import_demandes d JOIN import_fichiers f ON f.id = d.fichier_id WHERE d.id = @demande", new { demande });
+        if (contenu is null) return null;
+        var dossier = Path.Combine(Directory.GetCurrentDirectory(), "data", "televersements");
+        Directory.CreateDirectory(dossier);
+        var chemin = Path.Combine(dossier, $"execution-{execution}.dat");
+        await File.WriteAllBytesAsync(chemin, contenu);
+        await cx.ExecuteAsync("UPDATE import_fichiers SET contenu = NULL WHERE id = (SELECT fichier_id FROM import_demandes WHERE id = @demande)", new { demande });
+        return chemin;
+    }
+
     /// <summary>Exécute une tâche dans un processus enfant, journalise début, sortie (en direct) et résultat. Renvoie vrai si le code de sortie est 0.</summary>
     private static async Task<bool> ExecuterAsync(NpgsqlConnection cx, Travail t)
     {
@@ -307,6 +326,14 @@ public sealed class Planificateur(string connectionString)
         int? code = null;
         string? erreur = null;
         var arretee = false;
+        // Fichier téléversé depuis /Admin/Imports : lu en base (le site et l'Importer n'ont pas de dossier commun), écrit le temps de l'exécution.
+        var depose = await DeposerFichierAsync(cx, t.DemandeId, id);
+        if (depose is not null)
+        {
+            psi.ArgumentList.Add("--fichier");
+            psi.ArgumentList.Add(depose);
+            Ajouter("Fichier téléversé transmis à l'import.");
+        }
         try
         {
             process.Start();
@@ -348,6 +375,7 @@ public sealed class Planificateur(string connectionString)
         Ajouter($"[{DateTime.Now:HH:mm:ss}] Fin : {(arretee ? "interrompue" : ok ? "succès" : "échec")}{(code is { } c ? $" (code {c})" : "")}");
         // Bilan : effectif de chaque table avant / après. Les hausses = enregistrements ajoutés ; une baisse (remplacement d'une législature,
         // purge) apparaît aussi : le bilan dit ce qui a changé, sans interpréter.
+        if (depose is not null) File.Delete(depose);
         var apres = await EffectifsAsync(cx);
         var bilan = TablesSuivies.Keys.Where(k => avant[k] >= 0).ToDictionary(k => k, k => new { avant = avant[k], apres = apres[k] });
         var ajouts = bilan.Values.Sum(v => Math.Max(0, v.apres - v.avant));

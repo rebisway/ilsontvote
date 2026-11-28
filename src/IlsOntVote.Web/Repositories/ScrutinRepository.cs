@@ -33,7 +33,7 @@ public sealed class ScrutinRepository(DapperContext db, PaysSite site, Langue la
     /// </summary>
     private string[] Visibles => site.ChambresVisibles(langue.Pays);
 
-    private const string Colonnes =
+    internal const string Colonnes =
         """
         id, chambre, legislature, numero, date_scrutin, titre, titre_en, titre_en_auto, titre_fr_auto, sort, type_vote, sur_ensemble,
         nb_votants, nb_pour, nb_contre, nb_abstentions, nb_non_votants, featured_title,

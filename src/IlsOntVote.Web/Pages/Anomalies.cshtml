@@ -1,0 +1,138 @@
+@page "/anomalies"
+@model AnomaliesModel
+@using IlsOntVote.Web.Services
+@{
+    ViewData["Title"] = L.T("anom-titre");
+    ViewData["Description"] = L.T("anom-description");
+    var c = L.Culture;
+    var tri = Model.TriEffectif;
+}
+
+<h1 class="titre-page">@L.T("anom-titre")</h1>
+<p class="chapo">@L.T("anom-chapo")</p>
+
+<h2>@L.T("anom-par-chambre")</h2>
+<div class="table-wrap">
+    <table class="liste-textes">
+        <thead>
+            <tr>
+                <th scope="col">@L.T("anom-chambre")</th>
+                <th scope="col" class="num">@L.T("anom-scrutins")</th>
+                <th scope="col" class="num">@L.T("anom-incomplets")</th>
+                <th scope="col" class="num">@L.T("anom-sans-resultat")</th>
+                <th scope="col" class="num">@L.T("anom-elus-sieges")</th>
+                <th scope="col" class="num">@L.T("anom-chevauchants")</th>
+                <th scope="col" class="num">@L.T("anom-origine-inconnue")</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var b in Model.Bilan)
+        {
+            <tr>
+                <td class="col-titre">@L.Chambre(b.Code)</td>
+                <td class="num" data-label="@L.T("anom-scrutins")">@b.Scrutins.ToString("N0", c)</td>
+                <td class="num" data-label="@L.T("anom-incomplets")">@b.Incomplets.ToString("N0", c)</td>
+                <td class="num" data-label="@L.T("anom-sans-resultat")">@b.SansResultat.ToString("N0", c)</td>
+                <td class="num" data-label="@L.T("anom-elus-sieges")">
+                    @b.EnExercice.ToString("N0", c) /
+                    @if (b.Sieges is { } n) { @n.ToString("N0", c) } else { <abbr title="@L.T("anom-sans-effectif-fixe")">—</abbr> }
+                    @if (b.AuDessusDesSieges) { <abbr title="@L.T("anom-au-dessus")">⚠</abbr> }
+                </td>
+                <td class="num" data-label="@L.T("anom-chevauchants")">@b.Chevauchants.ToString("N0", c)</td>
+                <td class="num" data-label="@L.T("anom-origine-inconnue")">@Model.OriginesInconnues.GetValueOrDefault(b.Code).ToString("N0", c)</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<section class="bloc-texte">
+    <h2>@L.T("anom-comment-lire")</h2>
+    <ul>
+        <li>@L.T("anom-aide-incomplet")</li>
+        <li>@L.T("anom-aide-resultat")</li>
+        <li>@L.T("anom-aide-mandats")</li>
+        <li>@L.T("anom-aide-origine")</li>
+        <li>@L.T("anom-aide-signaler") <a href="mailto:contact@rebisway.com">contact@rebisway.com</a></li>
+    </ul>
+</section>
+
+<h2>@L.T("anom-liste")</h2>
+<form class="filtres filtres-auto filtres-liste" method="get" action="@L.Lien("/anomalies")">
+    <select name="chambre" aria-label="@L.T("anom-chambre")">
+        <option value="">@L.T("anom-toutes-chambres")</option>
+        @foreach (var b in Model.Bilan)
+        {
+            <option value="@b.Code" selected="@(Model.Chambre == b.Code)">@L.Chambre(b.Code)</option>
+        }
+    </select>
+    <select name="type" aria-label="@L.T("anom-type")">
+        <option value="">@L.T("anom-tous-types")</option>
+        <option value="incomplet" selected="@(Model.Type == "incomplet")">@L.T("anom-incomplet")</option>
+        <option value="sans-resultat" selected="@(Model.Type == "sans-resultat")">@L.T("anom-sans-resultat")</option>
+    </select>
+    <select name="tri" class="tri-mobile" aria-label="@L.T("trier-par")">
+        <option value="date" selected="@(tri == "date")">@L.T("trier-date")</option>
+        <option value="chambre" selected="@(tri == "chambre")">@L.T("anom-chambre")</option>
+        <option value="titre" selected="@(tri == "titre")">@L.T("trier-titre")</option>
+        <option value="manquants" selected="@(tri == "manquants")">@L.T("anom-noms-manquants")</option>
+    </select>
+    <select name="sens" class="tri-mobile" aria-label="@L.T("ordre-du-tri")">
+        <option value="desc" selected="@Model.Decroissant">@L.T("decroissant")</option>
+        <option value="asc" selected="@(!Model.Decroissant)">@L.T("croissant")</option>
+    </select>
+    <button type="submit" class="sans-js">@L.T("filtrer")</button>
+    @if (Model.FiltreActif) { <a class="effacer" href="@Model.LienSansFiltre" title="@L.T("effacer-le-filtre")" aria-label="@L.T("effacer-le-filtre")">✕</a> }
+</form>
+
+<div class="barre-liste">
+    <p class="compte">@Model.Resultats.Total.ToString("N0", c) @(Model.Resultats.Total > 1 ? L.T("anom-scrutins-pl") : L.T("anom-scrutins-sg"))</p>
+    <p class="export">@L.T("exporter-ce-tableau")
+        @foreach (var f in Exporteur.Formats) { <a href="@Model.Lien(format: f)" download>@f.ToUpperInvariant()</a> }
+    </p>
+</div>
+
+@if (Model.Resultats.Lignes.Count == 0)
+{
+    <p class="vide">@L.T("anom-aucune")</p>
+}
+else
+{
+    <div class="table-wrap">
+        <table class="liste-textes">
+            <thead>
+                <tr>
+                    @Model.Th("date", L.T("date"), "col-date")
+                    @Model.Th("titre", L.T("anom-vote"), "col-titre")
+                    @Model.Th("chambre", L.T("anom-chambre"))
+                    @Model.Th("manquants", L.T("anom-noms-manquants"), "num")
+                    <th scope="col">@L.T("anom-sans-resultat")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var s in Model.Resultats.Lignes)
+            {
+                <tr>
+                    <td class="nowrap col-date" data-label="@L.T("date")">@s.DateScrutin.ToString("d MMM yyyy", c)</td>
+                    <td class="col-titre"><a href="@L.Lien("/scrutin/" + s.Id)" title="@s.InfobulleTitre(L)">@s.TitreLangue(L.Anglais)</a>@if (s.TitreTraduitAuto(L.Anglais)) { <abbr title="@s.InfobulleTitre(L)"> ⚙</abbr> }</td>
+                    <td data-label="@L.T("anom-chambre")">@L.ChambreCourt(s.Chambre)</td>
+                    <td class="num" data-label="@L.T("anom-noms-manquants")">
+                        @if (s.NominatifIncomplet) { @s.NbVotesManquants.ToString("N0", c) } else { <abbr title="@L.T("anom-liste-complete")">—</abbr> }
+                    </td>
+                    <td data-label="@L.T("anom-sans-resultat")">@(s.Sort is null ? L.T("anom-oui") : L.T("anom-non"))</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.Resultats.NbPages > 1)
+    {
+        <nav class="pagination" aria-label="@L.T("pagination")">
+            @if (Model.Resultats.Page > 1) { <a href="@Model.Lien(page: Model.Resultats.Page - 1)" rel="prev">@L.T("precedent")</a> }
+            <span>@L.T("page") @Model.Resultats.Page / @Model.Resultats.NbPages</span>
+            @if (Model.Resultats.Page < Model.Resultats.NbPages) { <a href="@Model.Lien(page: Model.Resultats.Page + 1)" rel="next">@L.T("suivant")</a> }
+        </nav>
+    }
+    <partial name="_LignesParPage" model="Model" />
+}

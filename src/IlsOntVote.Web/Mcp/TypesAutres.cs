@@ -146,11 +146,11 @@ public sealed class Petitions(DapperContext db, IPetitionRepository repo) : ITyp
 {
     public string Code => "petition";
     public string Nom => "Petition";
-    public string Description => "Petitions to the French National Assembly and Senate (and to the UK Parliament). Signature counts are those of the latest snapshot; a petition is not a vote. " +
+    public string Description => "Petitions to the French National Assembly and Senate (and to the UK Parliament and the Canadian House of Commons, the latter from files loaded by hand). Signature counts are those of the latest snapshot; a petition is not a vote. " +
         "Only the title, status, signature counts, dates and official link are available: not the text of the petition. " +
         "To find the most supported petitions use sort=signatures: never rank them from a single page sorted by date.";
     public string[] Filtres => ["text", "country", "from", "to", "theme", "sort"];
-    public IReadOnlyList<string> Pays(Perimetre p) => p.Publie("GB") ? ["FR", "GB"] : ["FR"];
+    public IReadOnlyList<string> Pays(Perimetre p) => [.. new[] { "FR", "GB", "CA" }.Where(c => c == "FR" || p.Publie(c))];
 
     private const string Colonnes =
         "id, titre, date_publication, nb_votes, statut, date_limite_vote, type, url, chambre, commission, decision_commission, reponse_le, debat_le, absente_depuis, themes";
@@ -165,7 +165,7 @@ public sealed class Petitions(DapperContext db, IPetitionRepository repo) : ITyp
 
     private static object Resume(Petition x, Perimetre p)
     {
-        var pays = x.Chambre == "UK" ? "GB" : "FR";
+        var pays = x.Chambre switch { "UK" => "GB", "CA" => "CA", _ => "FR" };
         return new
         {
             x.Id, Country = pays, Platform = x.Chambre, Title = x.Titre, Published = Reponse.Jour(x.DatePublication), Signatures = x.NbVotes, SourceStatus = x.Statut,

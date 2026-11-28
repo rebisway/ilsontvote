@@ -83,7 +83,7 @@ else
             {
                 <tr>
                     <td class="nowrap" data-label="@L.T("detectee-le")" title="@L.T("releve-precedent")@a.ReleveAvant.ToString("d MMM yyyy", fr)">@a.DetecteLe.ToString("d MMM yyyy", fr)</td>
-                    <td data-label="@L.T("petition")"><a href="@L.Lien("/petition/" + a.PetitionId)">@a.Titre</a> <span class="note-source">@(a.Chambre == "AN" ? L.T("assemblee") : a.Chambre == "UK" ? "UK Parliament" : L.T("senat"))</span></td>
+                    <td data-label="@L.T("petition")"><a href="@L.Lien("/petition/" + a.PetitionId)">@a.Titre</a> <span class="note-source">@(a.Chambre == "AN" ? L.T("assemblee") : a.Chambre == "UK" ? "UK Parliament" : a.Chambre == "CA" ? L.T("petca-plateforme") : L.T("senat"))</span></td>
                     <td data-label="@L.T("petition-champ-type")">@PetitionAnomaliesModel.TypeLibelle(a.Type, L)</td>
                     <td class="num" data-label="@L.T("avant")">@Nb(a.ValeurAvant)</td>
                     <td class="num" data-label="@L.T("apres")">@(a.ValeurApres is null ? "—" : Nb(a.ValeurApres))</td>

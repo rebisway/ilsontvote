@@ -34,7 +34,7 @@
         <div><dt>@L.T("statut-publie")</dt><dd><span class="puce-statut @PetitionsModel.StatutClasse(f.Statut)">@PetitionsModel.StatutLibelle(f.Statut, L)</span></dd></div>
         <div><dt>@L.T("soutiens")</dt><dd><strong class="grand-nombre">@(f.NbVotes?.ToString("N0", fr) ?? "—")</strong></dd></div>
         @if (f.DateLimiteVote is { } lim) { <div><dt>@L.T("fin-du-recueil")</dt><dd>@lim.ToString("d MMMM yyyy", fr)</dd></div> }
-        <div><dt>@L.T("source")</dt><dd><a href="@f.Url" rel="noopener">@(f.Chambre == "AN" ? "petitions.assemblee-nationale.fr" : f.Chambre == "UK" ? "petition.parliament.uk" : "petitions.senat.fr")</a></dd></div>
+        <div><dt>@L.T("source")</dt><dd><a href="@f.Url" rel="noopener">@(Uri.TryCreate(f.Url, UriKind.Absolute, out var adresse) ? adresse.Host : f.Url)</a></dd></div>
     </dl>
     @if (f.Chambre == "UK")
     {

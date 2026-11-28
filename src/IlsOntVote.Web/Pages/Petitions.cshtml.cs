@@ -45,7 +45,7 @@ public class PetitionsModel(IPetitionRepository petitions, Langue langue, Themes
 
     /// <summary>Code de chambre en base (SENAT / AN) d'après le paramètre d'adresse ; NULL = toutes.</summary>
     /// <summary>Plateforme affichée : sur le site britannique (/uk) la seule « UK » ; sur le site français, selon le paramètre (null = les deux plateformes françaises).</summary>
-    public string? ChambreCode => langue.Pays == "GB" ? "UK" : Chambre switch { "senat" => "SENAT", "an" => "AN", _ => null };
+    public string? ChambreCode => langue.Pays == "GB" ? "UK" : langue.Pays == "CA" ? "CA" : Chambre switch { "senat" => "SENAT", "an" => "AN", _ => null };
 
     /// <summary>Nom de la plateforme dans la langue de la page (textes en base).</summary>
     public static string PlateformeLibelle(string code, Langue l) => code switch
@@ -53,6 +53,7 @@ public class PetitionsModel(IPetitionRepository petitions, Langue langue, Themes
         "AN" => l.Chambre("AN"),
         "SENAT" => l.Chambre("SENAT"),
         "UK" => l.T("plateforme-parlement-britannique"),
+        "CA" => l.T("petca-plateforme"),
         _ => code,
     };
 
@@ -99,7 +100,7 @@ public class PetitionsModel(IPetitionRepository petitions, Langue langue, Themes
         var en = langue.Anglais;
         return new List<Colonne<Petition>>
         {
-            new(langue.T("plateforme"), p => p.Chambre == "AN" ? (langue.T("assemblee-nationale")) : (langue.T("senat"))),
+            new(langue.T("plateforme"), p => PlateformeLibelle(p.Chambre, langue)),
             new(langue.T("date-de-publication"), p => p.DatePublication),
             new(langue.T("titre"), p => p.Titre),
             new(langue.T("themes-estimes-par-mots-cles-du"), p => string.Join(", ", p.Themes)),
@@ -119,7 +120,7 @@ public class PetitionsModel(IPetitionRepository petitions, Langue langue, Themes
     public async Task<IActionResult> OnGetAsync()
     {
         // Pétitions : France et Royaume-Uni seulement (aucune plateforme américaine importée) : 404 sous les autres pays.
-        if (langue.Pays is not null && !PaysSite.APetitionsEtProjets(langue.Pays)) return NotFound();
+        if (langue.Pays is not null && !PaysSite.APetitions(langue.Pays)) return NotFound();
         // Effectifs d'abord : un statut, un type ou une commission qui n'existe pas dans la chambre choisie (changement de chambre avec un
         // filtre déjà posé) est ignoré, au lieu d'afficher une liste vide sans explication.
         ParStatut = await petitions.CompterParStatutAsync();

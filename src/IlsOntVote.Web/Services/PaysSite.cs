@@ -74,11 +74,14 @@ public sealed class PaysSite(DapperContext db)
     /// </summary>
     public static bool APetitionsEtProjets(string? paysSite) => paysSite == "GB";
 
+    /// <summary>Pays à préfixe dont le site montre des pétitions : le Royaume-Uni et le Canada.</summary>
+    public static bool APetitions(string? paysSite) => paysSite is "GB" or "CA";
+
     /// <summary>
     /// Plateformes de pétitions visibles sur le site d'un pays (colonne petitions.chambre : AN, SENAT, UK). La France montre les plateformes françaises ; /uk celle du Parlement britannique.
     /// Même garde-fou que pour les chambres : les pétitions d'un pays ne paraissent jamais sur le site d'un autre.
     /// </summary>
-    public static string[] PlateformesPetitions(string? paysSite) => paysSite is null ? ["AN", "SENAT"] : paysSite == "GB" ? ["UK"] : [];
+    public static string[] PlateformesPetitions(string? paysSite) => paysSite is null ? ["AN", "SENAT"] : paysSite == "GB" ? ["UK"] : paysSite == "CA" ? ["CA"] : [];
 
     /// <summary>Disposition de l'hémicycle d'une chambre (« hemicycle » ou « face-a-face ») ; « hemicycle » par défaut.</summary>
     public string Disposition(string chambre) => _chambres.FirstOrDefault(c => c.Code == chambre)?.Disposition ?? "hemicycle";

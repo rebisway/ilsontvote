@@ -4,7 +4,7 @@
 @{
     ViewData["Title"] = L.T("petitions");
     var royaumeUni = L.Pays == "GB";
-    ViewData["Description"] = L.T("les-petitions-deposees-sur-la-plateforme");
+    ViewData["Description"] = L.Pays == "CA" ? L.T("petca-chapo") : L.T("les-petitions-deposees-sur-la-plateforme");
     var fr = L.Culture;
     var en = L.Anglais;
     var total = Model.ParStatut.Sum(s => s.Nombre);
@@ -15,6 +15,10 @@
 @if (royaumeUni)
 {
     <p class="chapo">@L.TH("petitions-adressees-au-parlement-britannique")</p>
+}
+else if (L.Pays == "CA")
+{
+    <p class="chapo">@L.T("petca-chapo")</p>
 }
 else
 {

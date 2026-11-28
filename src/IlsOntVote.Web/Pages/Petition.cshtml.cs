@@ -21,7 +21,7 @@ public class PetitionModel(IPetitionRepository petitions, Langue langue) : PageM
 
     public async Task<IActionResult> OnGetAsync(string id)
     {
-        if (langue.Pays is not null && !PaysSite.APetitionsEtProjets(langue.Pays)) return NotFound();
+        if (langue.Pays is not null && !PaysSite.APetitions(langue.Pays)) return NotFound();
         Fiche = await petitions.GetAsync(id);
         if (Fiche is null) return NotFound();
         Releves = await petitions.GetHistoriqueAsync(id);

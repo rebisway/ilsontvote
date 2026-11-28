@@ -15,6 +15,8 @@ public sealed class TacheImport
     public string? Pays { get; set; }
     public int Ordre { get; set; }
     public bool Ponctuelle { get; set; }
+    /// <summary>La tâche se lance en téléversant un fichier (source dont le téléchargement automatique est impossible).</summary>
+    public bool AccepteFichier { get; set; }
     public long? DerniereId { get; set; }
     public DateTime? DernierDebut { get; set; }
     public DateTime? DerniereFin { get; set; }
@@ -146,7 +148,7 @@ public class ImportsModel(DapperContext db) : PageModel
         using var cx = db.CreateConnection();
         Taches = (await cx.QueryAsync<TacheImport>(
             """
-            SELECT t.code, t.libelle, t.description, t.pays, t.ordre, t.ponctuelle,
+            SELECT t.code, t.libelle, t.description, t.pays, t.ordre, t.ponctuelle, t.accepte_fichier,
                    e.id AS derniere_id, e.debut AS dernier_debut, e.fin AS derniere_fin, e.ok AS dernier_ok,
                    (SELECT count(*) FROM import_demandes d WHERE d.tache = t.code AND d.prise_le IS NULL)::int AS en_attente
               FROM import_taches t
@@ -201,6 +203,8 @@ public class ImportsModel(DapperContext db) : PageModel
         using var cx = db.CreateConnection();
         var libelle = await cx.ExecuteScalarAsync<string?>("SELECT libelle FROM import_taches WHERE code = @tache", new { tache });
         if (libelle is null) { Message = "Tâche inconnue."; return RedirectToPage(); }
+        if (await cx.ExecuteScalarAsync<bool>("SELECT accepte_fichier FROM import_taches WHERE code = @tache", new { tache }))
+        { Message = $"« {libelle} » se lance en téléversant un fichier."; return RedirectToPage(); }
         if (await cx.ExecuteScalarAsync<bool>("SELECT EXISTS (SELECT 1 FROM import_demandes WHERE tache = @tache AND prise_le IS NULL)", new { tache }))
         { Message = $"« {libelle} » est déjà demandée : elle partira au prochain passage du planificateur."; return RedirectToPage(); }
         if (await cx.ExecuteScalarAsync<bool>("SELECT EXISTS (SELECT 1 FROM import_executions WHERE tache = @tache AND fin IS NULL)", new { tache }))
@@ -210,13 +214,42 @@ public class ImportsModel(DapperContext db) : PageModel
         return RedirectToPage();
     }
 
+    /// <summary>Taille maximale d'un fichier téléversé (l'export des pétitions du Canada pèse environ 7 Mo). La même limite figure dans la configuration nginx.</summary>
+    private const int FichierMax = 30 * 1024 * 1024;
+
+    /// <summary>
+    /// Téléversement d'un fichier d'import : stocké en base avec une demande, que le planificateur exécute. Réservé aux tâches marquées
+    /// <c>accepte_fichier</c> ; le contenu n'est validé que par l'import lui-même (son échec apparaît dans le journal).
+    /// </summary>
+    public async Task<IActionResult> OnPostTeleverserAsync(string? tache, IFormFile? fichier)
+    {
+        using var cx = db.CreateConnection();
+        var libelle = await cx.ExecuteScalarAsync<string?>("SELECT libelle FROM import_taches WHERE code = @tache AND accepte_fichier", new { tache });
+        if (libelle is null) { Message = "Cette tâche n'accepte pas de fichier."; return RedirectToPage(); }
+        if (fichier is null || fichier.Length == 0) { Message = "Choisir un fichier."; return RedirectToPage(); }
+        if (fichier.Length > FichierMax) { Message = "Fichier trop gros (30 Mo au plus)."; return RedirectToPage(); }
+        if (await cx.ExecuteScalarAsync<bool>("SELECT EXISTS (SELECT 1 FROM import_demandes WHERE tache = @tache AND prise_le IS NULL)", new { tache }))
+        { Message = $"« {libelle} » attend déjà un passage du planificateur : réessayer dans une minute."; return RedirectToPage(); }
+        using var tampon = new MemoryStream();
+        await fichier.CopyToAsync(tampon);
+        // Fichier et demande en une seule instruction : jamais l'un sans l'autre.
+        await cx.ExecuteAsync(
+            """
+            WITH f AS (INSERT INTO import_fichiers (nom, taille, contenu, ajoute_par) VALUES (@nom, @taille, @contenu, @par) RETURNING id)
+            INSERT INTO import_demandes (tache, demandee_par, fichier_id) SELECT @tache, @par, id FROM f
+            """,
+            new { tache, nom = Path.GetFileName(fichier.FileName), taille = (int)fichier.Length, contenu = tampon.ToArray(), par = User.Identity?.Name });
+        Message = $"Fichier reçu pour « {libelle} » : l'import démarre au prochain passage du planificateur (moins d'une minute).";
+        return RedirectToPage();
+    }
+
     /// <summary>Ajoute un créneau : jours cochés (ISO 1 à 7) + heure de Paris. Créé « déjà passé » (dernier_lancement = maintenant) : pas de rattrapage rétroactif.</summary>
     public async Task<IActionResult> OnPostAjouterCreneauAsync(string? tache, short[]? jours, string? heure)
     {
         var j = (jours ?? []).Where(x => x is >= 1 and <= 7).Distinct().OrderBy(x => x).ToArray();
         if (j.Length == 0 || !TimeOnly.TryParse(heure, out var h)) { Message = "Choisir au moins un jour et une heure valide."; return RedirectToPage(); }
         using var cx = db.CreateConnection();
-        if (!await cx.ExecuteScalarAsync<bool>("SELECT EXISTS (SELECT 1 FROM import_taches WHERE code = @tache)", new { tache })) { Message = "Tâche inconnue."; return RedirectToPage(); }
+        if (!await cx.ExecuteScalarAsync<bool>("SELECT EXISTS (SELECT 1 FROM import_taches WHERE code = @tache AND NOT accepte_fichier)", new { tache })) { Message = "Tâche inconnue ou à fichier (non planifiable)."; return RedirectToPage(); }
         await cx.ExecuteAsync("INSERT INTO import_planning (tache, jours, heure, cree_par) VALUES (@tache, @j, @heure, @par)",
             new { tache, j, heure = h.ToTimeSpan(), par = User.Identity?.Name });
         Message = $"Créneau ajouté : {ImportAffichage.JoursTexte(j)} à {ImportAffichage.Heure(h.ToTimeSpan())} (heure de Paris).";
