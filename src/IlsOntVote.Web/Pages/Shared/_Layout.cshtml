@@ -189,8 +189,14 @@
                 else if (L.Pays == "CA")
                 {
                     @* Canada : votes de la Chambre des communes (divisions) et du Sénat, parlementaires, participation, statistiques, données. *@
-                    <a href="@L.Lien("/textes")" @Html.Raw(Actif("/textes") + Actif("/scrutin"))>@L.T("votes-nominaux")</a>
-                    <a href="@L.Lien("/petitions")" @Html.Raw(Actif("/petition"))>@L.T("petitions")</a>
+                    <details class="plus" @Html.Raw(Actif("/textes") + Actif("/scrutin") + Actif("/petition") != "" ? "data-actif" : "")>
+                        <summary>@L.T("textes")</summary>
+                        <div class="plus-liste">
+                            <a href="@L.Lien("/textes")" @Html.Raw(Actif("/textes") + Actif("/scrutin"))>@L.T("votes-nominaux")</a>
+                            <hr class="plus-sep" />
+                            <a href="@L.Lien("/petitions")" @Html.Raw(Actif("/petition"))>@L.T("petitions")</a>
+                        </div>
+                    </details>
                     <details class="plus" @Html.Raw(Actif("/mp") + Actif("/canadian-senator") + Actif("/elus") != "" ? "data-actif" : "")>
                         <summary>@L.T("parlementaires")</summary>
                         <div class="plus-liste">
@@ -328,7 +334,6 @@
                         <li><a href="@L.Lien("/donnees")">@L.T("donnees-ouvertes")</a></li>
                         <li><a href="@L.Lien("/donnees")#sources">@L.T("sources-et-licences")</a></li>
                         <li><a href="@L.Lien("/methodologie")">@L.T("methodologie-et-limites")</a></li>
-                        <li><a href="@L.Lien("/anomalies")">@L.T("anom-titre")</a></li>
                         <li><a href="@L.Lien("/mcp-info")">@L.T("mcp-lien")</a></li>
                     </ul>
                 </nav>
